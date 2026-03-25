@@ -274,9 +274,6 @@ export function ComponentDetail() {
                       v{manifest.version}
                     </span>
                   )}
-                  <span style={{ fontSize: 13, color: "var(--text-dim)" }}>
-                    Dagster {REGISTRY_DAGSTER_SPEC} · Python {REGISTRY_PYTHON_SPEC}
-                  </span>
                 </div>
                 <h1
                   style={{
@@ -301,20 +298,310 @@ export function ComponentDetail() {
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
                 gap: 12,
-                marginBottom: 24,
+                marginBottom: 22,
               }}
             >
-              <StatCard label="Configurable fields" value={attrs.length ? String(attrs.length) : "—"} />
-              <StatCard label="Pip dependencies" value={pipList.length ? String(pipList.length) : "0"} />
+              <StatCard label="Options to configure" value={attrs.length ? String(attrs.length) : "—"} />
+              <StatCard label="Extra Python packages" value={pipList.length ? String(pipList.length) : "0"} />
               <StatCard
-                label="Catalog updated"
+                label="Last catalog refresh"
                 value={catalogUpdated ? formatDate(catalogUpdated) : "—"}
               />
             </div>
 
+            <section style={{ marginBottom: 26 }}>
+              <h2 style={sectionTitleFriendly}>How to get this template</h2>
+              <p style={{ fontSize: 15, color: "var(--text-muted)", marginTop: 0, lineHeight: 1.6 }}>
+                There isn’t a single <span className="mono">pip install</span> for each template—you copy the folder
+                from the templates repo into your project, then install Dagster and any extra libraries this template
+                needs.
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 10,
+                  marginBottom: 14,
+                  padding: "12px 14px",
+                  borderRadius: 10,
+                  border: "1px solid var(--border)",
+                  background: "var(--bg-card)",
+                }}
+              >
+                <span style={{ fontSize: 13, color: "var(--text-dim)", flex: "0 0 auto" }}>Install Dagster</span>
+                <code className="mono" style={{ fontSize: 12, flex: "1 1 200px", color: "var(--text-muted)" }}>
+                  {installBundle.coreInstall}
+                </code>
+                <CopyButton text={installBundle.coreInstall} label="Copy" />
+              </div>
+              {easyAdd && (
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    gap: 10,
+                    marginBottom: 14,
+                  }}
+                >
+                  <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Copy only this template’s folder</span>
+                  <CopyButton text={easyAdd.tiged} label="Using Node (npx)" />
+                  <CopyButton text={easyAdd.curlPy} label="Using Python" />
+                  <CopyButton text={easyAdd.bundle} label="Copy both commands" />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setSetupExpanded((e) => !e)}
+                style={{
+                  background: "transparent",
+                  border: "1px solid var(--border)",
+                  color: "var(--cyan)",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  padding: "8px 14px",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  marginBottom: setupExpanded ? 14 : 0,
+                }}
+              >
+                {setupExpanded ? "▲ Hide copy-paste details" : "▼ Full commands, versions & pip list"}
+              </button>
+              {setupExpanded && (
+                <div
+                  style={{
+                    paddingTop: 12,
+                    borderTop: "1px solid var(--border)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 18,
+                  }}
+                >
+                  {easyAdd && (
+                    <>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", margin: 0 }}>
+                        Full copy commands
+                      </p>
+                      <InstallCodeBlock text={easyAdd.tiged} copyLabel="Copy" />
+                      <InstallCodeBlock text={easyAdd.curlPy} copyLabel="Copy" />
+                    </>
+                  )}
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", margin: 0 }}>
+                    Template Python packages (if any)
+                  </p>
+                  {installBundle.templateInstall ? (
+                    <InstallCodeBlock text={installBundle.templateInstall} copyLabel="Copy" />
+                  ) : (
+                    <p style={{ fontSize: 13, color: "var(--text-dim)", margin: 0 }}>
+                      None listed for this template.
+                    </p>
+                  )}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                    <CopyButton text={installBundle.copyAll} label="Copy pip lines" />
+                    <CopyButton text={installBundle.fullGuide} label="Copy pip + folder script" />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", margin: "0 0 10px" }}>
+                      Versions (defaults for this registry)
+                    </p>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                        gap: 10,
+                      }}
+                    >
+                      <RequirementCard
+                        title="Dagster"
+                        value={
+                          <>
+                            <code>{REGISTRY_DAGSTER_SPEC}</code> + <code>dagster-components</code>
+                          </>
+                        }
+                      />
+                      <RequirementCard title="Python" value={<code>{REGISTRY_PYTHON_SPEC}</code>} />
+                      <RequirementCard
+                        title="Template version"
+                        value={manifest?.version ? <code>v{manifest.version}</code> : <span>—</span>}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+                        All pip packages ({pipList.length})
+                      </span>
+                      {pipList.length > 6 && (
+                        <button
+                          type="button"
+                          onClick={() => setDepsExpanded((e) => !e)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "var(--cyan)",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            padding: 0,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {depsExpanded ? "Show fewer" : "Show all"}
+                        </button>
+                      )}
+                    </div>
+                    {pipList.length === 0 ? (
+                      <p style={{ color: "var(--text-dim)", fontSize: 13, margin: 0 }}>None listed.</p>
+                    ) : (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {visiblePip.map((p) => (
+                          <code
+                            key={p}
+                            className="mono"
+                            style={{
+                              fontSize: 12,
+                              padding: "6px 10px",
+                              borderRadius: 8,
+                              background: "var(--code-bg)",
+                              border: "1px solid var(--border)",
+                              color: "var(--text-muted)",
+                            }}
+                          >
+                            {p}
+                          </code>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section style={{ marginBottom: 26 }}>
+              <h2 style={sectionTitleFriendly}>How to use it</h2>
+              <p style={{ fontSize: 15, color: "var(--text-muted)", marginTop: 0, lineHeight: 1.65 }}>
+                After the folder is in your repo, start from <strong>example.yaml</strong> (or your own YAML) and wire
+                any resources or secrets this integration needs. Register the component with your Dagster code location
+                the same way you do for other Dagster Components—see the docs if you’re new to the pattern.
+              </p>
+              <ul
+                style={{
+                  margin: "0 0 16px",
+                  paddingLeft: 20,
+                  fontSize: 15,
+                  color: "var(--text-muted)",
+                  lineHeight: 1.65,
+                }}
+              >
+                <li style={{ marginBottom: 8 }}>
+                  Read the <strong>README</strong> for behavior, prerequisites, and edge cases.
+                </li>
+                <li style={{ marginBottom: 8 }}>
+                  Use the <strong>example YAML</strong> as a starting point, then adjust fields to match your environment.
+                </li>
+                <li>
+                  Browse <strong>component.py</strong> only if you need to see how the template is implemented.
+                </li>
+              </ul>
+              <a href={DAGSTER_DOC} target="_blank" rel="noreferrer" style={{ ...actionBtn, marginRight: 10 }}>
+                <BookOpen size={16} /> Dagster documentation
+              </a>
+            </section>
+
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 10,
+                marginBottom: 26,
+              }}
+            >
+              {manifest?.readme_url && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDocViewer({
+                      title: "README",
+                      url: manifest.readme_url!,
+                      kind: "markdown",
+                    })
+                  }
+                  style={actionBtnPrimary}
+                >
+                  <FileCode2 size={16} /> README
+                </button>
+              )}
+              {manifest?.example_url && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDocViewer({
+                      title: "example.yaml",
+                      url: manifest.example_url!,
+                      kind: "text",
+                    })
+                  }
+                  style={actionBtnPrimary}
+                >
+                  <ExternalLink size={16} /> Example YAML
+                </button>
+              )}
+              {manifest?.requirements_url && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDocViewer({
+                      title: "requirements.txt",
+                      url: manifest.requirements_url!,
+                      kind: "text",
+                    })
+                  }
+                  style={actionBtnBtn}
+                >
+                  <FileText size={16} /> requirements.txt
+                </button>
+              )}
+              {manifest?.component_url && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDocViewer({
+                      title: "component.py",
+                      url: manifest.component_url!,
+                      kind: "text",
+                    })
+                  }
+                  style={actionBtnBtn}
+                >
+                  <Braces size={16} /> component.py
+                </button>
+              )}
+              {manifest?.schema_url && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDocViewer({
+                      title: "schema.json",
+                      url: manifest.schema_url!,
+                      kind: "json",
+                    })
+                  }
+                  style={actionBtnBtn}
+                >
+                  <FileJson size={16} /> schema.json
+                </button>
+              )}
+              {browseUrl && (
+                <a href={browseUrl} target="_blank" rel="noreferrer" style={actionBtnBtn}>
+                  <FolderGit2 size={16} /> View folder on GitHub
+                </a>
+              )}
+            </div>
+          </header>
+
             {manifest && trustDetail && (
               <section style={{ marginBottom: 24 }}>
-                <h2 style={sectionTitle}>Trust & feedback</h2>
+                <h2 style={sectionTitleFriendly}>Trust & feedback</h2>
                 <div
                   style={{
                     padding: 16,
@@ -383,9 +670,8 @@ export function ComponentDetail() {
                     </p>
                   )}
                   <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 12px", lineHeight: 1.5 }}>
-                    This registry does not run your code. Star ratings and threaded reviews are not stored here
-                    yet—if the manifest gains <span className="mono">verification</span> or{" "}
-                    <span className="mono">community_signals</span> fields, they will show automatically.
+                    This site doesn’t run your code. Ratings and reviews aren’t stored here yet; extra trust signals
+                    can appear when the catalog publishes them.
                   </p>
                   {reportIssueUrl && (
                     <a href={reportIssueUrl} target="_blank" rel="noreferrer" style={actionBtn}>
@@ -396,317 +682,24 @@ export function ComponentDetail() {
               </section>
             )}
 
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 10,
-                marginBottom: 28,
-              }}
-            >
-              <a
-                href={DAGSTER_DOC}
-                target="_blank"
-                rel="noreferrer"
-                style={actionBtn}
-              >
-                <BookOpen size={16} /> Dagster docs
-              </a>
-              {manifest?.readme_url && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDocViewer({
-                      title: "README",
-                      url: manifest.readme_url!,
-                      kind: "markdown",
-                    })
-                  }
-                  style={actionBtnBtn}
-                >
-                  <FileCode2 size={16} /> View README
-                </button>
-              )}
-              {manifest?.component_url && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDocViewer({
-                      title: "component.py",
-                      url: manifest.component_url!,
-                      kind: "text",
-                    })
-                  }
-                  style={actionBtnBtn}
-                >
-                  <Braces size={16} /> Source (component.py)
-                </button>
-              )}
-              {browseUrl && (
-                <a href={browseUrl} target="_blank" rel="noreferrer" style={actionBtn}>
-                  <FolderGit2 size={16} /> Browse folder
-                </a>
-              )}
-              {manifest?.schema_url && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDocViewer({
-                      title: "schema.json",
-                      url: manifest.schema_url!,
-                      kind: "json",
-                    })
-                  }
-                  style={actionBtnBtn}
-                >
-                  <FileJson size={16} /> schema.json
-                </button>
-              )}
-              {manifest?.example_url && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDocViewer({
-                      title: "example.yaml",
-                      url: manifest.example_url!,
-                      kind: "text",
-                    })
-                  }
-                  style={actionBtnBtn}
-                >
-                  <ExternalLink size={16} /> example.yaml
-                </button>
-              )}
-              {manifest?.requirements_url && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDocViewer({
-                      title: "requirements.txt",
-                      url: manifest.requirements_url!,
-                      kind: "text",
-                    })
-                  }
-                  style={actionBtnBtn}
-                >
-                  <FileText size={16} /> requirements.txt
-                </button>
-              )}
-            </div>
-
-            <section style={{ marginBottom: 28 }}>
-              <h2 style={sectionTitle}>Setup in your project</h2>
-              <p style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 0, lineHeight: 1.5 }}>
-                <strong>Dagster</strong> from PyPI, then <strong>copy this template folder</strong> into
-                your repo, then install any extra libraries the template needs.
-              </p>
-
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                  gap: 10,
-                  marginBottom: 12,
-                  padding: "12px 14px",
-                  borderRadius: 10,
-                  border: "1px solid var(--border)",
-                  background: "var(--bg-card)",
-                }}
-              >
-                <span style={{ fontSize: 13, color: "var(--text-dim)", flex: "0 0 auto" }}>Framework</span>
-                <code className="mono" style={{ fontSize: 12, flex: "1 1 200px", color: "var(--text-muted)" }}>
-                  {installBundle.coreInstall}
-                </code>
-                <CopyButton text={installBundle.coreInstall} label="Copy" />
-              </div>
-
-              {easyAdd && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                    gap: 10,
-                    marginBottom: 14,
-                  }}
-                >
-                  <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Copy folder</span>
-                  <CopyButton text={easyAdd.tiged} label="Node (npx)" />
-                  <CopyButton text={easyAdd.curlPy} label="Python script" />
-                  <CopyButton text={easyAdd.bundle} label="Both" />
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setSetupExpanded((e) => !e)}
-                style={{
-                  background: "transparent",
-                  border: "1px solid var(--border)",
-                  color: "var(--cyan)",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  padding: "8px 14px",
-                  borderRadius: 8,
-                  cursor: "pointer",
-                  marginBottom: setupExpanded ? 16 : 0,
-                }}
-              >
-                {setupExpanded ? "▲ Hide setup details" : "▼ More: template pip, versions, full commands"}
-              </button>
-
-              {setupExpanded && (
-                <div
-                  style={{
-                    paddingTop: 8,
-                    borderTop: "1px solid var(--border)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 18,
-                  }}
-                >
-                  {easyAdd && (
-                    <>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", margin: 0 }}>
-                        Full copy commands
-                      </p>
-                      <InstallCodeBlock text={easyAdd.tiged} copyLabel="Copy" />
-                      <InstallCodeBlock text={easyAdd.curlPy} copyLabel="Copy" />
-                    </>
-                  )}
-
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", margin: 0 }}>
-                    Template Python packages (if any)
-                  </p>
-                  {installBundle.templateInstall ? (
-                    <InstallCodeBlock text={installBundle.templateInstall} copyLabel="Copy" />
-                  ) : (
-                    <p style={{ fontSize: 13, color: "var(--text-dim)", margin: 0 }}>
-                      None listed in the manifest for this template.
-                    </p>
-                  )}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                    <CopyButton text={installBundle.copyAll} label="Copy pip lines" />
-                    <CopyButton text={installBundle.fullGuide} label="Copy pip + folder copy script" />
-                  </div>
-
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", margin: "0 0 10px" }}>
-                      Versions (registry defaults)
-                    </p>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-                        gap: 10,
-                      }}
-                    >
-                      <RequirementCard
-                        title="Dagster"
-                        value={
-                          <>
-                            <code>{REGISTRY_DAGSTER_SPEC}</code> + <code>dagster-components</code>
-                          </>
-                        }
-                      />
-                      <RequirementCard title="Python" value={<code>{REGISTRY_PYTHON_SPEC}</code>} />
-                      <RequirementCard
-                        title="Template"
-                        value={manifest?.version ? <code>v{manifest.version}</code> : <span>—</span>}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-                        Pip packages ({pipList.length})
-                      </span>
-                      {pipList.length > 6 && (
-                        <button
-                          type="button"
-                          onClick={() => setDepsExpanded((e) => !e)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: "var(--cyan)",
-                            fontSize: 13,
-                            fontWeight: 600,
-                            padding: 0,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {depsExpanded ? "Show fewer" : "Show all"}
-                        </button>
-                      )}
-                    </div>
-                    {pipList.length === 0 ? (
-                      <p style={{ color: "var(--text-dim)", fontSize: 13, margin: 0 }}>None in manifest.</p>
-                    ) : (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                        {visiblePip.map((p) => (
-                          <code
-                            key={p}
-                            className="mono"
-                            style={{
-                              fontSize: 12,
-                              padding: "6px 10px",
-                              borderRadius: 8,
-                              background: "var(--code-bg)",
-                              border: "1px solid var(--border)",
-                              color: "var(--text-muted)",
-                            }}
-                          >
-                            {p}
-                          </code>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </section>
-          </header>
-
-          <section style={{ marginBottom: 28 }}>
-            <h2 style={sectionTitle}>Manifest</h2>
-            <dl style={dlStyle}>
-              <dt>Repository path</dt>
-              <dd>
-                <span className="mono" style={{ fontSize: 13 }}>
-                  {manifest?.path}
-                </span>
-              </dd>
-              <dt>Author</dt>
-              <dd>{manifest?.author}</dd>
-              <dt>Tags</dt>
-              <dd>
-                {(manifest?.tags ?? []).map((t) => (
-                  <span key={t} style={tagPill}>
-                    {t}
-                  </span>
-                ))}
-              </dd>
-            </dl>
-          </section>
-
           {connector && (
             <section style={{ marginBottom: 28 }}>
-              <h2 style={sectionTitle}>Canvas connectors (schema-spec)</h2>
-              <p style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 0 }}>
-                From <span className="mono">schema-spec.json</span>: how pipeline designers expose upstream
-                (left) and downstream (right) connectors for this category.
+              <h2 style={sectionTitleFriendly}>Inputs &amp; outputs (step to step)</h2>
+              <p style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 0, lineHeight: 1.6 }}>
+                When you <strong>chain templates</strong> in a pipeline (one step feeds the next), it helps to know
+                whether this one can <strong>take data from an upstream step</strong> and{" "}
+                <strong>pass results to a downstream step</strong>. The flags below come from this template’s{" "}
+                <em>category</em> in the catalog—they matter most if your tooling draws connections between steps.
               </p>
               <dl style={dlStyle}>
-                <dt>Upstream (left port)</dt>
+                <dt>Takes input from another step?</dt>
                 <dd>{connector.left ? "Yes" : "No"}</dd>
-                <dt>Downstream (right port)</dt>
+                <dt>Passes output to another step?</dt>
                 <dd>{connector.right ? "Yes" : "No"}</dd>
                 {connector.note && (
                   <>
-                    <dt>Note</dt>
-                    <dd>{connector.note}</dd>
+                    <dt>More detail</dt>
+                    <dd style={{ fontSize: 14, color: "var(--text-muted)" }}>{connector.note}</dd>
                   </>
                 )}
               </dl>
@@ -715,37 +708,19 @@ export function ComponentDetail() {
 
           {schemaError && (
             <p style={{ color: "var(--error)", fontSize: 14 }}>
-              Could not load component schema: {schemaError}
+              Could not load template metadata (schema.json): {schemaError}
             </p>
           )}
 
           {schema && (
             <>
-              <section style={{ marginBottom: 28 }}>
-                <h2 style={sectionTitle}>Component schema (schema.json)</h2>
-                <dl style={dlStyle}>
-                  <dt>component_type</dt>
-                  <dd className="mono" style={{ fontSize: 13, wordBreak: "break-all" }}>
-                    {schema.component_type}
-                  </dd>
-                  {schema["x-dagster-provides"] && schema["x-dagster-provides"].length > 0 && (
-                    <>
-                      <dt>x-dagster-provides</dt>
-                      <dd>
-                        {schema["x-dagster-provides"].map((r) => (
-                          <span key={r} style={tagPill}>
-                            {r}
-                          </span>
-                        ))}
-                      </dd>
-                    </>
-                  )}
-                </dl>
-              </section>
-
               {schema["x-dagster-io"] && (
                 <section style={{ marginBottom: 28 }}>
-                  <h2 style={sectionTitle}>I/O contract (x-dagster-io)</h2>
+                  <h2 style={sectionTitleFriendly}>Structured inputs &amp; outputs</h2>
+                  <p style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 0, lineHeight: 1.55 }}>
+                    What kind of data this template declares it accepts and produces (from its metadata). Use this
+                    together with <strong>Inputs &amp; outputs (step to step)</strong> above when wiring pipelines.
+                  </p>
                   <dl style={dlStyle}>
                     {schema["x-dagster-io"].inputs && (
                       <>
@@ -769,11 +744,10 @@ export function ComponentDetail() {
 
               {attrs.length > 0 && (
                 <section style={{ marginBottom: 28 }}>
-                  <h2 style={sectionTitle}>Configurable attributes ({attrs.length})</h2>
-                  <p style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 0 }}>
-                    Open a field for the full description. <strong>Form control</strong> is how a
-                    visual editor renders the field (text box, dropdown, code editor, etc.); it comes
-                    from the schema’s <span className="mono">ui:widget</span> when set.
+                  <h2 style={sectionTitleFriendly}>What you can configure</h2>
+                  <p style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 0, lineHeight: 1.55 }}>
+                    Fields you set in YAML (or in a form, if your tool provides one). Expand a row for help and
+                    allowed values.
                   </p>
                   <div
                     style={{
@@ -831,14 +805,8 @@ export function ComponentDetail() {
                         >
                           {field.description && <p style={{ margin: "12px 0 8px" }}>{field.description}</p>}
                           {field["ui:widget"] && (
-                            <p style={{ margin: "0 0 8px" }}>
-                              <strong style={{ color: "var(--text)" }}>Form control:</strong>{" "}
-                              <code className="mono">{field["ui:widget"]}</code>
-                              <span style={{ color: "var(--text-dim)" }}>
-                                {" "}
-                                — editor widget (e.g. <span className="mono">select</span> = dropdown,{" "}
-                                <span className="mono">code</span> = code-style input).
-                              </span>
+                            <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--text-dim)" }}>
+                              Editor hint: <code className="mono">{field["ui:widget"]}</code>
                             </p>
                           )}
                           {field.enum && field.enum.length > 0 && (
@@ -852,11 +820,87 @@ export function ComponentDetail() {
                   </div>
                 </section>
               )}
+
+              {attrs.length === 0 && (
+                <p style={{ fontSize: 14, color: "var(--text-dim)", margin: "0 0 20px" }}>
+                  No per-field options are listed in this template’s schema.
+                </p>
+              )}
+
+              <details
+                style={{
+                  marginBottom: 28,
+                  padding: "14px 16px",
+                  borderRadius: 10,
+                  border: "1px solid var(--border)",
+                  background: "var(--bg-card)",
+                }}
+              >
+                <summary
+                  style={{
+                    cursor: "pointer",
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: "var(--text)",
+                    listStyle: "none",
+                  }}
+                >
+                  Advanced: raw catalog &amp; schema files
+                </summary>
+                <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 16px", lineHeight: 1.5 }}>
+                  Paths, class names, and JSON below are for tooling and debugging—most people only need the sections
+                  above.
+                </p>
+                <div style={{ marginTop: 0, paddingTop: 0, borderTop: "none" }}>
+                  {manifest && (
+                    <div style={{ marginBottom: 20 }}>
+                      <h3 style={sectionTitleSmall}>Catalog entry</h3>
+                      <dl style={dlStyle}>
+                        <dt>Path in repo</dt>
+                        <dd>
+                          <span className="mono" style={{ fontSize: 13 }}>
+                            {manifest.path}
+                          </span>
+                        </dd>
+                        <dt>Author</dt>
+                        <dd>{manifest.author}</dd>
+                        <dt>Tags</dt>
+                        <dd>
+                          {(manifest.tags ?? []).map((t) => (
+                            <span key={t} style={tagPill}>
+                              {t}
+                            </span>
+                          ))}
+                        </dd>
+                      </dl>
+                    </div>
+                  )}
+                  <h3 style={sectionTitleSmall}>Template class &amp; resources (schema.json)</h3>
+                  <dl style={dlStyle}>
+                    <dt>Python class</dt>
+                    <dd className="mono" style={{ fontSize: 13, wordBreak: "break-all" }}>
+                      {schema.component_type}
+                    </dd>
+                    {schema["x-dagster-provides"] && schema["x-dagster-provides"].length > 0 && (
+                      <>
+                        <dt>Resource keys this template can register</dt>
+                        <dd>
+                          {schema["x-dagster-provides"].map((r) => (
+                            <span key={r} style={tagPill}>
+                              {r}
+                            </span>
+                          ))}
+                        </dd>
+                      </>
+                    )}
+                  </dl>
+                </div>
+              </details>
             </>
           )}
 
           {!schema && !schemaError && !loading && manifest?.schema_url && (
-            <p style={{ color: "var(--text-muted)" }}>Loading schema…</p>
+            <p style={{ color: "var(--text-muted)" }}>Loading template metadata…</p>
           )}
         </>
       )}
@@ -974,13 +1018,29 @@ const actionBtnBtn: CSSProperties = {
   fontFamily: "inherit",
 };
 
-const sectionTitle: CSSProperties = {
-  fontSize: 11,
+const sectionTitleFriendly: CSSProperties = {
+  fontSize: 18,
+  fontWeight: 650,
+  letterSpacing: "-0.02em",
+  color: "var(--text)",
+  margin: "0 0 10px",
+};
+
+const sectionTitleSmall: CSSProperties = {
+  fontSize: 12,
   fontWeight: 700,
-  letterSpacing: "0.12em",
+  letterSpacing: "0.08em",
   textTransform: "uppercase",
   color: "var(--text-dim)",
-  margin: "0 0 12px",
+  margin: "0 0 10px",
+};
+
+const actionBtnPrimary: CSSProperties = {
+  ...actionBtn,
+  cursor: "pointer",
+  fontFamily: "inherit",
+  background: "linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(34, 211, 238, 0.08) 100%)",
+  borderColor: "var(--border-strong)",
 };
 
 const dlStyle: CSSProperties = {
