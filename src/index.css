@@ -1,0 +1,242 @@
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-deep: #08080c;
+  --bg-elevated: #12121a;
+  --bg-card: #16161f;
+  --bg-card-hover: #1c1c28;
+  --header-bg: rgba(8, 8, 12, 0.85);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --text: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --text-dim: #71717a;
+  --accent: #7c3aed;
+  --accent-bright: #8b5cf6;
+  --accent-glow: rgba(124, 58, 237, 0.35);
+  --cyan: #22d3ee;
+  --success: #34d399;
+  --error: #f87171;
+  --pill-bg: rgba(124, 58, 237, 0.15);
+  --pill-border: rgba(124, 58, 237, 0.25);
+  --code-bg: var(--bg-elevated);
+  --icon-fallback: var(--text-muted);
+  --hero-glow-a: rgba(124, 58, 237, 0.22);
+  --hero-glow-b: rgba(34, 211, 238, 0.06);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg-deep: #f8fafc;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --header-bg: rgba(248, 250, 252, 0.92);
+  --border: rgba(15, 23, 42, 0.1);
+  --border-strong: rgba(15, 23, 42, 0.16);
+  --text: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #64748b;
+  --accent: #6d28d9;
+  --accent-bright: #7c3aed;
+  --accent-glow: rgba(124, 58, 237, 0.12);
+  --cyan: #0891b2;
+  --success: #059669;
+  --error: #dc2626;
+  --pill-bg: rgba(124, 58, 237, 0.1);
+  --pill-border: rgba(124, 58, 237, 0.2);
+  --code-bg: #f1f5f9;
+  --icon-fallback: var(--text-muted);
+  --hero-glow-a: rgba(124, 58, 237, 0.12);
+  --hero-glow-b: rgba(8, 145, 178, 0.08);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--bg-deep);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -30%, var(--hero-glow-a), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, var(--hero-glow-b), transparent 45%);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: var(--cyan);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+code,
+.mono {
+  font-family: var(--mono);
+  font-size: 0.88em;
+}
+
+:root {
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font: "Inter", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* Lucide SVGs from CDN are black strokes; invert on dark bg */
+[data-theme="dark"] .component-icon--lucide {
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+}
+
+[data-theme="light"] .component-icon--lucide {
+  opacity: 0.88;
+}
+
+.component-icon--brand {
+  display: block;
+  object-fit: contain;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* In-app README / markdown viewer */
+.doc-viewer-markdown {
+  max-width: 100%;
+}
+
+.doc-viewer-markdown h1,
+.doc-viewer-markdown h2,
+.doc-viewer-markdown h3,
+.doc-viewer-markdown h4 {
+  margin: 1.25em 0 0.5em;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.doc-viewer-markdown h1 {
+  font-size: 1.5rem;
+  margin-top: 0;
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid var(--border);
+}
+
+.doc-viewer-markdown h2 {
+  font-size: 1.25rem;
+}
+
+.doc-viewer-markdown h3 {
+  font-size: 1.1rem;
+}
+
+.doc-viewer-markdown p {
+  margin: 0.65em 0;
+  color: var(--text-muted);
+}
+
+.doc-viewer-markdown ul,
+.doc-viewer-markdown ol {
+  margin: 0.65em 0;
+  padding-left: 1.35em;
+  color: var(--text-muted);
+}
+
+.doc-viewer-markdown li {
+  margin: 0.25em 0;
+}
+
+.doc-viewer-markdown blockquote {
+  margin: 0.85em 0;
+  padding: 0.35em 0 0.35em 1em;
+  border-left: 3px solid var(--accent-bright);
+  color: var(--text-dim);
+}
+
+.doc-viewer-markdown code {
+  padding: 0.15em 0.4em;
+  border-radius: 6px;
+  background: var(--code-bg);
+  font-size: 0.88em;
+}
+
+.doc-viewer-markdown pre {
+  margin: 0.85em 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.doc-viewer-markdown pre code {
+  padding: 0;
+  background: transparent;
+  font-size: inherit;
+}
+
+.doc-viewer-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 14px;
+}
+
+.doc-viewer-markdown th,
+.doc-viewer-markdown td {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.doc-viewer-markdown th {
+  background: var(--bg-card);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.doc-viewer-markdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.doc-viewer-markdown hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5em 0;
+}
