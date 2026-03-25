@@ -1,10 +1,15 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { Search } from "lucide-react";
+import { useCatalog } from "../context/CatalogContext";
 import { ThemeToggle } from "./ThemeToggle";
 
 type NavItem =
   | { to: string; label: string }
   | { href: string; label: string; external: true };
+
+const DAGSTER_LOGO_URL =
+  "https://cdn.prod.website-files.com/681399f654933b29e12fb8bd/681399f654933b29e12fb8e1_Dagster%20Logo.avif";
 
 const nav: NavItem[] = [
   { to: "/", label: "Registry" },
@@ -19,6 +24,7 @@ const nav: NavItem[] = [
 export function Layout({ children }: { children: ReactNode }) {
   const loc = useLocation();
   const onHome = loc.pathname === "/";
+  const { openSearchPalette } = useCatalog();
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -45,6 +51,7 @@ export function Layout({ children }: { children: ReactNode }) {
         >
           <Link
             to="/"
+            aria-label="Component Registry home"
             style={{
               display: "flex",
               alignItems: "center",
@@ -53,28 +60,45 @@ export function Layout({ children }: { children: ReactNode }) {
               color: "var(--text)",
             }}
           >
-            <span
-              aria-hidden
+            <img
+              src={DAGSTER_LOGO_URL}
+              alt=""
+              decoding="async"
               style={{
-                width: 32,
                 height: 32,
-                borderRadius: 8,
-                background:
-                  "linear-gradient(135deg, var(--accent-bright) 0%, #4f46e5 50%, var(--cyan) 100%)",
-                display: "grid",
-                placeItems: "center",
-                fontWeight: 700,
-                fontSize: 14,
-                color: "#fff",
+                width: "auto",
+                maxWidth: 152,
+                objectFit: "contain",
+                objectPosition: "left center",
+                display: "block",
               }}
-            >
-              D
-            </span>
-            <span style={{ fontWeight: 600, letterSpacing: "-0.02em" }}>
-              Dagster Component Registry
-            </span>
+            />
+            <span style={{ fontWeight: 600, letterSpacing: "-0.02em" }}>Component Registry</span>
           </Link>
           <nav style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => openSearchPalette()}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 14px",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                background: "var(--bg-card)",
+                color: "var(--text-muted)",
+                fontSize: 14,
+                fontWeight: 500,
+              }}
+              title="Search catalog (⌘K)"
+            >
+              <Search size={16} strokeWidth={2} aria-hidden />
+              <span>Search</span>
+              <span className="kbd" style={{ marginLeft: 2 }}>
+                ⌘K
+              </span>
+            </button>
             <ThemeToggle />
             {nav.map((item) =>
               "to" in item ? (
@@ -144,7 +168,7 @@ export function Layout({ children }: { children: ReactNode }) {
             </a>
             .
           </span>
-          <span>Dagster-style UI · MIT component library</span>
+          <span>Open source · MIT</span>
         </div>
       </footer>
     </div>

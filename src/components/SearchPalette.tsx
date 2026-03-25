@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Search } from "lucide-react";
 import type { ManifestComponent } from "../types";
+import { componentId } from "../lib/componentId";
 import { matchesQuery, sortByRelevance } from "../lib/search";
 import { categoryLabel } from "../lib/format";
 import { ComponentIcon } from "./ComponentIcon";
@@ -55,7 +57,7 @@ export function SearchPalette({
       }
       if (e.key === "Enter" && filtered[highlight]) {
         e.preventDefault();
-        nav(`/c/${filtered[highlight].id}`);
+        nav(`/c/${encodeURIComponent(componentId(filtered[highlight]))}`);
         onClose();
       }
     };
@@ -96,24 +98,45 @@ export function SearchPalette({
           overflow: "hidden",
         }}
       >
-        <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border)" }}>
-          <input
-            ref={inputRef}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search operators, assets, sensors…"
-            style={{
-              width: "100%",
-              border: "none",
-              background: "transparent",
-              color: "var(--text)",
-              fontSize: 16,
-              outline: "none",
-              padding: "4px 0",
-            }}
-          />
-          <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 6 }}>
-            ↑ ↓ navigate · ↵ open · esc close
+        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
+            <Search
+              size={22}
+              strokeWidth={2}
+              style={{ color: "var(--text-dim)", flexShrink: 0, marginTop: 2 }}
+              aria-hidden
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <input
+                ref={inputRef}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search by name, tag, category, or description…"
+                style={{
+                  width: "100%",
+                  border: "none",
+                  background: "transparent",
+                  color: "var(--text)",
+                  fontSize: 16,
+                  outline: "none",
+                  padding: "2px 0 4px",
+                }}
+              />
+              <p style={{ margin: 0, fontSize: 12, color: "var(--text-dim)", lineHeight: 1.4 }}>
+                Jump to a template—same catalog as the home page.
+              </p>
+            </div>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-dim)", display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <span>
+              <span className="kbd">↑</span> <span className="kbd">↓</span> navigate
+            </span>
+            <span>
+              <span className="kbd">↵</span> open
+            </span>
+            <span>
+              <span className="kbd">esc</span> close
+            </span>
           </div>
         </div>
         <ul
@@ -126,16 +149,25 @@ export function SearchPalette({
           }}
         >
           {filtered.length === 0 ? (
-            <li style={{ padding: "16px 12px", color: "var(--text-muted)", fontSize: 14 }}>
-              No components match your search.
+            <li style={{ padding: "20px 14px", color: "var(--text-muted)", fontSize: 14, lineHeight: 1.5 }}>
+              {components.length === 0 ? (
+                "Loading catalog…"
+              ) : q.trim() ? (
+                <>
+                  No templates match <span className="mono">{q.trim()}</span>. Try a shorter keyword, a vendor name,
+                  or browse categories from the home page.
+                </>
+              ) : (
+                "Start typing to filter the catalog."
+              )}
             </li>
           ) : (
             filtered.map((c, i) => (
-              <li key={c.id}>
+              <li key={componentId(c)}>
                 <button
                   type="button"
                   onClick={() => {
-                    nav(`/c/${c.id}`);
+                    nav(`/c/${encodeURIComponent(componentId(c))}`);
                     onClose();
                   }}
                   style={{
@@ -159,7 +191,7 @@ export function SearchPalette({
                   <span style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
                     <span style={{ fontWeight: 600, fontSize: 14 }}>{c.name}</span>
                     <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                      <span className="mono">{c.id}</span>
+                      <span className="mono">{componentId(c)}</span>
                       {" · "}
                       {categoryLabel(c.category)}
                     </span>

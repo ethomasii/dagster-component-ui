@@ -1,34 +1,21 @@
 import { Link } from "react-router-dom";
 import type { ManifestComponent } from "../types";
+import { componentId } from "../lib/componentId";
 import { categoryLabel } from "../lib/format";
 import { ComponentIcon } from "./ComponentIcon";
 import { VerificationBadge } from "./VerificationBadge";
 
 export function ComponentCard({ c }: { c: ManifestComponent }) {
   const pipCount = c.dependencies?.pip?.length ?? 0;
+  const id = componentId(c);
 
   return (
     <Link
-      to={`/c/${c.id}`}
+      to={`/c/${encodeURIComponent(id)}`}
+      className="registry-card"
       style={{
         display: "block",
         padding: 18,
-        borderRadius: "var(--radius)",
-        border: "1px solid var(--border)",
-        background: "var(--bg-card)",
-        textDecoration: "none",
-        color: "inherit",
-        transition: "border-color 0.15s, background 0.15s, transform 0.15s",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "var(--border-strong)";
-        e.currentTarget.style.background = "var(--bg-card-hover)";
-        e.currentTarget.style.transform = "translateY(-2px)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "var(--border)";
-        e.currentTarget.style.background = "var(--bg-card)";
-        e.currentTarget.style.transform = "none";
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
@@ -80,7 +67,7 @@ export function ComponentCard({ c }: { c: ManifestComponent }) {
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
         <span className="mono" style={{ fontSize: 11, color: "var(--text-dim)" }}>
-          {c.id}
+          {id}
         </span>
         {c.version && (
           <span

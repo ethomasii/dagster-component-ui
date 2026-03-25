@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { ManifestComponent } from "../types";
-import { loadManifest } from "../data/loadManifest";
-import { SearchPalette } from "../components/SearchPalette";
+import { useCatalog } from "../context/CatalogContext";
 import { ComponentCard } from "../components/ComponentCard";
+import { componentId } from "../lib/componentId";
 import { matchesQuery, sortByRelevance } from "../lib/search";
 import { categoryLabel, formatDate } from "../lib/format";
 import { countDistinctBrandIntegrations, newestComponents } from "../lib/catalogStats";
@@ -13,6 +13,14 @@ import { PopularCategoryCard } from "../components/PopularCategoryCard";
 import { CopyButton } from "../components/CopyButton";
 
 const PAGE_SIZE = 48;
+
+const QUICK_SEARCHES: { label: string; q: string }[] = [
+  { label: "Databricks", q: "databricks" },
+  { label: "Snowflake", q: "snowflake" },
+  { label: "Postgres", q: "postgres" },
+  { label: "BigQuery", q: "bigquery" },
+  { label: "Kafka", q: "kafka" },
+];
 
 /** Ecosystem tiles: each maps to a primary category. */
 const ECOSYSTEM_TILES: { slug: string; title: string; blurb: string }[] = [
@@ -80,35 +88,12 @@ export function Home() {
   /** Discovery-first home: full catalog only after search / filter / browse-all. */
   const explorationActive = Boolean(qParam || catParam || browseAll);
 
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [components, setComponents] = useState<ManifestComponent[]>([]);
-  const [manifestMeta, setManifestMeta] = useState<{
-    last_updated: string;
-    repo: string;
-  } | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { components, manifestMeta, loadError, openSearchPalette } = useCatalog();
   const [localQ, setLocalQ] = useState(qParam);
 
   useEffect(() => {
     setLocalQ(qParam);
   }, [qParam]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const m = await loadManifest();
-        if (cancelled) return;
-        setComponents(m.components);
-        setManifestMeta({ last_updated: m.last_updated, repo: m.repository });
-      } catch (e) {
-        if (!cancelled) setLoadError(e instanceof Error ? e.message : "Failed to load data");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const categoryCounts = useMemo(() => {
     const m = new Map<string, number>();
@@ -150,7 +135,7 @@ export function Home() {
       byCat.set(cat, arr);
     }
     for (const arr of byCat.values()) {
-      arr.sort((a, b) => (a.id ?? "").localeCompare(b.id ?? ""));
+      arr.sort((a, b) => componentId(a).localeCompare(componentId(b)));
     }
     const topCats = categoryCounts.slice(0, 8).map(([c]) => c);
     return topCats
@@ -209,22 +194,28 @@ export function Home() {
     setParams(next);
   }, [params, setParams]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setPaletteOpen(true);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  const runQuickSearch = useCallback(
+    (term: string) => {
+      const next = new URLSearchParams(params);
+      next.set("q", term);
+      next.delete("browse");
+      setLocalQ(term);
+      setParams(next);
+    },
+    [params, setParams]
+  );
 
   if (loadError) {
     return (
-      <div style={{ padding: 48, textAlign: "center", color: "var(--text-muted)" }}>
-        <p>{loadError}</p>
-        <p style={{ fontSize: 14 }}>Ensure manifest.json is in /public and run the dev server.</p>
+      <div style={{ maxWidth: 480, margin: "64px auto", padding: "0 24px", textAlign: "center" }}>
+        <div className="callout-help" style={{ borderLeftColor: "var(--error)", textAlign: "left" }}>
+          <p style={{ margin: "0 0 8px", fontWeight: 600, color: "var(--text)" }}>Could not load catalog</p>
+          <p style={{ margin: 0 }}>{loadError}</p>
+          <p style={{ margin: "12px 0 0", fontSize: 13 }}>
+            Ensure <span className="mono">manifest.json</span> is in <span className="mono">public/</span> and the dev
+            server is running.
+          </p>
+        </div>
       </div>
     );
   }
@@ -234,12 +225,6 @@ export function Home() {
 
   return (
     <>
-      <SearchPalette
-        open={paletteOpen}
-        onClose={() => setPaletteOpen(false)}
-        components={components}
-      />
-
       <section style={{ padding: "48px 24px 32px", maxWidth: 1200, margin: "0 auto" }}>
         <p
           style={{
@@ -251,7 +236,7 @@ export function Home() {
             margin: "0 0 12px",
           }}
         >
-          Community library
+          Template catalog
         </p>
         <h1
           style={{
@@ -263,65 +248,78 @@ export function Home() {
             maxWidth: 720,
           }}
         >
-          Find the perfect{" "}
-          <span style={{ color: "var(--accent-bright)" }}>Dagster components</span> for your
-          pipelines
+          Find the right{" "}
+          <span style={{ color: "var(--accent-bright)" }}>component templates</span> for your pipelines
         </h1>
-        <p style={{ fontSize: 17, color: "var(--text-muted)", maxWidth: 720, margin: "0 0 12px" }}>
-          Discover{" "}
-          <strong style={{ color: "var(--text)" }}>{total || "—"}</strong> templates across{" "}
-          <strong style={{ color: "var(--text)" }}>{catCount || "—"}</strong> categories and{" "}
-          <strong style={{ color: "var(--text)" }}>{integrationBrands || "—"}</strong> distinct{" "}
-          <strong>technology integrations</strong> (branded SaaS &amp; data tools via{" "}
-          <span className="mono">si:*</span> icons). Each template ships with YAML +{" "}
-          <span className="mono">schema.json</span> so you can wire assets with clear metadata—not a
-          coarse provider-only bundle.
+        <p style={{ fontSize: 17, color: "var(--text-muted)", maxWidth: 720, margin: "0 0 10px" }}>
+          Browse community-maintained <strong style={{ color: "var(--text)" }}>component templates</strong>—each
+          folder includes YAML and a <span className="mono">schema.json</span> so you can wire assets with clear
+          metadata. Templates live in GitHub; you copy them into your project (they are not published as PyPI
+          packages per template).
         </p>
-        <p style={{ fontSize: 15, color: "var(--text-dim)", maxWidth: 720, margin: "0 0 28px" }}>
-          Community-maintained library · YAML + <span className="mono">schema.json</span> metadata.
+        <p style={{ fontSize: 15, color: "var(--text-dim)", maxWidth: 720, margin: "0 0 20px" }}>
+          <strong style={{ color: "var(--text)" }}>{total || "—"}</strong> templates ·{" "}
+          <strong style={{ color: "var(--text)" }}>{catCount || "—"}</strong> categories ·{" "}
+          <strong style={{ color: "var(--text)" }}>{integrationBrands || "—"}</strong> branded integrations (
+          <span className="mono">si:*</span> icons)
         </p>
 
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 8,
+            marginBottom: 20,
+            maxWidth: 720,
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-dim)", marginRight: 4 }}>
+            Try:
+          </span>
+          {QUICK_SEARCHES.map(({ label, q }) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => runQuickSearch(q)}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 999,
+                border: "1px solid var(--border)",
+                background: "var(--bg-card)",
+                color: "var(--text-muted)",
+                fontSize: 13,
+                fontWeight: 500,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         <form onSubmit={onSearchSubmit} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <div
-            style={{
-              flex: "1 1 320px",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "12px 16px",
-              borderRadius: 12,
-              border: "1px solid var(--border-strong)",
-              background: "var(--bg-card)",
-            }}
-          >
+          <div className="hero-search-field">
             <span style={{ color: "var(--text-dim)", fontSize: 18 }} aria-hidden>
               ⌕
             </span>
             <input
               value={localQ}
               onChange={(e) => setLocalQ(e.target.value)}
-              placeholder="Search components, tags, integrations…"
+              placeholder="Search by name, tag, or integration…"
               style={{
                 flex: 1,
                 border: "none",
                 background: "transparent",
                 color: "var(--text)",
                 fontSize: 15,
-                outline: "none",
               }}
               aria-label="Search components"
             />
             <button
               type="button"
-              onClick={() => setPaletteOpen(true)}
-              style={{
-                border: "1px solid var(--border)",
-                background: "var(--bg-elevated)",
-                color: "var(--text-muted)",
-                fontSize: 12,
-                padding: "4px 8px",
-                borderRadius: 6,
-              }}
+              onClick={() => openSearchPalette()}
+              className="kbd"
+              title="Open quick search"
             >
               ⌘K
             </button>
@@ -343,16 +341,26 @@ export function Home() {
         </form>
       </section>
 
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-          gap: 14,
-          maxWidth: 1200,
-          margin: "0 auto",
-          padding: "0 24px 40px",
-        }}
-      >
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 32px" }}>
+        <h2
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            color: "var(--text-dim)",
+            margin: "0 0 16px",
+          }}
+        >
+          At a glance
+        </h2>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+            gap: 14,
+          }}
+        >
         <StatBox value={total ? String(total) : "—"} label="Templates" hint="Total components" />
         <StatBox value={catCount ? String(catCount) : "—"} label="Categories" hint="Functional groups" />
         <StatBox
@@ -379,23 +387,15 @@ export function Home() {
           label="Catalog updated"
           hint="Manifest refresh"
         />
+        </div>
       </section>
 
-      <p
-        style={{
-          fontSize: 14,
-          color: "var(--text-muted)",
-          maxWidth: 720,
-          margin: "0 auto 8px",
-          padding: "0 24px",
-          lineHeight: 1.55,
-        }}
-      >
-        Most listings are community templates without an independent test guarantee. Each component page shows
-        verification when the manifest records CI, manual checks, or community signals—otherwise treat as{" "}
-        <strong style={{ color: "var(--text)" }}>unverified</strong>. There is no in-app review system yet; use{" "}
-        <strong style={{ color: "var(--text)" }}>Report issue</strong> on a component to leave feedback on GitHub.
-      </p>
+      <div style={{ maxWidth: 720, margin: "0 auto 32px", padding: "0 24px" }} className="callout-help">
+        <strong style={{ color: "var(--text)" }}>Before you ship:</strong> most listings are community templates
+        without an independent test guarantee. Component pages show verification when the manifest records CI, manual
+        checks, or community signals—otherwise treat as unverified. There is no in-app review yet; use{" "}
+        <strong style={{ color: "var(--text)" }}>Report issue</strong> on a template to reach maintainers on GitHub.
+      </div>
 
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 32px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
@@ -444,7 +444,7 @@ export function Home() {
             }}
           >
             {newestInCatalog.map((c, i) => (
-              <ComponentCard key={c.id ?? `new-${i}`} c={c} />
+              <ComponentCard key={componentId(c) || `new-${i}`} c={c} />
             ))}
           </div>
         </section>
@@ -567,7 +567,7 @@ export function Home() {
             }}
           >
             {spotlight.map((c) => (
-              <ComponentCard key={c.id} c={c} />
+              <ComponentCard key={componentId(c)} c={c} />
             ))}
           </div>
           <div style={{ marginTop: 28, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
@@ -588,7 +588,7 @@ export function Home() {
             </button>
             <button
               type="button"
-              onClick={() => setPaletteOpen(true)}
+              onClick={() => openSearchPalette()}
               style={{
                 padding: "12px 20px",
                 borderRadius: 12,
@@ -657,7 +657,7 @@ export function Home() {
                 }}
               >
                 {visiblePage.map((c) => (
-                  <ComponentCard key={c.id} c={c} />
+                  <ComponentCard key={componentId(c)} c={c} />
                 ))}
               </div>
               {hasMore && (

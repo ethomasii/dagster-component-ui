@@ -23,6 +23,7 @@ import {
   parseGithubRepo,
 } from "../lib/github";
 import { communityHelpfulCount, resolveVerification } from "../lib/verification";
+import { componentId } from "../lib/componentId";
 import { ComponentIcon } from "../components/ComponentIcon";
 import { CopyButton } from "../components/CopyButton";
 import { DocViewerModal, type DocViewerKind } from "../components/DocViewerModal";
@@ -31,7 +32,8 @@ import { VerificationBadge } from "../components/VerificationBadge";
 const DAGSTER_DOC = "https://docs.dagster.io/";
 
 export function ComponentDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { id: routeParam } = useParams<{ id: string }>();
+  const id = routeParam ? decodeURIComponent(routeParam) : "";
   const [manifest, setManifest] = useState<ManifestComponent | null>(null);
   const [repoUrl, setRepoUrl] = useState<string>("");
   const [catalogUpdated, setCatalogUpdated] = useState<string | null>(null);
@@ -59,7 +61,7 @@ export function ComponentDetail() {
         setSpec(sp);
         setCatalogUpdated(m.last_updated);
         setRepoUrl(m.repository);
-        const c = m.components.find((x) => x.id === id);
+        const c = m.components.find((x) => componentId(x) === id);
         setManifest(c ?? null);
         if (!c?.schema_url) {
           setLoading(false);
@@ -98,21 +100,23 @@ export function ComponentDetail() {
 
   const ghParsed = useMemo(() => parseGithubRepo(repoUrl), [repoUrl]);
 
+  const cid = useMemo(() => (manifest ? componentId(manifest) : ""), [manifest]);
+
   const easyAdd = useMemo(() => {
     if (!manifest || !ghParsed) return null;
     const tiged = buildTigedCommand(
       ghParsed.owner,
       ghParsed.repo,
       manifest.path,
-      manifest.id
+      cid
     );
-    const py = buildPythonAddCommand(manifest.id);
+    const py = buildPythonAddCommand(cid);
     const scriptUrl =
       typeof window !== "undefined"
         ? `${window.location.origin}${import.meta.env.BASE_URL}add_component.py`
         : "";
     const curlPy = scriptUrl
-      ? `curl -fsSL ${scriptUrl} -o add_component.py\npython add_component.py ${manifest.id}`
+      ? `curl -fsSL ${scriptUrl} -o add_component.py\npython add_component.py ${cid}`
       : `${py}\n# Save add_component.py from this registry (tools/ or /add_component.py when hosted)`;
     const bundle = [
       "# Copy with Node (npx downloads only this folder from GitHub)",
@@ -122,7 +126,7 @@ export function ComponentDetail() {
       curlPy,
     ].join("\n");
     return { tiged, py, curlPy, bundle };
-  }, [manifest, ghParsed]);
+  }, [manifest, ghParsed, cid]);
 
   const trustDetail = useMemo(
     () => (manifest ? resolveVerification(manifest) : null),
@@ -137,12 +141,12 @@ export function ComponentDetail() {
     const basePath = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
     const registryPage =
       typeof window !== "undefined"
-        ? `${window.location.origin}${basePath}c/${manifest.id}`
+        ? `${window.location.origin}${basePath}c/${encodeURIComponent(cid)}`
         : "";
     return githubNewIssueUrl(repoUrl, {
-      title: `[component] ${manifest.name} (${manifest.id})`,
+      title: `[component] ${manifest.name} (${cid})`,
       body: [
-        `**Component:** \`${manifest.id}\``,
+        `**Component:** \`${cid}\``,
         `**Path:** \`${manifest.path}\``,
         "",
         "What happened?",
@@ -153,7 +157,7 @@ export function ComponentDetail() {
       ].join("\n"),
       labels: ["component-template"],
     });
-  }, [manifest, repoUrl]);
+  }, [manifest, repoUrl, cid]);
 
   const visiblePip = depsExpanded ? pipList : pipList.slice(0, 6);
 
@@ -163,9 +167,17 @@ export function ComponentDetail() {
 
   if (!loading && !manifest) {
     return (
-      <div style={{ padding: 48, maxWidth: 720, margin: "0 auto" }}>
-        <p>Component not found.</p>
-        <Link to="/">← Back to registry</Link>
+      <div style={{ padding: "48px 24px", maxWidth: 560, margin: "0 auto" }}>
+        <div className="callout-help" style={{ marginBottom: 20 }}>
+          <p style={{ margin: "0 0 8px", fontWeight: 600, color: "var(--text)" }}>No matching template</p>
+          <p style={{ margin: 0 }}>
+            This URL does not match any component in the catalog. The list may have changed, or the link could be
+            outdated.
+          </p>
+        </div>
+        <Link to="/" style={{ fontWeight: 600 }}>
+          ← Back to registry
+        </Link>
       </div>
     );
   }
@@ -285,7 +297,7 @@ export function ComponentDetail() {
                   {manifest?.name}
                 </h1>
                 <p className="mono" style={{ fontSize: 14, color: "var(--cyan)", margin: "0 0 12px" }}>
-                  {manifest?.id}
+                  {cid}
                 </p>
                 <p style={{ fontSize: 17, color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>
                   {manifest?.description}

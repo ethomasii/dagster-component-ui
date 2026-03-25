@@ -19,6 +19,7 @@ export function PopularCategoryCard({
     <button
       type="button"
       onClick={onSelect}
+      className="popular-cat-card"
       style={{
         textAlign: "left",
         padding: 18,
@@ -31,7 +32,6 @@ export function PopularCategoryCard({
         flexDirection: "column",
         gap: 10,
         minHeight: 132,
-        transition: "border-color 0.15s, background 0.15s",
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>

@@ -25,12 +25,13 @@ export interface ManifestCommunitySignals {
 }
 
 export interface ManifestComponent {
-  id: string;
+  /** Omitted in some generated manifest rows; UI derives from `path` (see `componentId`). */
+  id?: string;
   name: string;
   category: string;
   description: string;
-  version: string;
-  author: string;
+  version?: string;
+  author?: string;
   path: string;
   tags: string[];
   dependencies?: ManifestDeps;
