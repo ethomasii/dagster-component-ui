@@ -30,6 +30,8 @@ import { DocViewerModal, type DocViewerKind } from "../components/DocViewerModal
 import { VerificationBadge } from "../components/VerificationBadge";
 import { FieldIoIcon } from "../components/FieldIoIcon";
 import { inferAttributeFieldRole } from "../lib/schemaFieldIo";
+import { componentDisplayName } from "../lib/componentDisplay";
+import { effectiveTemplateUrls } from "../lib/templateUrls";
 
 const DAGSTER_DOC = "https://docs.dagster.io/";
 
@@ -65,11 +67,14 @@ export function ComponentDetail() {
         setRepoUrl(m.repository);
         const c = m.components.find((x) => componentId(x) === id);
         setManifest(c ?? null);
-        if (!c?.schema_url) {
-          setLoading(false);
+
+        const urls = effectiveTemplateUrls(c ?? null, m.repository);
+        const schemaFetchUrl = urls.schema_url ?? c?.schema_url;
+        if (!c || !schemaFetchUrl?.trim()) {
+          if (!cancelled) setLoading(false);
           return;
         }
-        const res = await fetch(c.schema_url);
+        const res = await fetch(schemaFetchUrl.trim());
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = (await res.json()) as ComponentSchema;
         if (!cancelled) setSchema(json);
@@ -88,13 +93,28 @@ export function ComponentDetail() {
   const connector = manifest && spec?.connectors?.byCategory?.[manifest.category];
   const attrs = schema?.attributes ? Object.entries(schema.attributes) : [];
   const pipList = manifest?.dependencies?.pip ?? [];
+  const templateUrls = useMemo(
+    () => effectiveTemplateUrls(manifest, repoUrl),
+    [manifest, repoUrl]
+  );
+
+  const displayTitle = useMemo(
+    () => componentDisplayName(manifest, schema),
+    [manifest, schema]
+  );
+
   const installBundle = useMemo(
     () =>
       buildInstallBundle(pipList.length ? pipList : undefined, {
         componentPath: manifest?.path,
-        hasRequirementsFile: Boolean(manifest?.requirements_url),
+        hasRequirementsFile: Boolean(templateUrls.requirements_url ?? manifest?.requirements_url),
       }),
-    [pipList.join("\n"), manifest?.path, manifest?.requirements_url]
+    [
+      pipList.join("\n"),
+      manifest?.path,
+      manifest?.requirements_url,
+      templateUrls.requirements_url,
+    ]
   );
 
   const browseUrl =
@@ -146,7 +166,7 @@ export function ComponentDetail() {
         ? `${window.location.origin}${basePath}c/${encodeURIComponent(cid)}`
         : "";
     return githubNewIssueUrl(repoUrl, {
-      title: `[component] ${manifest.name} (${cid})`,
+      title: `[component] ${componentDisplayName(manifest, null)} (${cid})`,
       body: [
         `**Component:** \`${cid}\``,
         `**Path:** \`${manifest.path}\``,
@@ -221,7 +241,7 @@ export function ComponentDetail() {
                 </span>
               </>
             )}
-            <span style={{ color: "var(--text)", fontWeight: 500 }}>{manifest?.name}</span>
+            <span style={{ color: "var(--text)", fontWeight: 500 }}>{displayTitle}</span>
           </nav>
 
           <header style={{ marginBottom: 28 }}>
@@ -246,7 +266,7 @@ export function ComponentDetail() {
                   flexShrink: 0,
                 }}
               >
-                <ComponentIcon icon={manifest?.icon} size={40} title={manifest?.name} />
+                <ComponentIcon icon={manifest?.icon} size={40} title={displayTitle} />
               </div>
               <div style={{ flex: "1 1 240px", minWidth: 0 }}>
                 <div
@@ -296,7 +316,7 @@ export function ComponentDetail() {
                     letterSpacing: "-0.03em",
                   }}
                 >
-                  {manifest?.name}
+                  {displayTitle}
                 </h1>
                 <p className="mono" style={{ fontSize: 14, color: "var(--cyan)", margin: "0 0 12px" }}>
                   {cid}
@@ -530,13 +550,13 @@ export function ComponentDetail() {
                 marginBottom: 26,
               }}
             >
-              {manifest?.readme_url && (
+              {templateUrls.readme_url && (
                 <button
                   type="button"
                   onClick={() =>
                     setDocViewer({
                       title: "README",
-                      url: manifest.readme_url!,
+                      url: templateUrls.readme_url!,
                       kind: "markdown",
                     })
                   }
@@ -545,13 +565,13 @@ export function ComponentDetail() {
                   <FileCode2 size={16} /> README
                 </button>
               )}
-              {manifest?.example_url && (
+              {templateUrls.example_url && (
                 <button
                   type="button"
                   onClick={() =>
                     setDocViewer({
                       title: "example.yaml",
-                      url: manifest.example_url!,
+                      url: templateUrls.example_url!,
                       kind: "text",
                     })
                   }
@@ -560,13 +580,13 @@ export function ComponentDetail() {
                   <ExternalLink size={16} /> Example YAML
                 </button>
               )}
-              {manifest?.requirements_url && (
+              {templateUrls.requirements_url && (
                 <button
                   type="button"
                   onClick={() =>
                     setDocViewer({
                       title: "requirements.txt",
-                      url: manifest.requirements_url!,
+                      url: templateUrls.requirements_url!,
                       kind: "text",
                     })
                   }
@@ -575,13 +595,13 @@ export function ComponentDetail() {
                   <FileText size={16} /> requirements.txt
                 </button>
               )}
-              {manifest?.component_url && (
+              {templateUrls.component_url && (
                 <button
                   type="button"
                   onClick={() =>
                     setDocViewer({
                       title: "component.py",
-                      url: manifest.component_url!,
+                      url: templateUrls.component_url!,
                       kind: "text",
                     })
                   }
@@ -590,13 +610,13 @@ export function ComponentDetail() {
                   <Braces size={16} /> component.py
                 </button>
               )}
-              {manifest?.schema_url && (
+              {templateUrls.schema_url && (
                 <button
                   type="button"
                   onClick={() =>
                     setDocViewer({
                       title: "schema.json",
-                      url: manifest.schema_url!,
+                      url: templateUrls.schema_url!,
                       kind: "json",
                     })
                   }
@@ -987,7 +1007,7 @@ export function ComponentDetail() {
             </>
           )}
 
-          {!schema && !schemaError && !loading && manifest?.schema_url && (
+          {!schema && !schemaError && !loading && templateUrls.schema_url && (
             <p style={{ color: "var(--text-muted)" }}>Loading template metadata…</p>
           )}
         </>

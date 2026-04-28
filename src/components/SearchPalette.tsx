@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
+import { componentDisplayName } from "../lib/componentDisplay";
 import type { ManifestComponent } from "../types";
 import { componentId } from "../lib/componentId";
 import { matchesQuery, sortByRelevance } from "../lib/search";
@@ -189,7 +190,7 @@ export function SearchPalette({
                     <ComponentIcon icon={c.icon} size={22} title="" />
                   </span>
                   <span style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{c.name}</span>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{componentDisplayName(c, null)}</span>
                     <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
                       <span className="mono">{componentId(c)}</span>
                       {" · "}

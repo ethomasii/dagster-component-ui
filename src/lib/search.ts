@@ -1,4 +1,5 @@
 import type { ManifestComponent } from "../types";
+import { componentDisplayName } from "./componentDisplay";
 import { componentId } from "./componentId";
 
 export function matchesQuery(c: ManifestComponent, q: string): boolean {
@@ -6,6 +7,7 @@ export function matchesQuery(c: ManifestComponent, q: string): boolean {
   if (!s) return true;
   const hay = [
     componentId(c),
+    componentDisplayName(c, null),
     c.name,
     c.description,
     c.category,
@@ -29,7 +31,7 @@ export function sortByRelevance(
 function score(c: ManifestComponent, q: string): number {
   let n = 0;
   const id = componentId(c).toLowerCase();
-  const name = (c.name ?? "").toLowerCase();
+  const name = componentDisplayName(c, null).toLowerCase();
   if (id === q) n += 100;
   if (id.startsWith(q)) n += 40;
   if (name.includes(q)) n += 20;

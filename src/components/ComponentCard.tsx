@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { componentDisplayName } from "../lib/componentDisplay";
 import type { ManifestComponent } from "../types";
 import { componentId } from "../lib/componentId";
 import { categoryLabel } from "../lib/format";
@@ -21,7 +22,7 @@ export function ComponentCard({ c }: { c: ManifestComponent }) {
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, minWidth: 0 }}>
           <span style={{ flexShrink: 0, marginTop: 2 }}>
-            <ComponentIcon icon={c.icon} size={28} title={c.name} />
+            <ComponentIcon icon={c.icon} size={28} title={componentDisplayName(c, null)} />
           </span>
           <h3
             style={{
@@ -32,7 +33,7 @@ export function ComponentCard({ c }: { c: ManifestComponent }) {
               lineHeight: 1.3,
             }}
           >
-            {c.name}
+            {componentDisplayName(c, null)}
           </h3>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>

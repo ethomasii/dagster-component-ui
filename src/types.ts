@@ -27,7 +27,7 @@ export interface ManifestCommunitySignals {
 export interface ManifestComponent {
   /** Omitted in some generated manifest rows; UI derives from `path` (see `componentId`). */
   id?: string;
-  name: string;
+  name?: string;
   category: string;
   description: string;
   version?: string;
