@@ -8,7 +8,7 @@ import { matchesQuery, sortByRelevance } from "../lib/search";
 import { categoryLabel, formatDate } from "../lib/format";
 import { countDistinctBrandIntegrations, newestComponents } from "../lib/catalogStats";
 import { countVerificationBreakdown } from "../lib/verification";
-import { pipInstallDagsterCore } from "../lib/registryRequirements";
+import { INSTALL_PYPI_NOTE, INSTALL_VERSION_NOTE, pipInstallDagsterCore } from "../lib/registryRequirements";
 import { PopularCategoryCard } from "../components/PopularCategoryCard";
 import { CopyButton } from "../components/CopyButton";
 
@@ -596,8 +596,9 @@ export function Home() {
             Ready to get started?
           </h2>
           <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 12px" }}>
-            Install Dagster and Components from PyPI (then add templates from this catalog — see any
-            component page for copy commands).
+            <span className="mono">pip install dagster</span> for your runtime. Pick a component: its page walks you through
+            adding <em>that</em> folder only—a subdirectory fetch, not cloning the entire templates repo—and then installing
+            any extra libraries listed for that component.
           </p>
           <div
             style={{
@@ -617,6 +618,9 @@ export function Home() {
             </code>
             <CopyButton text={pipInstallDagsterCore()} label="Copy" />
           </div>
+          <p style={{ fontSize: 12, color: "var(--text-dim)", margin: "10px 0 0", lineHeight: 1.5, maxWidth: 720 }}>
+            {INSTALL_PYPI_NOTE} {INSTALL_VERSION_NOTE}
+          </p>
         </section>
       )}
 

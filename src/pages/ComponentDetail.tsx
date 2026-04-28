@@ -13,9 +13,14 @@ import {
 import type { ComponentSchema, ManifestComponent, SchemaSpec } from "../types";
 import { loadManifest, loadSchemaSpec } from "../data/loadManifest";
 import { categoryLabel, formatDate, formatIsoDate } from "../lib/format";
-import { categoryModuleBadge } from "../lib/categoryBadge";
 import { githubTreeUrl } from "../lib/installSnippet";
-import { buildInstallBundle, REGISTRY_DAGSTER_SPEC, REGISTRY_PYTHON_SPEC } from "../lib/registryRequirements";
+import {
+  ADD_SINGLE_COMPONENT_SUMMARY,
+  buildInstallBundle,
+  INSTALL_VERSION_NOTE,
+  REGISTRY_DAGSTER_SPEC,
+  REGISTRY_PYTHON_SPEC,
+} from "../lib/registryRequirements";
 import {
   buildPythonAddCommand,
   buildTigedCommand,
@@ -279,21 +284,23 @@ export function ComponentDetail() {
                   }}
                 >
                   <span
-                    title="Module kind"
+                    title="Category"
                     style={{
-                      width: 28,
-                      height: 28,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "4px 12px",
                       borderRadius: 8,
                       background: "var(--pill-bg)",
                       border: "1px solid var(--pill-border)",
-                      display: "grid",
-                      placeItems: "center",
-                      fontSize: 11,
-                      fontWeight: 800,
+                      fontSize: 12,
+                      fontWeight: 650,
+                      letterSpacing: "-0.02em",
                       color: "var(--accent-bright)",
+                      flexShrink: 0,
+                      maxWidth: "100%",
                     }}
                   >
-                    {manifest && categoryModuleBadge(manifest.category)}
+                    {manifest && categoryLabel(manifest.category)}
                   </span>
                   {manifest?.version && (
                     <span
@@ -344,11 +351,9 @@ export function ComponentDetail() {
             </div>
 
             <section style={{ marginBottom: 26 }}>
-              <h2 style={sectionTitleFriendly}>How to get this template</h2>
+              <h2 style={sectionTitleFriendly}>How to add this component</h2>
               <p style={{ fontSize: 15, color: "var(--text-muted)", marginTop: 0, lineHeight: 1.6 }}>
-                There isn’t a single <span className="mono">pip install</span> for each template—you copy the folder
-                from the templates repo into your project, then install Dagster and any extra libraries this template
-                needs.
+                {ADD_SINGLE_COMPONENT_SUMMARY}
               </p>
               <div
                 style={{
@@ -363,12 +368,17 @@ export function ComponentDetail() {
                   background: "var(--bg-card)",
                 }}
               >
-                <span style={{ fontSize: 13, color: "var(--text-dim)", flex: "0 0 auto" }}>Install Dagster</span>
+                <span style={{ fontSize: 13, color: "var(--text-dim)", flex: "0 0 auto" }}>
+                  1 · Install Dagster
+                </span>
                 <code className="mono" style={{ fontSize: 12, flex: "1 1 200px", color: "var(--text-muted)" }}>
                   {installBundle.coreInstall}
                 </code>
                 <CopyButton text={installBundle.coreInstall} label="Copy" />
               </div>
+              <p style={{ margin: "10px 0 0", fontSize: 13, color: "var(--text-dim)", lineHeight: 1.55 }}>
+                {INSTALL_VERSION_NOTE}
+              </p>
               {easyAdd && (
                 <div
                   style={{
@@ -377,9 +387,13 @@ export function ComponentDetail() {
                     alignItems: "center",
                     gap: 10,
                     marginBottom: 14,
+                    marginTop: 14,
                   }}
                 >
-                  <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Copy only this template’s folder</span>
+                  <span style={{ fontSize: 13, color: "var(--text-muted)", flex: "1 1 260px", lineHeight: 1.45 }}>
+                    2 · Add only this folder — subdirectory fetch (<code className="mono" style={{ fontSize: 12 }}>npx tiged</code>{" "}
+                    or Python)—not a full-repo clone:
+                  </span>
                   <CopyButton text={easyAdd.tiged} label="Using Node (npx)" />
                   <CopyButton text={easyAdd.curlPy} label="Using Python" />
                   <CopyButton text={easyAdd.bundle} label="Copy both commands" />
@@ -400,7 +414,7 @@ export function ComponentDetail() {
                   marginBottom: setupExpanded ? 14 : 0,
                 }}
               >
-                {setupExpanded ? "▲ Hide copy-paste details" : "▼ Full commands, versions & pip list"}
+                {setupExpanded ? "▲ Hide copy-paste details" : "▼ Full commands, deps & pip list"}
               </button>
               {setupExpanded && (
                 <div
@@ -415,7 +429,7 @@ export function ComponentDetail() {
                   {easyAdd && (
                     <>
                       <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", margin: 0 }}>
-                        Full copy commands
+                        Fetch only this folder (full commands)
                       </p>
                       <InstallCodeBlock text={easyAdd.tiged} copyLabel="Copy" />
                       <InstallCodeBlock text={easyAdd.curlPy} copyLabel="Copy" />
@@ -450,7 +464,7 @@ export function ComponentDetail() {
                         title="Dagster"
                         value={
                           <>
-                            <code>{REGISTRY_DAGSTER_SPEC}</code> + <code>dagster-components</code>
+                            <code>dagster{REGISTRY_DAGSTER_SPEC}</code>
                           </>
                         }
                       />

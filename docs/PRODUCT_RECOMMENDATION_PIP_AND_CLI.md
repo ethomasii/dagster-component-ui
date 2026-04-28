@@ -71,7 +71,7 @@ dgt-component add s3_to_database_asset --dest defs/components
 If **Dagster Labs** or **Elementl** ever wants a blessed “community index”:
 
 - List the CLI or meta-package in docs under **Community** or **Ecosystem**.
-- Clear **support boundary**: community templates vs core `dagster` / `dagster-components`.
+- Clear **support boundary**: community templates vs installing `dagster` (runtime) locally.
 
 No code change required here—mostly positioning and maybe a link from [docs.dagster.io](https://docs.dagster.io).
 

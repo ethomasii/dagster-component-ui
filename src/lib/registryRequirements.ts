@@ -2,14 +2,31 @@
  * Baselines shown in the UI for “works with” / install hints.
  * The manifest does not carry Dagster or Python pins per component; treat these as
  * registry defaults (tune here to match your deployment policy).
+ *
+ * Users install **`dagster` from PyPI**, then copy or clone template folders into their project from this
+ * catalog’s linked repos—individual templates are not shipped as pip packages.
  */
-export const REGISTRY_DAGSTER_SPEC = ">=1.8.0";
+export const REGISTRY_DAGSTER_SPEC = ">=1.10.0";
 export const REGISTRY_PYTHON_SPEC = ">=3.10";
 
-/** Primary install line for Dagster + dagster-components. */
+/** Primary install line: Dagster runtime from PyPI (templates ship via repo copy, not pip). */
 export function pipInstallDagsterCore(): string {
-  return `pip install "dagster${REGISTRY_DAGSTER_SPEC}" "dagster-components"`;
+  return `python -m pip install -U "dagster${REGISTRY_DAGSTER_SPEC}"`;
 }
+
+/** Short explanatory line for hero / detail sections (no HTML). */
+export const INSTALL_PYPI_NOTE =
+  "`pip install` covers Dagster and any libs a component declares. To add one component, fetch or copy that folder from GitHub (commands on each page)—there is no pip package named after each template.";
+
+/**
+ * Explain how “install one component” works: subdirectory copy/fetch — not pip install COMPONENT_ID,
+ * no need to clone the whole templates repo first.
+ */
+export const ADD_SINGLE_COMPONENT_SUMMARY =
+  "You add components one at a time: commands below fetch or copy only this template’s folder from GitHub into your project—then use pip for Dagster and any deps this component lists.";
+
+export const INSTALL_VERSION_NOTE =
+  "Shown versions are catalog defaults—not pinned per-template. Align `dagster` with your deployment and Dagster docs for your release.";
 
 export function pipInstallTemplatePackages(pip: string[]): string {
   if (!pip.length) return "";
