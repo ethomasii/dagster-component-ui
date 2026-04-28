@@ -28,6 +28,8 @@ import { ComponentIcon } from "../components/ComponentIcon";
 import { CopyButton } from "../components/CopyButton";
 import { DocViewerModal, type DocViewerKind } from "../components/DocViewerModal";
 import { VerificationBadge } from "../components/VerificationBadge";
+import { FieldIoIcon } from "../components/FieldIoIcon";
+import { inferAttributeFieldRole } from "../lib/schemaFieldIo";
 
 const DAGSTER_DOC = "https://docs.dagster.io/";
 
@@ -703,14 +705,75 @@ export function ComponentDetail() {
                 <strong>pass results to a downstream step</strong>. The flags below come from this template’s{" "}
                 <em>category</em> in the catalog—they matter most if your tooling draws connections between steps.
               </p>
-              <dl style={dlStyle}>
-                <dt>Takes input from another step?</dt>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 12,
+                  marginBottom: 18,
+                  padding: "12px 14px",
+                  borderRadius: 10,
+                  border: "1px solid var(--border)",
+                  background: "var(--bg-elevated)",
+                }}
+              >
+                <FieldIoIcon
+                  role={
+                    connector.left && connector.right
+                      ? "both"
+                      : connector.left
+                        ? "in"
+                        : connector.right
+                          ? "out"
+                          : "config"
+                  }
+                  size={22}
+                  labeled
+                />
+                <p style={{ margin: 0, fontSize: 14, color: "var(--text-muted)", lineHeight: 1.55 }}>
+                  {connector.left && connector.right && (
+                    <>
+                      <strong style={{ color: "var(--text)" }}>Passthrough / transform:</strong> this category is
+                      modeled to accept upstream data and emit something the next step can consume.
+                    </>
+                  )}
+                  {connector.left && !connector.right && (
+                    <>
+                      <strong style={{ color: "var(--text)" }}>Downstream consumer:</strong> modeled to take upstream
+                      data; not flagged as passing tabular output to the next step.
+                    </>
+                  )}
+                  {!connector.left && connector.right && (
+                    <>
+                      <strong style={{ color: "var(--text)" }}>Upstream source:</strong> modeled to feed downstream
+                      steps without requiring an upstream step connection.
+                    </>
+                  )}
+                  {!connector.left && !connector.right && (
+                    <>
+                      <strong style={{ color: "var(--text)" }}>No step I/O flags:</strong> this category isn’t modeled
+                      with upstream/downstream ports in the catalog spec (still configure inputs in YAML).
+                    </>
+                  )}
+                </p>
+              </div>
+              <dl style={dlStyleIo}>
+                <dt style={ioDtStyle}>
+                  <FieldIoIcon role="in" size={18} />
+                  <span>Takes input from another step?</span>
+                </dt>
                 <dd>{connector.left ? "Yes" : "No"}</dd>
-                <dt>Passes output to another step?</dt>
+                <dt style={ioDtStyle}>
+                  <FieldIoIcon role="out" size={18} />
+                  <span>Passes output to another step?</span>
+                </dt>
                 <dd>{connector.right ? "Yes" : "No"}</dd>
                 {connector.note && (
                   <>
-                    <dt>More detail</dt>
+                    <dt style={ioDtStyle}>
+                      <FieldIoIcon role="config" size={18} />
+                      <span>More detail</span>
+                    </dt>
                     <dd style={{ fontSize: 14, color: "var(--text-muted)" }}>{connector.note}</dd>
                   </>
                 )}
@@ -733,10 +796,13 @@ export function ComponentDetail() {
                     What kind of data this template declares it accepts and produces (from its metadata). Use this
                     together with <strong>Inputs &amp; outputs (step to step)</strong> above when wiring pipelines.
                   </p>
-                  <dl style={dlStyle}>
+                  <dl style={dlStyleIo}>
                     {schema["x-dagster-io"].inputs && (
                       <>
-                        <dt>Inputs</dt>
+                        <dt style={ioDtStyle}>
+                          <FieldIoIcon role="in" size={18} />
+                          <span>Inputs (data in)</span>
+                        </dt>
                         <dd>
                           <pre style={preStyle}>{JSON.stringify(schema["x-dagster-io"].inputs, null, 2)}</pre>
                         </dd>
@@ -744,7 +810,10 @@ export function ComponentDetail() {
                     )}
                     {schema["x-dagster-io"].outputs && (
                       <>
-                        <dt>Outputs</dt>
+                        <dt style={ioDtStyle}>
+                          <FieldIoIcon role="out" size={18} />
+                          <span>Outputs (data out)</span>
+                        </dt>
                         <dd>
                           <pre style={preStyle}>{JSON.stringify(schema["x-dagster-io"].outputs, null, 2)}</pre>
                         </dd>
@@ -759,7 +828,9 @@ export function ComponentDetail() {
                   <h2 style={sectionTitleFriendly}>What you can configure</h2>
                   <p style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 0, lineHeight: 1.55 }}>
                     Fields you set in YAML (or in a form, if your tool provides one). Expand a row for help and
-                    allowed values.
+                    allowed values. Icons are a best guess from field names:{" "}
+                    <FieldIoIcon role="in" size={14} /> input-side · <FieldIoIcon role="out" size={14} /> output-side ·{" "}
+                    <FieldIoIcon role="both" size={14} /> both · <FieldIoIcon role="config" size={14} /> settings.
                   </p>
                   <div
                     style={{
@@ -782,8 +853,13 @@ export function ComponentDetail() {
                             cursor: "pointer",
                             fontSize: 14,
                             listStyle: "none",
+                            display: "flex",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            gap: 8,
                           }}
                         >
+                          <FieldIoIcon role={inferAttributeFieldRole(key)} size={16} />
                           <span className="mono" style={{ color: "var(--cyan)", fontWeight: 600 }}>
                             {key}
                           </span>
@@ -1060,6 +1136,19 @@ const dlStyle: CSSProperties = {
   gridTemplateColumns: "160px 1fr",
   gap: "10px 20px",
   fontSize: 14,
+  margin: 0,
+};
+
+/** Wider label column when rows include I/O icons + longer labels. */
+const dlStyleIo: CSSProperties = {
+  ...dlStyle,
+  gridTemplateColumns: "minmax(240px, 320px) 1fr",
+};
+
+const ioDtStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
   margin: 0,
 };
 
