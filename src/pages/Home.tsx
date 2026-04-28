@@ -74,6 +74,11 @@ const USE_CASES: { slug: string; title: string; blurb: string }[] = [
     blurb: "Event-driven runs, monitors, and notifications.",
   },
   {
+    slug: "check",
+    title: "Asset checks",
+    blurb: "Validation and freshness checks wired as Dagster Components.",
+  },
+  {
     slug: "integration",
     title: "Platform integrations",
     blurb: "Databricks, Glue, BigQuery, ADF, and other orchestrated platforms.",
@@ -127,8 +132,6 @@ export function Home() {
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [components]);
 
-  const topCategories = useMemo(() => categoryCounts.slice(0, 6), [categoryCounts]);
-
   const integrationBrands = useMemo(
     () => countDistinctBrandIntegrations(components),
     [components]
@@ -147,7 +150,7 @@ export function Home() {
     return byCat;
   }, [components]);
 
-  /** One stable pick per top category for the landing spotlight (highlights, not the full index). */
+  /** One stable pick per manifest category—same order as template counts descending. */
   const spotlight = useMemo(() => {
     if (!components.length) return [];
     const byCat = new Map<string, ManifestComponent[]>();
@@ -160,9 +163,8 @@ export function Home() {
     for (const arr of byCat.values()) {
       arr.sort((a, b) => componentId(a).localeCompare(componentId(b)));
     }
-    const topCats = categoryCounts.slice(0, 8).map(([c]) => c);
-    return topCats
-      .map((cat) => byCat.get(cat)?.[0])
+    return categoryCounts
+      .map(([cat]) => byCat.get(cat)?.[0])
       .filter((c): c is ManifestComponent => Boolean(c));
   }, [components, categoryCounts]);
 
@@ -469,10 +471,11 @@ export function Home() {
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 32px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
           <h2 style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)", margin: 0 }}>
-            Popular categories
+            Categories
           </h2>
-          <span style={{ fontSize: 13, color: "var(--text-dim)" }}>
-            Most templates per category — quick entry points by workload.
+          <span style={{ fontSize: 13, color: "var(--text-dim)", maxWidth: 420, textAlign: "right", lineHeight: 1.45 }}>
+            Every label present in this catalog—including low-volume groups like asset checks—sorted by template count,
+            click to filter.
           </span>
         </div>
         <div
@@ -482,7 +485,7 @@ export function Home() {
             gap: 14,
           }}
         >
-          {topCategories.map(([cat, n]) => (
+          {categoryCounts.map(([cat, n]) => (
             <PopularCategoryCard
               key={cat}
               category={cat}
@@ -523,8 +526,10 @@ export function Home() {
         <h2 style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)", margin: "0 0 8px" }}>
           Browse by ecosystem
         </h2>
-        <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 16px", maxWidth: 640 }}>
-          Jump straight into databases, cloud, AI, analytics, and more—then search or filter from there.
+        <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 16px", maxWidth: 680 }}>
+          Thematic shortcuts (not exhaustive). Scroll up for the full{" "}
+          <strong style={{ color: "var(--text)" }}>Categories</strong> grid—it lists each label once, including sparse
+          ones like asset checks, sources, sinks, and dbt.
         </p>
         <div
           style={{
@@ -559,6 +564,10 @@ export function Home() {
         <h2 style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)", margin: "0 0 16px" }}>
           More use cases
         </h2>
+        <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 16px", maxWidth: 680 }}>
+          Curated workloads for inspiration; the complete category list—including anything not listed here—is in{" "}
+          <strong style={{ color: "var(--text)" }}>Categories</strong> higher on this page.
+        </p>
         <div
           style={{
             display: "grid",
@@ -630,7 +639,7 @@ export function Home() {
             Spotlight
           </h2>
           <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 20px", maxWidth: 640 }}>
-            One sample template per top category — open a category or search for the full list.
+            One sample component per category ({catCount} total)—narrow with search or Browse all below.
           </p>
           <div
             style={{

@@ -32,6 +32,8 @@ import { componentId } from "../lib/componentId";
 import { ComponentIcon } from "../components/ComponentIcon";
 import { CopyButton } from "../components/CopyButton";
 import { DocViewerModal, type DocViewerKind } from "../components/DocViewerModal";
+import { ComponentReadme } from "../components/ComponentReadme";
+import { ComponentChangeHistory } from "../components/ComponentChangeHistory";
 import { VerificationBadge } from "../components/VerificationBadge";
 import { FieldIoIcon } from "../components/FieldIoIcon";
 import { inferAttributeFieldRole } from "../lib/schemaFieldIo";
@@ -350,6 +352,63 @@ export function ComponentDetail() {
               />
             </div>
 
+            {templateUrls.readme_url && (
+              <section style={{ marginBottom: 28 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "baseline",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    marginBottom: 14,
+                  }}
+                >
+                  <h2 style={{ ...sectionTitleFriendly, marginBottom: 0 }}>README — what this component does</h2>
+                  <a
+                    href={templateUrls.readme_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: "var(--cyan)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <ExternalLink size={14} strokeWidth={2} />
+                    Raw README
+                  </a>
+                </div>
+                <p
+                  style={{
+                    fontSize: 15,
+                    color: "var(--text-muted)",
+                    lineHeight: 1.6,
+                    margin: "0 0 16px",
+                  }}
+                >
+                  <strong style={{ color: "var(--text)" }}>Read the README below in full</strong> before you rely on
+                  this template—it is the authoritative description of behavior, prerequisites, caveats, and
+                  limitations. The YAML and attribute sections farther down help you wire configuration; they do not
+                  replace README.
+                </p>
+                <div
+                  style={{
+                    padding: "18px 20px",
+                    borderRadius: 12,
+                    border: "1px solid var(--border)",
+                    background: "var(--bg-card)",
+                  }}
+                >
+                  <ComponentReadme url={templateUrls.readme_url} />
+                </div>
+              </section>
+            )}
+
             <section style={{ marginBottom: 26 }}>
               <h2 style={sectionTitleFriendly}>How to add this component</h2>
               <p style={{ fontSize: 15, color: "var(--text-muted)", marginTop: 0, lineHeight: 1.6 }}>
@@ -542,7 +601,17 @@ export function ComponentDetail() {
                 }}
               >
                 <li style={{ marginBottom: 8 }}>
-                  Read the <strong>README</strong> for behavior, prerequisites, and edge cases.
+                  {templateUrls.readme_url ? (
+                    <>
+                      The fullscreen <strong>README</strong> button uses the same file as below—pick whichever view suits
+                      you while you work.
+                    </>
+                  ) : (
+                    <>
+                      After copying the template, open <strong>README.md</strong> inside that folder—we could not fetch a
+                      README URL for this manifest.
+                    </>
+                  )}
                 </li>
                 <li style={{ marginBottom: 8 }}>
                   Use the <strong>example YAML</strong> as a starting point, then adjust fields to match your environment.
@@ -646,6 +715,10 @@ export function ComponentDetail() {
               )}
             </div>
           </header>
+
+            {ghParsed && repoUrl && manifest?.path && (
+              <ComponentChangeHistory repoUrl={repoUrl} folderPath={manifest.path} />
+            )}
 
             {manifest && trustDetail && (
               <section style={{ marginBottom: 24 }}>
