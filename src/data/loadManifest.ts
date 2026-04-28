@@ -24,12 +24,19 @@ async function fetchJsonWithFallback<T>(
   urls: readonly string[],
   resourceLabel: string
 ): Promise<T> {
-  const unique = [...new Set(urls)];
+  /** Cross-origin manifests are often CDN-cached; unique URL avoids stale counts/dates after GitHub publish. */
+  function withCacheBust(url: string): string {
+    if (!url.startsWith("http")) return url;
+    const sep = url.includes("?") ? "&" : "?";
+    return `${url}${sep}_=${Date.now()}`;
+  }
+
+  const unique = [...new Set(urls)].map(withCacheBust);
   let lastStatus: number | undefined;
   let lastErr: unknown;
   for (const url of unique) {
     try {
-      const res = await fetch(url, { cache: "no-cache" });
+      const res = await fetch(url, { cache: "no-store", credentials: "omit" });
       if (!res.ok) {
         lastStatus = res.status;
         continue;

@@ -15,8 +15,12 @@ import { OPEN_SEARCH_PALETTE_EVENT } from "../lib/openSearchPalette";
 type CatalogValue = {
   components: ManifestComponent[];
   manifestMeta: { last_updated: string; repo: string } | null;
+  /** When this tab last successfully loaded manifest.json (browser time). */
+  manifestFetchedAt: string | null;
   loadError: string | null;
   openSearchPalette: () => void;
+  /** Re-fetch manifest from GitHub raw (shows latest published manifest.json). */
+  reloadCatalog: () => Promise<void>;
 };
 
 const CatalogCtx = createContext<CatalogValue | null>(null);
@@ -28,7 +32,20 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     last_updated: string;
     repo: string;
   } | null>(null);
+  const [manifestFetchedAt, setManifestFetchedAt] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const reloadCatalog = useCallback(async () => {
+    try {
+      setLoadError(null);
+      const m = await loadManifest();
+      setComponents(m.components);
+      setManifestMeta({ last_updated: m.last_updated, repo: m.repository });
+      setManifestFetchedAt(new Date().toISOString());
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Failed to load data");
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,6 +55,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         setComponents(m.components);
         setManifestMeta({ last_updated: m.last_updated, repo: m.repository });
+        setManifestFetchedAt(new Date().toISOString());
       } catch (e) {
         if (!cancelled) setLoadError(e instanceof Error ? e.message : "Failed to load data");
       }
@@ -70,10 +88,12 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     () => ({
       components,
       manifestMeta,
+      manifestFetchedAt,
       loadError,
       openSearchPalette,
+      reloadCatalog,
     }),
-    [components, manifestMeta, loadError, openSearchPalette]
+    [components, manifestMeta, manifestFetchedAt, loadError, openSearchPalette, reloadCatalog]
   );
 
   return (

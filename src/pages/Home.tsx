@@ -14,6 +14,12 @@ import { CopyButton } from "../components/CopyButton";
 
 const PAGE_SIZE = 48;
 
+/** Link to browse manifest.json on GitHub (same repo URI as manifest `repository`). */
+function manifestGithubBlobUrl(repository: string): string {
+  const r = repository.replace(/\.git$/i, "").replace(/\/$/, "");
+  return `${r}/blob/main/manifest.json`;
+}
+
 const QUICK_SEARCHES: { label: string; q: string }[] = [
   { label: "Databricks", q: "databricks" },
   { label: "Snowflake", q: "snowflake" },
@@ -88,8 +94,25 @@ export function Home() {
   /** Discovery-first home: full catalog only after search / filter / browse-all. */
   const explorationActive = Boolean(qParam || catParam || browseAll);
 
-  const { components, manifestMeta, loadError, openSearchPalette } = useCatalog();
+  const {
+    components,
+    manifestMeta,
+    manifestFetchedAt,
+    loadError,
+    openSearchPalette,
+    reloadCatalog,
+  } = useCatalog();
+  const [catalogRefreshBusy, setCatalogRefreshBusy] = useState(false);
   const [localQ, setLocalQ] = useState(qParam);
+
+  const refreshCatalogNow = useCallback(async () => {
+    setCatalogRefreshBusy(true);
+    try {
+      await reloadCatalog();
+    } finally {
+      setCatalogRefreshBusy(false);
+    }
+  }, [reloadCatalog]);
 
   useEffect(() => {
     setLocalQ(qParam);
@@ -385,9 +408,55 @@ export function Home() {
         <StatBox
           value={manifestMeta ? formatDate(manifestMeta.last_updated) : "—"}
           label="Catalog updated"
-          hint="Manifest refresh"
+          hint="maintainer-run manifest.json on GitHub (last_updated)"
         />
         </div>
+        {manifestMeta && (
+          <p
+            style={{
+              margin: "14px 0 0",
+              padding: "0",
+              fontSize: 13,
+              color: "var(--text-muted)",
+              lineHeight: 1.6,
+              maxWidth: 760,
+            }}
+          >
+            <strong style={{ color: "var(--text)" }}>Source of truth:</strong> the template total and catalog date
+            come from {" "}
+            <a href={manifestGithubBlobUrl(manifestMeta.repo)} target="_blank" rel="noreferrer">
+              manifest.json
+            </a>{" "}
+            in the templates repo—they update when you regenerate commit that file (field{" "}
+            <span className="mono">last_updated</span>). This site reads that JSON at runtime; it does not scrape
+            folders independently.{" "}
+            {manifestFetchedAt ? (
+              <>
+                Your browser last loaded it: {" "}
+                <strong>{new Date(manifestFetchedAt).toLocaleString()}</strong>
+                .{" "}
+              </>
+            ) : null}
+            <button
+              type="button"
+              disabled={catalogRefreshBusy}
+              onClick={() => void refreshCatalogNow()}
+              style={{
+                marginLeft: 8,
+                padding: "4px 10px",
+                fontSize: 12,
+                fontWeight: 600,
+                borderRadius: 8,
+                border: "1px solid var(--border-strong)",
+                background: catalogRefreshBusy ? "var(--code-bg)" : "var(--bg-card)",
+                color: "var(--text-muted)",
+                cursor: catalogRefreshBusy ? "wait" : "pointer",
+              }}
+            >
+              {catalogRefreshBusy ? "Refreshing…" : "Reload catalog"}
+            </button>
+          </p>
+        )}
       </section>
 
       <div style={{ maxWidth: 720, margin: "0 auto 32px", padding: "0 24px" }} className="callout-help">
