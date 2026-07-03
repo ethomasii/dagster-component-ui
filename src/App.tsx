@@ -10,6 +10,7 @@ import { ComponentDetail } from "./pages/ComponentDetail";
 import { GetStartedPage } from "./pages/GetStartedPage";
 import { AiAssistantsPage } from "./pages/AiAssistantsPage";
 import { DeployDagsterPlusPage } from "./pages/DeployDagsterPlusPage";
+import { UnifiedSearch } from "./pages/UnifiedSearch";
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/vendors" element={<VendorsIndex />} />
           <Route path="/vendors/:slug" element={<VendorDetail />} />
           <Route path="/c/:id" element={<ComponentDetail />} />
+          <Route path="/search" element={<UnifiedSearch />} />
         </Routes>
       </Layout>
     </CatalogProvider>
