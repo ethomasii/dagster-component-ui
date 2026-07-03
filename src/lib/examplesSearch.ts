@@ -1,14 +1,31 @@
 /** Search helpers for the CLI `examples/README.md` (markdown). */
 
+/**
+ * Backwards-compatible single-alternative word list.
+ * Prefer `queryAlternatives` for OR search.
+ */
 export function queryWords(q: string): string[] {
   return q.trim().toLowerCase().split(/\s+/).filter(Boolean);
 }
 
+/**
+ * Split a query into OR alternatives. Comma separates alternatives; whitespace
+ * within an alternative is AND-ed. So `temporal,vercel` returns
+ * `[["temporal"], ["vercel"]]` and matches EITHER — great for showing off
+ * multiple vendors in one shareable link.
+ */
+export function queryAlternatives(q: string): string[][] {
+  return q
+    .split(",")
+    .map((alt) => alt.trim().toLowerCase().split(/\s+/).filter(Boolean))
+    .filter((alt) => alt.length > 0);
+}
+
 export function haystackMatches(haystack: string, q: string): boolean {
-  const words = queryWords(q);
-  if (!words.length) return true;
+  const alts = queryAlternatives(q);
+  if (!alts.length) return true;
   const h = haystack.toLowerCase();
-  return words.every((w) => h.includes(w));
+  return alts.some((words) => words.every((w) => h.includes(w)));
 }
 
 /** Rough plain text for full-document search. */
@@ -42,8 +59,8 @@ export function countExampleIndexEntries(markdown: string): number {
 
 /** Entries that map to in-app `/examples/:slug` routes (from `[text](path.md)` links). */
 export function findExampleLinkHits(markdown: string, q: string): ExampleLinkHit[] {
-  const words = queryWords(q);
-  if (!words.length) return [];
+  const alts = queryAlternatives(q);
+  if (!alts.length) return [];
   const hits: ExampleLinkHit[] = [];
   const seen = new Set<string>();
   const linkRe = /\[([^\]]*)\]\(([^)]+\.md)\)/gi;
@@ -55,7 +72,7 @@ export function findExampleLinkHits(markdown: string, q: string): ExampleLinkHit
     if (tail.toLowerCase() === "readme.md") continue;
     const slug = tail.replace(/\.md$/i, "");
     const hay = `${title} ${slug} ${rawPath}`.toLowerCase();
-    if (!words.every((w) => hay.includes(w))) continue;
+    if (!alts.some((words) => words.every((w) => hay.includes(w)))) continue;
     if (seen.has(slug)) continue;
     seen.add(slug);
     hits.push({ slug, title: title || slug });
@@ -64,20 +81,23 @@ export function findExampleLinkHits(markdown: string, q: string): ExampleLinkHit
 }
 
 export function examplesReadmeBodyMatches(markdown: string, q: string): boolean {
-  const words = queryWords(q);
-  if (!words.length) return false;
+  const alts = queryAlternatives(q);
+  if (!alts.length) return false;
   const plain = markdownToSearchPlain(markdown);
-  return words.every((w) => plain.includes(w));
+  return alts.some((words) => words.every((w) => plain.includes(w)));
 }
 
 /**
  * Keep markdown chunks that start at a line `## …` boundary (plus any preamble before the first `##`).
- * Drops sections that do not contain all query words.
+ * Drops sections that do not contain any query alternative's AND-set.
  */
 export function filterExamplesReadmeByQuery(markdown: string, q: string): string {
-  const words = queryWords(q);
-  if (!words.length) return markdown;
-  const match = (chunk: string) => words.every((w) => chunk.toLowerCase().includes(w));
+  const alts = queryAlternatives(q);
+  if (!alts.length) return markdown;
+  const match = (chunk: string) => {
+    const c = chunk.toLowerCase();
+    return alts.some((words) => words.every((w) => c.includes(w)));
+  };
   const parts = markdown.split(/(?=\n## )/);
   const kept = parts.filter((p) => match(p));
   return kept.join("").trim();
