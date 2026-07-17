@@ -37,7 +37,12 @@ export async function fetchExamplesIndexReadmeCached(): Promise<string> {
 export async function fetchExampleMarkdown(
   slug: string
 ): Promise<{ sourceUrl: string; text: string }> {
-  const enc = encodeURIComponent(slug);
+  // Strip a trailing `.md` so relative links inside walkthroughs like
+  // `[foo](./bar.md)` — which land on `/examples/bar.md` — resolve to the
+  // same source as clean `/examples/bar` URLs. Without this, the fetch
+  // would try `<slug>.md/README.md` and `<slug>.md.md`, both of which 404.
+  const cleaned = slug.replace(/\.md$/i, "");
+  const enc = encodeURIComponent(cleaned);
   const candidates = [
     `${COMMUNITY_CLI_EXAMPLES_RAW_BASE}/${enc}/README.md`,
     `${COMMUNITY_CLI_EXAMPLES_RAW_BASE}/${enc}.md`,
