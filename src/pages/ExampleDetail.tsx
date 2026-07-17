@@ -11,6 +11,7 @@ import { useCatalog } from "../context/CatalogContext";
 import {
   fetchExampleMarkdown,
   markdownFirstH1,
+  rewriteExamplesIndexLinks,
   stripMarkdownFirstH1,
 } from "../lib/loadCommunityExamples";
 import { linkifyCatalogMarkdown } from "../lib/linkifyCatalogMarkdown";
@@ -35,10 +36,14 @@ export function ExampleDetail() {
       : md
     : "";
 
-  const linkedMd = useMemo(
-    () => (bodyMd && components.length ? linkifyCatalogMarkdown(bodyMd, components) : bodyMd),
-    [bodyMd, components]
-  );
+  const linkedMd = useMemo(() => {
+    if (!bodyMd) return bodyMd;
+    // Rewrite `./name.md` cross-walkthrough links to clean `/examples/name`
+    // URLs BEFORE catalog-id linkification. Keeps the URL bar tidy and prevents
+    // the router from ever receiving a `.md`-suffixed slug.
+    const rewritten = rewriteExamplesIndexLinks(bodyMd);
+    return components.length ? linkifyCatalogMarkdown(rewritten, components) : rewritten;
+  }, [bodyMd, components]);
 
   useEffect(() => {
     if (!slug) return;
