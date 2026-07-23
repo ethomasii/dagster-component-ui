@@ -88,17 +88,84 @@ export function examplesReadmeBodyMatches(markdown: string, q: string): boolean 
 }
 
 /**
- * Keep markdown chunks that start at a line `## …` boundary (plus any preamble before the first `##`).
- * Drops sections that do not contain any query alternative's AND-set.
+ * Filter the examples README by query, operating at the TABLE-ROW level.
+ *
+ * The README is mostly markdown tables (~300 rows across ~15 sections). The old
+ * behavior filtered whole H2 sections — one match brought back a whole 30-row
+ * table. New behavior keeps only matching rows within each table, drops empty
+ * tables entirely, and drops empty sections entirely. Section headings +
+ * pre-table preamble stay so results have context.
+ *
+ * A row is kept if the row text matches ANY query alternative (comma-separated
+ * OR), where within an alternative all words must appear (AND).
  */
 export function filterExamplesReadmeByQuery(markdown: string, q: string): string {
   const alts = queryAlternatives(q);
   if (!alts.length) return markdown;
-  const match = (chunk: string) => {
-    const c = chunk.toLowerCase();
-    return alts.some((words) => words.every((w) => c.includes(w)));
+  const match = (text: string) => {
+    const t = text.toLowerCase();
+    return alts.some((words) => words.every((w) => t.includes(w)));
   };
-  const parts = markdown.split(/(?=\n## )/);
-  const kept = parts.filter((p) => match(p));
-  return kept.join("").trim();
+
+  const isTableRow = (line: string) => /^\s*\|.*\|\s*$/.test(line);
+  const isTableSeparator = (line: string) => /^\s*\|(\s*:?-+:?\s*\|)+\s*$/.test(line);
+  const isHeading = (line: string) => /^#{1,6}\s+/.test(line);
+
+  const sections = markdown.split(/(?=^#{1,3}\s+)/m);
+  const outSections: string[] = [];
+
+  for (const section of sections) {
+    const lines = section.split("\n");
+    const heading = isHeading(lines[0] ?? "") ? lines[0] : null;
+    const body = heading ? lines.slice(1) : lines;
+
+    const kept: string[] = [];
+    let hasNonHeadingContent = false;
+    let i = 0;
+    while (i < body.length) {
+      const line = body[i] ?? "";
+      // Detect a table: header row followed by separator row
+      if (isTableRow(line) && isTableRow(body[i + 1] ?? "") && isTableSeparator(body[i + 1] ?? "")) {
+        const header = line;
+        const separator = body[i + 1];
+        const rows: string[] = [];
+        let j = i + 2;
+        while (j < body.length && isTableRow(body[j] ?? "")) {
+          rows.push(body[j]);
+          j++;
+        }
+        const keptRows = rows.filter((r) => match(r));
+        if (keptRows.length > 0) {
+          kept.push(header, separator, ...keptRows);
+          hasNonHeadingContent = true;
+        }
+        i = j;
+        continue;
+      }
+      // Non-table line — keep if it matches the query, or if it's whitespace between kept content
+      const stripped = line.trim();
+      if (stripped === "") {
+        // Trailing whitespace after kept content only
+        if (kept.length > 0 && kept[kept.length - 1] !== "") kept.push("");
+      } else if (isHeading(line)) {
+        // Sub-heading within the section — keep and let subsequent content decide
+        kept.push(line);
+      } else if (match(line)) {
+        kept.push(line);
+        hasNonHeadingContent = true;
+      }
+      i++;
+    }
+
+    // Only emit section if it has meaningful content beyond the heading
+    if (hasNonHeadingContent) {
+      if (heading) {
+        outSections.push([heading, ...kept].join("\n"));
+      } else {
+        outSections.push(kept.join("\n"));
+      }
+    }
+  }
+
+  return outSections.join("\n\n").trim();
 }
