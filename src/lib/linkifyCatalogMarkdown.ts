@@ -26,6 +26,30 @@ export function rewritePublishedRegistryComponentUrls(markdown: string): string 
   return s;
 }
 
+/**
+ * Rewrite GitHub `tree`/`blob` URLs pointing at a component's directory in the
+ * dagster-component-templates repo to internal `/c/<id>` pages.
+ *
+ * Handles every top-level category dir (`assets/*`, `resources`, `io_managers`,
+ * `sensors`, `jobs`, `integrations`, `external_assets`, `compute_log_managers`,
+ * `observations`, `asset_checks`). Optionally trims any trailing subpath (e.g.
+ * `/README.md` or `/component.py`) so the click always lands on the component
+ * detail page rather than a raw source file on GitHub.
+ *
+ * Idempotent; internal `/c/<id>` URLs are unaffected.
+ */
+const CATEGORY_PATH = "(?:assets\\/[a-z_]+|resources|io_managers|sensors|jobs|integrations|external_assets|compute_log_managers|observations|asset_checks)";
+const GITHUB_COMPONENT_TREE_RE = new RegExp(
+  "https?:\\/\\/github\\.com\\/[\\w.-]+\\/dagster-component-templates\\/(?:tree|blob)\\/[^/\\s)]+\\/" +
+    CATEGORY_PATH +
+    "\\/([a-z_][a-z0-9_]*)(?:\\/[^\\s)]*)?",
+  "g",
+);
+
+export function rewriteGitHubComponentUrls(markdown: string): string {
+  return markdown.replace(GITHUB_COMPONENT_TREE_RE, (_m, id: string) => catalogDetailHref(id));
+}
+
 const LINK_MASK = "\uE000";
 const LINK_MASK_END = "\uE001";
 

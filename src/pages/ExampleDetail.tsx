@@ -14,7 +14,10 @@ import {
   rewriteExamplesIndexLinks,
   stripMarkdownFirstH1,
 } from "../lib/loadCommunityExamples";
-import { linkifyCatalogMarkdown } from "../lib/linkifyCatalogMarkdown";
+import {
+  linkifyCatalogMarkdown,
+  rewriteGitHubComponentUrls,
+} from "../lib/linkifyCatalogMarkdown";
 
 export function ExampleDetail() {
   const { slug: rawSlug } = useParams<{ slug: string }>();
@@ -41,8 +44,12 @@ export function ExampleDetail() {
     // Rewrite `./name.md` cross-walkthrough links to clean `/examples/name`
     // URLs BEFORE catalog-id linkification. Keeps the URL bar tidy and prevents
     // the router from ever receiving a `.md`-suffixed slug.
-    const rewritten = rewriteExamplesIndexLinks(bodyMd);
-    return components.length ? linkifyCatalogMarkdown(rewritten, components) : rewritten;
+    let s = rewriteExamplesIndexLinks(bodyMd);
+    // Rewrite `github.com/.../dagster-component-templates/tree/main/<category>/<id>`
+    // links to internal `/c/<id>` pages, so palette tables that point at source
+    // dirs (e.g. examples/rag.md) keep readers inside the registry UI.
+    s = rewriteGitHubComponentUrls(s);
+    return components.length ? linkifyCatalogMarkdown(s, components) : s;
   }, [bodyMd, components]);
 
   useEffect(() => {

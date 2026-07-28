@@ -9,6 +9,7 @@ import {
 } from "../lib/loadVendors";
 import {
   linkifyCatalogMarkdown,
+  rewriteGitHubComponentUrls,
   rewritePublishedRegistryComponentUrls,
 } from "../lib/linkifyCatalogMarkdown";
 
@@ -28,7 +29,8 @@ export function VendorDetail() {
 
   const linkedMd = useMemo(() => {
     if (!bodyMd || !components.length) return bodyMd;
-    return rewritePublishedRegistryComponentUrls(linkifyCatalogMarkdown(bodyMd, components));
+    const s = rewriteGitHubComponentUrls(bodyMd);
+    return rewritePublishedRegistryComponentUrls(linkifyCatalogMarkdown(s, components));
   }, [bodyMd, components]);
 
   useEffect(() => {

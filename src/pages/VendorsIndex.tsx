@@ -7,6 +7,7 @@ import { useCatalog } from "../context/CatalogContext";
 import { filterVendorsReadmeByQuery } from "../lib/vendorsSearch";
 import {
   linkifyCatalogMarkdown,
+  rewriteGitHubComponentUrls,
   rewritePublishedRegistryComponentUrls,
 } from "../lib/linkifyCatalogMarkdown";
 import {
@@ -52,7 +53,8 @@ export function VendorsIndex() {
 
   const linkedReadme = useMemo(() => {
     if (!readme || !components.length) return readme;
-    return rewritePublishedRegistryComponentUrls(linkifyCatalogMarkdown(readme, components));
+    const s = rewriteGitHubComponentUrls(readme);
+    return rewritePublishedRegistryComponentUrls(linkifyCatalogMarkdown(s, components));
   }, [readme, components]);
 
   const displayReadme = useMemo(() => {
