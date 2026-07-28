@@ -9,13 +9,16 @@ import {
 } from "../lib/registryRequirements";
 import { useCatalog } from "../context/CatalogContext";
 import {
+  extractLinkedExampleSlugs,
   fetchExampleMarkdown,
+  fetchExampleTitle,
   markdownFirstH1,
   rewriteExamplesIndexLinks,
   stripMarkdownFirstH1,
 } from "../lib/loadCommunityExamples";
 import {
   linkifyCatalogMarkdown,
+  rewriteExampleLinkTextsFromTitles,
   rewriteGitHubComponentUrls,
 } from "../lib/linkifyCatalogMarkdown";
 
@@ -39,18 +42,47 @@ export function ExampleDetail() {
       : md
     : "";
 
+  const [exampleTitles, setExampleTitles] = useState<Record<string, string | null>>({});
+
+  // Prefetch H1 titles for any walkthroughs linked from this page. The
+  // rewriter uses them to replace filename-y display text
+  // (`[foo.md](foo.md)`) with the target's real H1. Missing titles just
+  // leave the link alone; next render fills in as fetches resolve.
+  useEffect(() => {
+    if (!bodyMd) return;
+    const slugs = extractLinkedExampleSlugs(bodyMd);
+    const missing = slugs.filter((s) => !(s in exampleTitles));
+    if (!missing.length) return;
+    let cancelled = false;
+    Promise.all(missing.map(async (s) => [s, await fetchExampleTitle(s)] as const)).then(
+      (pairs) => {
+        if (cancelled) return;
+        setExampleTitles((prev) => {
+          const next = { ...prev };
+          for (const [s, t] of pairs) next[s] = t;
+          return next;
+        });
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [bodyMd, exampleTitles]);
+
   const linkedMd = useMemo(() => {
     if (!bodyMd) return bodyMd;
-    // Rewrite `./name.md` cross-walkthrough links to clean `/examples/name`
-    // URLs BEFORE catalog-id linkification. Keeps the URL bar tidy and prevents
-    // the router from ever receiving a `.md`-suffixed slug.
-    let s = rewriteExamplesIndexLinks(bodyMd);
-    // Rewrite `github.com/.../dagster-component-templates/tree/main/<category>/<id>`
-    // links to internal `/c/<id>` pages, so palette tables that point at source
-    // dirs (e.g. examples/rag.md) keep readers inside the registry UI.
+    // 1. Replace filename-y display text on `[foo.md](foo.md)` links with
+    //    the target walkthrough's real H1. Runs BEFORE URL rewriting so the
+    //    matcher can still see the `.md` links.
+    let s = rewriteExampleLinkTextsFromTitles(bodyMd, exampleTitles);
+    // 2. Rewrite `./name.md` cross-walkthrough URLs to `/examples/name`.
+    s = rewriteExamplesIndexLinks(s);
+    // 3. Rewrite `github.com/.../dagster-component-templates/tree/main/<category>/<id>`
+    //    links to internal `/c/<id>` pages so palette tables keep readers
+    //    inside the registry UI.
     s = rewriteGitHubComponentUrls(s);
     return components.length ? linkifyCatalogMarkdown(s, components) : s;
-  }, [bodyMd, components]);
+  }, [bodyMd, components, exampleTitles]);
 
   useEffect(() => {
     if (!slug) return;

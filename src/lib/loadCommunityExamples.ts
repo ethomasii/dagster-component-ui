@@ -65,3 +65,53 @@ export function markdownFirstH1(text: string): string | null {
 export function stripMarkdownFirstH1(text: string): string {
   return text.replace(/^#\s+.+\r?\n+/, "").trimStart();
 }
+
+// ─────────────────────────── H1 title cache ────────────────────────────
+// Per-slug cache of the walkthrough's H1. Used by the link-text rewriter
+// so any `[<slug>](<slug>.md)` or `[<slug>.md](<slug>.md)` reference gets
+// its display text replaced with the target page's real title.
+
+const exampleTitleCache: Map<string, string | null> = new Map();
+const exampleTitleInFlight: Map<string, Promise<string | null>> = new Map();
+
+/**
+ * Extract slugs referenced by markdown-link syntax `[text](<slug>.md)` in the
+ * given markdown body. Filters out `README.md` (kept as an outbound reference)
+ * and any slug with a `/` or `#` (subpaths / anchors — not walkthrough refs).
+ */
+export function extractLinkedExampleSlugs(markdown: string): string[] {
+  const slugs = new Set<string>();
+  const re = /\]\((?:\.?\/)?([a-z_][a-z0-9_]*)\.md(?:#[^\)]*)?\)/gi;
+  for (const m of markdown.matchAll(re)) {
+    const s = m[1];
+    if (s.toLowerCase() !== "readme") slugs.add(s);
+  }
+  return [...slugs];
+}
+
+/**
+ * Fetch the H1 title of a walkthrough, caching per slug. Returns null when
+ * the walkthrough is missing or has no H1. Never throws — the caller uses
+ * the cache to enrich display text and it's fine to leave it un-enriched.
+ */
+export async function fetchExampleTitle(slug: string): Promise<string | null> {
+  const key = slug.replace(/\.md$/i, "");
+  if (exampleTitleCache.has(key)) return exampleTitleCache.get(key) ?? null;
+  const existing = exampleTitleInFlight.get(key);
+  if (existing) return existing;
+  const p = (async () => {
+    try {
+      const { text } = await fetchExampleMarkdown(key);
+      const h1 = markdownFirstH1(text);
+      exampleTitleCache.set(key, h1);
+      return h1;
+    } catch {
+      exampleTitleCache.set(key, null);
+      return null;
+    } finally {
+      exampleTitleInFlight.delete(key);
+    }
+  })();
+  exampleTitleInFlight.set(key, p);
+  return p;
+}

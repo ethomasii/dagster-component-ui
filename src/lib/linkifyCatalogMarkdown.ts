@@ -50,6 +50,40 @@ export function rewriteGitHubComponentUrls(markdown: string): string {
   return markdown.replace(GITHUB_COMPONENT_TREE_RE, (_m, id: string) => catalogDetailHref(id));
 }
 
+/**
+ * Rewrite the DISPLAY TEXT of `[<text>](<slug>.md)` markdown links using the
+ * target walkthrough's H1 when the current display text is a filename or bare
+ * slug (i.e. would render as `.md` visible garbage). User-authored labels
+ * (anything that isn't just the slug/filename) are left alone.
+ *
+ * Requires the caller to have pre-fetched titles for the linked slugs (see
+ * `fetchExampleTitle` + `extractLinkedExampleSlugs`). If a title isn't in
+ * the map yet, the link is untouched — it'll be rewritten on the next render
+ * once the fetch resolves.
+ */
+export function rewriteExampleLinkTextsFromTitles(
+  markdown: string,
+  titles: Record<string, string | null>,
+): string {
+  return markdown.replace(
+    /\[([^\]]+)\]\((?:\.?\/)?([a-z_][a-z0-9_]*)\.md(#[^)]*)?\)/gi,
+    (match, text: string, slug: string, anchor: string | undefined) => {
+      const title = titles[slug];
+      if (!title) return match;
+      // Only rewrite when the display text is derivative of the filename —
+      // preserves any human-authored labels.
+      const t = text.trim().replace(/^`|`$/g, "");
+      const looksFilenameish =
+        t === slug ||
+        t === `${slug}.md` ||
+        t.toLowerCase() === `${slug}.md`.toLowerCase() ||
+        t.toLowerCase() === slug.toLowerCase();
+      if (!looksFilenameish) return match;
+      return `[${title}](${slug}.md${anchor ?? ""})`;
+    },
+  );
+}
+
 const LINK_MASK = "\uE000";
 const LINK_MASK_END = "\uE001";
 
