@@ -780,12 +780,22 @@ export function Home() {
         )}
       </section>
 
-      <div style={{ maxWidth: 720, margin: "0 auto 32px", padding: "0 24px" }} className="callout-help">
-        <strong style={{ color: "var(--text)" }}>Before you ship:</strong> most listings are community templates
-        without an independent test guarantee. Component pages show trust signals when the manifest records CI, manual
-        checks, community feedback, or a validation tier (code / infra / live) with optional evidence—otherwise treat
-        as unverified. There is no in-app review yet; use{" "}
-        <strong style={{ color: "var(--text)" }}>Report issue</strong> on a template to reach maintainers on GitHub.
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto 24px",
+          padding: "10px 24px",
+          fontSize: 12,
+          color: "var(--text-dim)",
+          lineHeight: 1.5,
+          borderTop: "1px solid var(--border)",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        Most components just work — but they're community templates, not independently tested. Component pages show
+        trust signals (CI status, manual checks, validation tier: code / infra / live) when the manifest records them;
+        otherwise treat as unverified. Use <strong style={{ color: "var(--text)" }}>Report issue</strong> on a template
+        to reach maintainers on GitHub.
       </div>
 
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 32px" }}>

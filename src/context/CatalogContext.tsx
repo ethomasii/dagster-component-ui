@@ -58,7 +58,11 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
         const m = await loadManifest();
         if (cancelled) return;
         setComponents(m.components);
-        setCatalogTotal(typeof m.total === "number" ? m.total : m.components.length);
+        // Always compute from the array — never trust the manifest's stored `total`
+        // field. It's prone to staleness (was 927 while the array had 955) and any
+        // downstream counter that reads components.length would then disagree with
+        // the headline number, exactly the mismatch we shipped through the UI once.
+        setCatalogTotal(m.components.length);
         setManifestMeta({ last_updated: m.last_updated, repo: m.repository });
         setManifestFetchedAt(new Date().toISOString());
       } catch (e) {
