@@ -145,10 +145,8 @@ function LearnDropdown() {
             gap: 2,
           }}
         >
-          <a
-            href="https://github.com/eric-thomas-dagster/dagster-community-components-cli/tree/main/blog"
-            target="_blank"
-            rel="noreferrer"
+          <Link
+            to="/blog"
             role="menuitem"
             style={itemStyle}
             title="Long-form posts on the community components registry"
@@ -176,7 +174,7 @@ function LearnDropdown() {
             >
               <Rss size={14} strokeWidth={2} />
             </a>
-          </a>
+          </Link>
           <Link
             to="/ai-assistants"
             role="menuitem"
