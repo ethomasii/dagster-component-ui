@@ -1,6 +1,7 @@
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Search } from "lucide-react";
+import { ChevronDown, Rss, Search } from "lucide-react";
 
 // GitHub's Octocat mark — inline SVG since lucide-react dropped brand icons for licensing.
 function GithubIcon({ size = 18 }: { size?: number }) {
@@ -23,7 +24,6 @@ import { ThemeToggle } from "./ThemeToggle";
 type ExternalNavItem = { href: string; label: string };
 
 const externalNav: ExternalNavItem[] = [
-  { href: "https://docs.dagster.io", label: "Docs" },
   {
     href: "https://github.com/eric-thomas-dagster/dagster-component-templates",
     label: "GitHub",
@@ -41,6 +41,183 @@ function navPillStyle(active: boolean): CSSProperties {
     textDecoration: "none",
     whiteSpace: "nowrap",
   };
+}
+
+/**
+ * Learn dropdown — groups content-shaped nav items (Blog, AI assistants,
+ * Dagster+ guide) under one top-level menu. Click-based (mobile-friendly).
+ * Closes on outside-click and Escape.
+ */
+function LearnDropdown() {
+  const loc = useLocation();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const active =
+    loc.pathname === "/ai-assistants" ||
+    loc.pathname === "/dagster-plus" ||
+    loc.pathname.startsWith("/blog");
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (!rootRef.current) return;
+      if (!rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    // Close on route change so mid-navigation doesn't leave the menu open.
+    setOpen(false);
+  }, [loc.pathname]);
+
+  const itemStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "10px 14px",
+    borderRadius: 6,
+    fontSize: 14,
+    color: "var(--text)",
+    textDecoration: "none",
+    whiteSpace: "nowrap",
+  };
+
+  const subLabelStyle: CSSProperties = {
+    fontSize: 12,
+    color: "var(--text-muted)",
+    fontWeight: 400,
+  };
+
+  return (
+    <div ref={rootRef} style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        style={{
+          ...navPillStyle(active),
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          border: "none",
+          background: active ? "rgba(124, 58, 237, 0.15)" : "transparent",
+          cursor: "pointer",
+          fontFamily: "inherit",
+        }}
+      >
+        Learn
+        <ChevronDown
+          size={14}
+          strokeWidth={2}
+          style={{
+            transition: "transform 120ms ease",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            right: 0,
+            minWidth: 260,
+            padding: 6,
+            borderRadius: 10,
+            border: "1px solid var(--border)",
+            background: "var(--bg-card)",
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.16)",
+            zIndex: 60,
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+          }}
+        >
+          <a
+            href="https://github.com/eric-thomas-dagster/dagster-community-components-cli/tree/main/blog"
+            target="_blank"
+            rel="noreferrer"
+            role="menuitem"
+            style={itemStyle}
+            title="Long-form posts on the community components registry"
+          >
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontWeight: 500 }}>Blog</span>
+              <span style={subLabelStyle}>Design essays + component tours</span>
+            </div>
+            <a
+              href="https://raw.githubusercontent.com/eric-thomas-dagster/dagster-community-components-cli/main/blog/feed.xml"
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title="RSS feed"
+              style={{
+                marginLeft: "auto",
+                display: "inline-flex",
+                alignItems: "center",
+                padding: 6,
+                borderRadius: 4,
+                color: "var(--text-muted)",
+                textDecoration: "none",
+              }}
+              aria-label="Subscribe to RSS feed"
+            >
+              <Rss size={14} strokeWidth={2} />
+            </a>
+          </a>
+          <Link
+            to="/ai-assistants"
+            role="menuitem"
+            style={itemStyle}
+            title="Claude, Cursor, GitHub Copilot workflows"
+          >
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontWeight: 500 }}>AI assistants</span>
+              <span style={subLabelStyle}>
+                Claude, Cursor, Copilot — dagster-component init
+              </span>
+            </div>
+          </Link>
+          <Link
+            to="/dagster-plus"
+            role="menuitem"
+            style={itemStyle}
+            title="Deploy catalog components to Dagster+"
+          >
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontWeight: 500 }}>Dagster+</span>
+              <span style={subLabelStyle}>Deploy guide from the CLI repo</span>
+            </div>
+          </Link>
+          <a
+            href="https://docs.dagster.io"
+            target="_blank"
+            rel="noreferrer"
+            role="menuitem"
+            style={itemStyle}
+            title="Official Dagster documentation"
+          >
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontWeight: 500 }}>Dagster docs</span>
+              <span style={subLabelStyle}>docs.dagster.io</span>
+            </div>
+          </a>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -165,20 +342,7 @@ export function Layout({ children }: { children: ReactNode }) {
             >
               Get started
             </Link>
-            <Link
-              to="/ai-assistants"
-              style={navPillStyle(loc.pathname === "/ai-assistants")}
-              title="Claude, Cursor, GitHub Copilot — dagster-component init and workflows"
-            >
-              AI assistants
-            </Link>
-            <Link
-              to="/dagster-plus"
-              style={navPillStyle(loc.pathname === "/dagster-plus")}
-              title="Deploy catalog components to Dagster+ (guide from the CLI repo)"
-            >
-              Dagster+
-            </Link>
+            <LearnDropdown />
             {externalNav.map((item) => {
               const isGithub = item.label === "GitHub";
               return (
