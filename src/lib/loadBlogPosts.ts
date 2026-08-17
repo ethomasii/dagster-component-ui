@@ -7,13 +7,16 @@
  * committed.
  */
 
-export const COMMUNITY_BLOG_RAW_BASE =
-  "https://raw.githubusercontent.com/eric-thomas-dagster/dagster-community-components-cli/main/blog";
+import {
+  COMMUNITY_CLI_RAW_BASE,
+  COMMUNITY_CLI_TREE_BASE,
+} from "../data/communityCliRepo";
+
+export const COMMUNITY_BLOG_RAW_BASE = `${COMMUNITY_CLI_RAW_BASE}/blog`;
 
 export const COMMUNITY_BLOG_FEED_URL = `${COMMUNITY_BLOG_RAW_BASE}/feed.xml`;
 
-export const COMMUNITY_BLOG_TREE_WEB =
-  "https://github.com/eric-thomas-dagster/dagster-community-components-cli/tree/main/blog";
+export const COMMUNITY_BLOG_TREE_WEB = `${COMMUNITY_CLI_TREE_BASE}/blog`;
 
 export type BlogPost = {
   slug: string;

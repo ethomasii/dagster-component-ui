@@ -19,6 +19,7 @@ function GithubIcon({ size = 18 }: { size?: number }) {
   );
 }
 import { useCatalog } from "../context/CatalogContext";
+import { COMMUNITY_BLOG_FEED_URL } from "../lib/loadBlogPosts";
 import { ThemeToggle } from "./ThemeToggle";
 
 type ExternalNavItem = { href: string; label: string };
@@ -156,7 +157,7 @@ function LearnDropdown() {
               <span style={subLabelStyle}>Design essays + component tours</span>
             </div>
             <a
-              href="https://raw.githubusercontent.com/eric-thomas-dagster/dagster-community-components-cli/main/blog/feed.xml"
+              href={COMMUNITY_BLOG_FEED_URL}
               target="_blank"
               rel="noreferrer"
               onClick={(e) => e.stopPropagation()}
