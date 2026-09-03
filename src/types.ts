@@ -66,6 +66,14 @@ export interface ManifestComponent {
   /** Catalog validation tier + evidence (preferred when `verification.status` is absent). */
   validation?: ManifestValidation;
   community_signals?: ManifestCommunitySignals;
+  /** Freeform keyword list for search + discovery. */
+  keywords?: string[];
+  /** What this component produces (e.g. ["asset"], ["job"], ["sensor"], multi-asset shapes). */
+  produces?: string[];
+  /** Structured hints for AI catalog agents (output_type, requires_pip, requires_resources...). */
+  agent_hints?: Record<string, unknown>;
+  /** ISO date when this component first entered the catalog (opt-in, not backfilled). */
+  first_added?: string;
 }
 
 export interface Manifest {

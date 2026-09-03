@@ -180,7 +180,15 @@ export function Home() {
     return byCat;
   }, [components]);
 
-  /** One stable pick per manifest category—same order as template counts descending. */
+  /**
+   * One pick per manifest category, ranked by a quality signal:
+   *   1. Live-validated (validation.level === "live") outranks smoke/none.
+   *   2. Newer validation.last_validated wins ties.
+   *   3. Presence of agent_hints (proxy for care) wins ties.
+   *   4. Presence of keywords (proxy for discoverability) wins ties.
+   *   5. Alphabetical id as final tie-breaker for stability.
+   * Category order still follows `categoryCounts` descending.
+   */
   const spotlight = useMemo(() => {
     if (!components.length) return [];
     const byCat = new Map<string, ManifestComponent[]>();
@@ -190,8 +198,27 @@ export function Home() {
       arr.push(c);
       byCat.set(cat, arr);
     }
+    const levelWeight = (lvl?: string) =>
+      lvl === "live" ? 3 : lvl === "smoke" ? 2 : lvl ? 1 : 0;
+    const validatedTs = (c: ManifestComponent) => {
+      const raw = c.validation?.last_validated ?? "";
+      const p = raw ? Date.parse(raw) : NaN;
+      return Number.isFinite(p) ? p : 0;
+    };
+    const scoreOf = (c: ManifestComponent) => {
+      const hasAgentHints = c.agent_hints && Object.keys(c.agent_hints).length > 0 ? 1 : 0;
+      const hasKeywords = c.keywords && c.keywords.length >= 3 ? 1 : 0;
+      return [levelWeight(c.validation?.level), validatedTs(c), hasAgentHints, hasKeywords];
+    };
     for (const arr of byCat.values()) {
-      arr.sort((a, b) => componentId(a).localeCompare(componentId(b)));
+      arr.sort((a, b) => {
+        const sa = scoreOf(a);
+        const sb = scoreOf(b);
+        for (let i = 0; i < sa.length; i++) {
+          if (sb[i] !== sa[i]) return sb[i] - sa[i];
+        }
+        return componentId(a).localeCompare(componentId(b));
+      });
     }
     return categoryCounts
       .map(([cat]) => byCat.get(cat)?.[0])
