@@ -6,7 +6,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   analytics: "Analytics",
   ai: "AI & ML",
   infrastructure: "Infrastructure",
-  dbt: "dbt",
+  dbt: "dbt",   // brand — stays lowercase
   sensor: "Sensors",
   external: "External assets",
   observation: "Observations",
@@ -14,10 +14,24 @@ const CATEGORY_LABEL: Record<string, string> = {
   integration: "Integrations",
   resource: "Resources",
   io_manager: "I/O managers",
+  jobs: "Jobs",
+  decorator: "Decorators",
 };
 
+/**
+ * Human-readable label for a category slug.
+ *
+ * Priority:
+ *   1. Explicit label from CATEGORY_LABEL (respects brand casing like "dbt"
+ *      and initialisms like "AI & ML").
+ *   2. Fallback: replace underscores with spaces and capitalize the first
+ *      letter. Keeps new/unknown categories readable without a code change.
+ */
 export function categoryLabel(cat: string): string {
-  return CATEGORY_LABEL[cat] ?? cat.replace(/_/g, " ");
+  const explicit = CATEGORY_LABEL[cat];
+  if (explicit) return explicit;
+  const spaced = cat.replace(/_/g, " ");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
 export function formatDate(iso: string): string {
