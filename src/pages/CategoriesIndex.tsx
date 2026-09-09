@@ -91,7 +91,7 @@ export function CategoriesIndex() {
       >
         Browse by category
       </h1>
-      <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 28px", maxWidth: 720, lineHeight: 1.5 }}>
+      <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 28px", lineHeight: 1.5 }}>
         Every component in the registry maps to one category. Pick one to see the full list with per-vendor and validation filters, or use search across all categories from the header.
       </p>
 
