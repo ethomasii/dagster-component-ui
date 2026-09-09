@@ -12,7 +12,12 @@ type Props = {
 };
 
 /**
- * Renders manifest `icon`: Lucide name (e.g. BarChart2) or Simple Icons `si:slug`.
+ * Renders manifest `icon`. Three schemes:
+ *   - `si:<slug>`         → Simple Icons brand mark (e.g. `si:snowflake`)
+ *   - `favicon:<domain>`  → vendor's site favicon via Google's favicon
+ *                            service (e.g. `favicon:collibra.com`) — fallback
+ *                            for vendors without a Simple Icons entry.
+ *   - anything else       → Lucide icon by name (e.g. `BarChart2`)
  */
 export function ComponentIcon({ icon, size = 24, title, className }: Props) {
   const [broken, setBroken] = useState(false);
@@ -44,6 +49,26 @@ export function ComponentIcon({ icon, size = 24, title, className }: Props) {
         height={size}
         alt=""
         title={title ?? slug}
+        loading="lazy"
+        decoding="async"
+        onError={() => setBroken(true)}
+      />
+    );
+  }
+
+  if (icon.startsWith("favicon:")) {
+    // Google's favicon service: follows redirects to the vendor's
+    // best-available favicon and serves at the requested size.
+    // sz=64 is high enough for the 20-40px component-card renders.
+    const domain = icon.slice("favicon:".length).trim();
+    return (
+      <img
+        className={`component-icon component-icon--favicon ${className ?? ""}`}
+        src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`}
+        width={size}
+        height={size}
+        alt=""
+        title={title ?? domain}
         loading="lazy"
         decoding="async"
         onError={() => setBroken(true)}
