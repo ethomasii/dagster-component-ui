@@ -335,6 +335,13 @@ export function Layout({ children }: { children: ReactNode }) {
               Vendors
             </Link>
             <Link
+              to="/categories"
+              style={navPillStyle(loc.pathname.startsWith("/categories"))}
+              title="Browse by component category — ai, transformation, integration, sensor, io_manager, …"
+            >
+              Categories
+            </Link>
+            <Link
               to="/get-started"
               style={navPillStyle(loc.pathname === "/get-started")}
               title="Install the CLI and add templates (uvx or pip)"

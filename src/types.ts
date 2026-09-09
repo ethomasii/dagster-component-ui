@@ -34,6 +34,8 @@ export interface ManifestValidation {
   last_validated?: string;
   /** Alias some generators may emit */
   last_validated_at?: string;
+  /** URL of the walkthrough / demo backing the validation claim (present iff someone shipped a live demo). */
+  evidence?: string;
 }
 
 /** Optional aggregated feedback (manual, synced, or future API). */

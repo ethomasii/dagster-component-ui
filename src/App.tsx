@@ -6,6 +6,8 @@ import { ExamplesIndex } from "./pages/ExamplesIndex";
 import { ExampleDetail } from "./pages/ExampleDetail";
 import { VendorsIndex } from "./pages/VendorsIndex";
 import { VendorDetail } from "./pages/VendorDetail";
+import { CategoriesIndex } from "./pages/CategoriesIndex";
+import { CategoryDetail } from "./pages/CategoryDetail";
 import { ComponentDetail } from "./pages/ComponentDetail";
 import { GetStartedPage } from "./pages/GetStartedPage";
 import { AiAssistantsPage } from "./pages/AiAssistantsPage";
@@ -29,6 +31,8 @@ export default function App() {
           <Route path="/examples/:slug" element={<ExampleDetail />} />
           <Route path="/vendors" element={<VendorsIndex />} />
           <Route path="/vendors/:slug" element={<VendorDetail />} />
+          <Route path="/categories" element={<CategoriesIndex />} />
+          <Route path="/categories/:slug" element={<CategoryDetail />} />
           <Route path="/c/:id" element={<ComponentDetail />} />
           <Route path="/search" element={<UnifiedSearch />} />
         </Routes>
