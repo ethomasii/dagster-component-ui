@@ -181,12 +181,17 @@ export function Home() {
   }, [components]);
 
   /**
-   * One pick per manifest category, ranked by a quality signal:
-   *   1. Live-validated (validation.level === "live") outranks smoke/none.
-   *   2. Newer validation.last_validated wins ties.
-   *   3. Presence of agent_hints (proxy for care) wins ties.
-   *   4. Presence of keywords (proxy for discoverability) wins ties.
-   *   5. Alphabetical id as final tie-breaker for stability.
+   * One pick per manifest category, ranked by descending signal strength:
+   *   1. `featured: true` — curated flag on ~20-30 flagship components. Always wins.
+   *   2. Validation level (live > smoke > other > none).
+   *   3. Walkthrough exists (validation.evidence points at a demo URL).
+   *   4. Newer validation.last_validated wins ties.
+   *   5. Presence of agent_hints (proxy for care).
+   *   6. Raw keyword count (more keywords → more effort spent on discoverability).
+   *   7. Description word count (more prose → more effort explaining).
+   *   8. Deterministic id-hash tiebreaker — kills the "components starting with A"
+   *      bias that alphabetical tiebreaks introduce (ACORD XML Parser was winning
+   *      "transformation" over Snowpark / Polars / etc. purely because it sorts first).
    * Category order still follows `categoryCounts` descending.
    */
   const spotlight = useMemo(() => {
@@ -205,10 +210,30 @@ export function Home() {
       const p = raw ? Date.parse(raw) : NaN;
       return Number.isFinite(p) ? p : 0;
     };
-    const scoreOf = (c: ManifestComponent) => {
+    // djb2 hash for the id-tiebreaker — same input always maps to the same
+    // bucket (stable render order across page loads), but the distribution
+    // is uncorrelated with the alphabet so no letter cohort gets an edge.
+    const idHash = (c: ManifestComponent) => {
+      const id = componentId(c);
+      let h = 5381;
+      for (let i = 0; i < id.length; i++) h = ((h << 5) + h + id.charCodeAt(i)) | 0;
+      return h >>> 0;
+    };
+    const scoreOf = (c: ManifestComponent): number[] => {
+      const featured = c.featured ? 1 : 0;
+      const hasWalkthrough = c.validation?.evidence ? 1 : 0;
       const hasAgentHints = c.agent_hints && Object.keys(c.agent_hints).length > 0 ? 1 : 0;
-      const hasKeywords = c.keywords && c.keywords.length >= 3 ? 1 : 0;
-      return [levelWeight(c.validation?.level), validatedTs(c), hasAgentHints, hasKeywords];
+      const keywordCount = c.keywords?.length ?? 0;
+      const descWordCount = (c.description ?? "").split(/\s+/).filter(Boolean).length;
+      return [
+        featured,
+        levelWeight(c.validation?.level),
+        hasWalkthrough,
+        validatedTs(c),
+        hasAgentHints,
+        keywordCount,
+        descWordCount,
+      ];
     };
     for (const arr of byCat.values()) {
       arr.sort((a, b) => {
@@ -217,7 +242,8 @@ export function Home() {
         for (let i = 0; i < sa.length; i++) {
           if (sb[i] !== sa[i]) return sb[i] - sa[i];
         }
-        return componentId(a).localeCompare(componentId(b));
+        // Final tiebreak: hash-of-id (deterministic, alphabet-uncorrelated).
+        return idHash(a) - idHash(b);
       });
     }
     return categoryCounts

@@ -74,6 +74,9 @@ export interface ManifestComponent {
   agent_hints?: Record<string, unknown>;
   /** ISO date when this component first entered the catalog (opt-in, not backfilled). */
   first_added?: string;
+  /** Curated "always surface this one" flag — bumps the component in the Home spotlight
+   *  above heuristic tiebreakers. Reserved for ~20-30 flagship components per registry. */
+  featured?: boolean;
 }
 
 export interface Manifest {
