@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
 import { useCatalog } from "../context/CatalogContext";
-import { categoryLabel } from "../lib/format";
+import { categoryLabel, categoryDescription } from "../lib/format";
 import { componentId } from "../lib/componentId";
 import { ComponentCard } from "../components/ComponentCard";
 import type { ManifestComponent } from "../types";
@@ -141,8 +141,11 @@ export function CategoryDetail() {
           {inCategory.length} component{inCategory.length === 1 ? "" : "s"}
         </span>
       </div>
-      <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 24px", maxWidth: 720, lineHeight: 1.5 }}>
-        Every component with <code className="mono" style={{ fontSize: 13 }}>category: {slug}</code> in the manifest. Filter below by vendor, validation tier, or free text.
+      <p style={{ fontSize: 15, color: "var(--text-muted)", margin: "0 0 12px", maxWidth: 780, lineHeight: 1.55 }}>
+        {categoryDescription(slug)}
+      </p>
+      <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 24px", maxWidth: 780, lineHeight: 1.5 }}>
+        Filter below by vendor, validation tier, or free text — or open a specific component for its full schema and walkthrough. Manifest key: <code className="mono" style={{ fontSize: 12 }}>category: {slug}</code>.
       </p>
 
       <form
