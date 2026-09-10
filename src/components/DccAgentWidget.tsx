@@ -462,12 +462,18 @@ function CodeBlock({ code, lang, small = false }: { code: string; lang: string; 
           padding: small ? "8px 10px" : "10px 12px",
           fontSize: small ? 11 : 12.5,
           fontFamily: "var(--font-mono, monospace)",
-          background: "var(--code-bg, #0b0d12)",
-          color: "var(--code-text, #e5e7eb)",
+          // Explicit dark surface + light text so it's readable in both
+          // light and dark themes. Site's --code-bg maps to the theme's
+          // elevated bg which is too close to --text-muted for code to
+          // read cleanly.
+          background: "#0f172a",
+          color: "#e2e8f0",
+          border: "1px solid rgba(148, 163, 184, 0.15)",
           borderRadius: 6,
           overflowX: "auto",
           lineHeight: 1.5,
-          maxHeight: small ? 120 : 200,
+          maxHeight: small ? 140 : 220,
+          whiteSpace: "pre",
         }}
       >
         <code data-lang={lang}>{code}</code>
@@ -482,9 +488,9 @@ function CodeBlock({ code, lang, small = false }: { code: string; lang: string; 
           right: 4,
           padding: "3px 5px",
           borderRadius: 5,
-          border: "1px solid rgba(255,255,255,0.15)",
-          background: "rgba(255,255,255,0.05)",
-          color: "#e5e7eb",
+          border: "1px solid rgba(255,255,255,0.2)",
+          background: "rgba(15, 23, 42, 0.85)",
+          color: "#e2e8f0",
           cursor: "pointer",
           display: "inline-flex",
           alignItems: "center",
