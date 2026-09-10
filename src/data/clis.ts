@@ -52,14 +52,14 @@ export const CLIS: CliScript[] = [
     usage:
 `export DAGSTER_CLOUD_API_TOKEN=user:xxxxxxxx
 
-curl -fsSL ${RAW}/cli/sync_catalog_views.py -o sync_catalog_views.py
+curl -fsSL ${RAW}/cli/sync_catalog_views/sync_catalog_views.py -o sync_catalog_views.py
 chmod +x sync_catalog_views.py
 
 ./sync_catalog_views.py sync catalog_views.yaml \\
     --deployment-url https://acme.dagster.cloud/prod \\
     --dry-run`,
-    rawUrl: `${RAW}/cli/sync_catalog_views.py`,
-    githubUrl: `${REPO}/blob/main/cli/sync_catalog_views.py`,
+    rawUrl: `${RAW}/cli/sync_catalog_views/sync_catalog_views.py`,
+    githubUrl: `${REPO}/blob/main/cli/sync_catalog_views/sync_catalog_views.py`,
     readmeUrl: `${RAW}/cli/sync_catalog_views/README.md`,
     sharedReadmeUrl: SHARED_OVERVIEW_README,
     requires: ["Python 3.8+", "PyYAML (`pip install pyyaml`)", "Dagster+ user API token"],
@@ -77,14 +77,14 @@ chmod +x sync_catalog_views.py
     usage:
 `export DAGSTER_CLOUD_API_TOKEN=user:xxxxxxxx
 
-curl -fsSL ${RAW}/cli/sync_custom_metrics.py -o sync_custom_metrics.py
+curl -fsSL ${RAW}/cli/sync_custom_metrics/sync_custom_metrics.py -o sync_custom_metrics.py
 chmod +x sync_custom_metrics.py
 
 ./sync_custom_metrics.py sync metrics.yaml \\
     --deployment-url https://acme.dagster.cloud/prod \\
     --dry-run`,
-    rawUrl: `${RAW}/cli/sync_custom_metrics.py`,
-    githubUrl: `${REPO}/blob/main/cli/sync_custom_metrics.py`,
+    rawUrl: `${RAW}/cli/sync_custom_metrics/sync_custom_metrics.py`,
+    githubUrl: `${REPO}/blob/main/cli/sync_custom_metrics/sync_custom_metrics.py`,
     readmeUrl: `${RAW}/cli/sync_custom_metrics/README.md`,
     sharedReadmeUrl: SHARED_OVERVIEW_README,
     requires: ["Python 3.8+", "PyYAML (`pip install pyyaml`)", "Dagster+ user API token"],
