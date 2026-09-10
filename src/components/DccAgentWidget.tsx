@@ -41,6 +41,9 @@ type AgentResponse = {
     input_tokens: number;
     output_tokens: number;
     manifest_total: number;
+    candidates_sent?: number;
+    playbooks_matched?: string[];
+    schemas_fetched?: number;
   };
 };
 
@@ -282,6 +285,12 @@ export function DccAgentWidget() {
               <p style={{ fontSize: 10, color: "var(--text-dim, var(--text-muted))", margin: 0 }}>
                 {answer.meta.model} · in {answer.meta.input_tokens} tok · out{" "}
                 {answer.meta.output_tokens} tok · catalog {answer.meta.manifest_total}
+                {answer.meta.candidates_sent != null &&
+                  ` (top ${answer.meta.candidates_sent})`}
+                {answer.meta.schemas_fetched != null &&
+                  ` · ${answer.meta.schemas_fetched} schema${answer.meta.schemas_fetched === 1 ? "" : "s"} fetched`}
+                {answer.meta.playbooks_matched && answer.meta.playbooks_matched.length > 0 &&
+                  ` · playbook: ${answer.meta.playbooks_matched.join(", ")}`}
               </p>
             )}
           </div>

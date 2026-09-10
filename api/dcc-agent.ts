@@ -4,21 +4,30 @@
  * POST /api/dcc-agent
  * Body: { intent: string, options?: { include_shell_script?: boolean } }
  *
- * Loads the DCC manifest from GitHub raw (cached in-module for 5 min),
- * asks Claude to recommend components matching the user's intent, and
- * returns a structured JSON response with install commands + defs.yaml
- * snippets.
+ * Multi-turn tool-use loop:
+ *
+ *   1. Server pre-filters the 991-component catalog to top ~150 by
+ *      keyword match against the intent + boosts components named in
+ *      any matching playbook.
+ *   2. Claude gets the candidate list + optional playbook hint and
+ *      can call `fetch_component_schema(name)` to drill into any
+ *      component's real schema (so defs.yaml uses actual field names,
+ *      not hallucinated ones).
+ *   3. When Claude has enough context it calls `answer(...)` with the
+ *      final recommendations + defs snippets + optional shell script.
  *
  * Env vars:
  *   ANTHROPIC_API_KEY   — required, server-side only
- *   DCC_AGENT_MODEL     — optional override, defaults to claude-sonnet-4-6
+ *   DCC_AGENT_MODEL     — optional override; default claude-sonnet-4-6
  */
 import Anthropic from "@anthropic-ai/sdk";
 
 // ── Manifest cache ────────────────────────────────────────────────────
-const MANIFEST_URL =
-  "https://raw.githubusercontent.com/eric-thomas-dagster/dagster-component-templates/main/manifest.json";
+const RAW_BASE =
+  "https://raw.githubusercontent.com/eric-thomas-dagster/dagster-component-templates/main";
+const MANIFEST_URL = `${RAW_BASE}/manifest.json`;
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const SCHEMA_CACHE_TTL_MS = 30 * 60 * 1000;
 
 type ManifestComponent = {
   name?: string;
@@ -31,17 +40,17 @@ type ManifestComponent = {
   agent_hints?: Record<string, unknown>;
   produces?: string[];
   readme_url?: string;
+  schema_url?: string;
   example_url?: string;
 };
 type Manifest = { version: string; total?: number; components: ManifestComponent[] };
 
 let cachedManifest: { at: number; data: Manifest } | null = null;
+const schemaCache: Map<string, { at: number; data: unknown }> = new Map();
 
 async function loadManifest(): Promise<Manifest> {
   const now = Date.now();
-  if (cachedManifest && now - cachedManifest.at < CACHE_TTL_MS) {
-    return cachedManifest.data;
-  }
+  if (cachedManifest && now - cachedManifest.at < CACHE_TTL_MS) return cachedManifest.data;
   const r = await fetch(MANIFEST_URL);
   if (!r.ok) throw new Error(`manifest fetch failed: HTTP ${r.status}`);
   const data = (await r.json()) as Manifest;
@@ -49,12 +58,102 @@ async function loadManifest(): Promise<Manifest> {
   return data;
 }
 
-// ── Compact catalog for the LLM prompt ────────────────────────────────
+async function loadComponentSchema(component: ManifestComponent): Promise<unknown> {
+  if (!component.schema_url) {
+    return { error: `component '${component.name}' has no schema_url` };
+  }
+  const key = component.schema_url;
+  const now = Date.now();
+  const hit = schemaCache.get(key);
+  if (hit && now - hit.at < SCHEMA_CACHE_TTL_MS) return hit.data;
+  const r = await fetch(component.schema_url);
+  if (!r.ok) return { error: `schema fetch failed for '${component.name}': HTTP ${r.status}` };
+  const data = await r.json();
+  schemaCache.set(key, { at: now, data });
+  return data;
+}
+
+// ── Playbooks — canned patterns for the most-common asks ──────────────
 //
-// Per component: name + category + vendor + tags/keywords + IO type +
-// description. ~200 bytes each × 991 components = ~50k tokens. We
-// pre-filter to top-K candidates below to shave that to ~8k tokens and
-// give the LLM headroom for careful ranking.
+// When the intent regex-matches a playbook, we inject a "playbook hint"
+// into the system prompt AND boost the named components in the pre-filter
+// so they always make the top-150 candidate list. Keeps the agent fast +
+// accurate on the ~80% happy path without paying for full LLM reasoning.
+type Playbook = {
+  name: string;
+  match: RegExp;
+  hint: string;
+  boost_components: string[]; // exact component names from the manifest
+};
+
+const PLAYBOOKS: Playbook[] = [
+  {
+    name: "salesforce-to-warehouse",
+    match: /salesforce|sfdc|\bcrm\b/i,
+    hint:
+      "Salesforce Ingestion supports a `destination` config field (dlt destinations: bigquery, snowflake, postgres, filesystem, ...) so a Salesforce → warehouse pipeline can be ONE component + a schedule. If the user also wants pre-write schema validation, use the DataFrame path + Pandera Asset Check + a separate warehouse sink — but call out both options in `assumptions`.",
+    boost_components: [
+      "Salesforce Ingestion",
+      "Salesforce Resource",
+      "DataFrame to BigQuery",
+      "DataFrame to Snowflake",
+      "Pandera Asset Check",
+    ],
+  },
+  {
+    name: "github-to-warehouse",
+    match: /\bgithub\b/i,
+    hint:
+      "For GitHub issues/PRs/commits ingestion, prefer the GitHub-specific dlt ingestion component with `destination` set for direct writes. Add Pandera Asset Check only if the user explicitly asks for pre-write validation.",
+    boost_components: [
+      "GitHub Ingestion",
+      "GitHub Resource",
+      "DataFrame to BigQuery",
+      "DataFrame to Snowflake",
+    ],
+  },
+  {
+    name: "stripe-to-warehouse",
+    match: /\bstripe\b/i,
+    hint:
+      "Stripe Ingestion supports `destination` for direct-to-warehouse. Recommend that shape unless the user explicitly wants intermediate validation.",
+    boost_components: ["Stripe Ingestion", "DataFrame to BigQuery", "DataFrame to Snowflake"],
+  },
+  {
+    name: "dbt-transformation",
+    match: /\bdbt\b/i,
+    hint:
+      "dbt runs are its own component (official dagster-dbt integration). If the user mentions freshness / test failures, add a freshness check and Slack alert.",
+    boost_components: ["Dbt Project Component"],
+  },
+  {
+    name: "sql-source-to-warehouse",
+    match: /(postgres|mysql|mssql|oracle|db2|redshift|snowflake)\s*(to|→|->)\s*(bigquery|snowflake|redshift|postgres|databricks)/i,
+    hint:
+      "Cross-warehouse replication uses `Database Replication` (row-level, ongoing) or `Database Tables Migration` (schema-first, one-shot). Prefer Replication for periodic sync; Migration for one-time lift.",
+    boost_components: ["Database Replication", "Database Tables Migration"],
+  },
+  {
+    name: "sensor-driven-ingest",
+    match: /(when|whenever|on).{0,30}(new|dropped|arrives|lands|uploaded).{0,30}(file|s3|gcs|azure|blob)/i,
+    hint:
+      "Event-driven ingestion of files should use a filesystem/S3 sensor component to trigger a materialization of the downstream ingest asset.",
+    boost_components: ["Filesystem Monitor", "S3 Filesystem Monitor"],
+  },
+  {
+    name: "ml-scoring",
+    match: /(score|predict|inference|classifier|model).{0,30}(nightly|daily|hourly|batch)/i,
+    hint:
+      "For batch ML scoring: pull features (Ingestion component), score with a model asset (see xgboost / sklearn / openai components depending on model type), write predictions back with a DataFrame-to-<warehouse> sink.",
+    boost_components: ["DataFrame to BigQuery", "DataFrame to Snowflake", "DataFrame to Postgres"],
+  },
+];
+
+function matchPlaybooks(intent: string): Playbook[] {
+  return PLAYBOOKS.filter((p) => p.match.test(intent));
+}
+
+// ── Compact catalog for the LLM prompt ────────────────────────────────
 function compactLine(c: ManifestComponent): string {
   const hints = c.agent_hints || {};
   const io =
@@ -62,8 +161,6 @@ function compactLine(c: ManifestComponent): string {
       ? ` [io: ${hints.input_type ?? "?"} → ${hints.output_type ?? "?"}]`
       : "";
   const vendor = c.vendor ? ` v:${c.vendor}` : "";
-  // Combine tags + keywords into a single deduped short list — both drive
-  // vendor / capability recognition and one signal isn't enough.
   const tagSet = new Set<string>();
   (c.tags || []).forEach((t) => tagSet.add(t));
   (c.keywords || []).forEach((t) => tagSet.add(t));
@@ -71,17 +168,7 @@ function compactLine(c: ManifestComponent): string {
   return `${c.name} (${c.category})${vendor}${io} — ${c.description}${tags ? ` #${tags}` : ""}`;
 }
 
-// ── Server-side pre-filter (keyword ranking) ──────────────────────────
-//
-// Rank every catalog component against the user's intent using a simple
-// TF-style keyword match on name/description/tags/keywords/vendor. Send
-// only the top-K to the LLM — cuts input tokens ~7x, cuts latency, and
-// keeps the LLM focused on plausible candidates instead of the full
-// 991-component space.
-//
-// The keyword extractor keeps proper nouns (Salesforce, BigQuery) and
-// technology words verbatim, plus common lowercased tokens. Stopwords
-// dropped.
+// ── Server-side pre-filter (keyword ranking + playbook boost) ─────────
 const STOPWORDS = new Set([
   "a", "an", "the", "and", "or", "of", "to", "in", "on", "for", "with", "into",
   "from", "at", "by", "as", "is", "are", "be", "my", "our", "your", "their",
@@ -100,10 +187,10 @@ function tokenize(s: string): string[] {
 function scoreCatalog(
   components: ManifestComponent[],
   intent: string,
+  boostNames: Set<string>,
   topK: number,
 ): ManifestComponent[] {
   const intentTokens = tokenize(intent);
-  if (intentTokens.length === 0) return components.slice(0, topK);
   const intentSet = new Set(intentTokens);
 
   const scored = components
@@ -119,53 +206,67 @@ function scoreCatalog(
       ];
       let score = 0;
       for (const t of intentTokens) {
-        // Weighted match: name matches count 4x, tags/keywords/vendor 3x,
-        // description 1x. Encourages picking components whose primary
-        // vendor / capability is IN the intent's noun set.
         if (nameToks.includes(t)) score += 4;
         if (tagToks.includes(t)) score += 3;
         if (descToks.includes(t)) score += 1;
       }
-      // Small boost for tag/keyword coverage breadth
       const tagsHit = tagToks.filter((t) => intentSet.has(t)).length;
       score += Math.min(tagsHit, 3);
+      // Playbook boost: force this component into the top-K.
+      if (boostNames.has(c.name || "")) score += 100;
       return { c, score };
     });
 
   scored.sort((a, b) => b.score - a.score);
-  // Always return at least topK; if fewer than topK have any score, pad
-  // with the highest-signal remaining (already sorted) so the LLM still
-  // sees breadth for creative combos.
   return scored.slice(0, topK).map((x) => x.c);
 }
 
 // ── Prompt ────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are the DCC Agent — you recommend Dagster Community Components (DCC) for a user's data-engineering intent.
 
-You will be given a pre-filtered candidate catalog (each line: name, category, vendor, IO types, description, tags/keywords). Every entry in the catalog was surfaced because it keyword-matches the user's intent, so all candidates are potentially relevant.
+You have two tools available:
 
-**Picking rules — apply in order:**
+1. **fetch_component_schema(component_name)** — fetch the real schema.json for a candidate component. USE THIS before writing a defs.yaml snippet for any component you haven't previously fetched. The schema has the actual field names, types, required/optional flags, and defaults. Guessing field names from the compact catalog gives wrong YAML — always fetch first.
 
-1. **Match every stage of the intent.** If the intent spans multiple stages, pick one component per stage. For example, "sync X to Y every N hours with schema validation" needs (a) an X ingestion source, (b) a Y sink or IO manager, (c) a schema-validation asset check, (d) a schedule to trigger it. Don't return a schema-validation check alone if the ingest + sink components exist in the candidates.
+2. **answer(...)** — return the final ranked recommendations. Only call this once you have enough component context to write real defs.yaml snippets.
 
-2. **Prefer native single-vendor components over generic multiplexers** when the intent names a specific vendor (Salesforce, BigQuery, Snowflake, dbt, etc.). Match component names/vendor fields to the vendors named in the intent.
+## How to work
 
-3. **Prefer specific over general.** A component named after the exact vendor beats a generic one that could serve many vendors.
+You will receive a pre-filtered candidate catalog (each line: name, category, vendor, IO types, description, tags/keywords). Every entry keyword-matches the user's intent — all candidates are plausibly relevant. You may also receive playbook hints — short notes about how the ecosystem's best pattern for this intent shape. Weight playbook hints heavily.
 
-4. **Return the smallest set that solves the full intent.** Never more than 5 components. If one component covers the whole thing, return one. If the intent needs ingest+transform+sink+check, return four.
+**Picking rules:**
 
-5. **Do NOT invent component names.** Only pick from the candidate catalog you're given.
+1. **Match every stage of the intent.** If the intent spans multiple stages, cover each one — unless a single component with the right config field can collapse multiple stages (see rule 4).
+2. **Prefer native single-vendor components over generic multiplexers** when the intent names a vendor.
+3. **Fetch schemas before writing YAML.** Every recommendation's defs.yaml must use fields that actually exist in the component's schema. Fetch first, write second.
+4. **Look for collapse opportunities.** Many ingestion components have a \`destination\` (or similar) config field that lets one component do the ingest+sink in one asset. Fetch schemas and check. When a collapse is possible, ALSO mention the multi-component alternative in \`assumptions\` (e.g. "the two-step DataFrame → sink pattern is more useful if you want pre-write validation").
+5. **Smallest set that solves the intent.** Never more than 5 components.
+6. **Do NOT invent component names.** Only pick from the candidate catalog.
 
-For each recommendation, produce a defs.yaml snippet using realistic placeholder values (\${VAR_NAME} form for secrets). The snippet must be pasteable into a scaffolded project's defs/ directory.
-
-If include_shell_script is set, produce a shell script that:
+If include_shell_script is set, the shell script scaffolds a fresh project and adds each component:
   uvx create-dagster project my_project --uv-sync
   cd my_project
   dg add defs <component_name>/<component_name>.yaml
   ...
-for every recommended component.
 
-Always state assumptions (schedule cadence, target vendor, auth method) so the user can correct you.`;
+Always state assumptions (schedule cadence, target vendor, auth method, sync mode) so the user can correct you.`;
+
+// ── Tool definitions ──────────────────────────────────────────────────
+const FETCH_SCHEMA_TOOL = {
+  name: "fetch_component_schema",
+  description:
+    "Fetch the real schema.json for a candidate component so you can generate an accurate defs.yaml. Returns the schema's `attributes` map (field name → type + description + required flag + default). Call this before writing any defs.yaml snippet.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      component_name: {
+        type: "string",
+        description: "Exact component name from the candidate catalog.",
+      },
+    },
+    required: ["component_name"],
+  },
+};
 
 type ToolInput = {
   recommendations: Array<{
@@ -179,9 +280,9 @@ type ToolInput = {
   shell_script?: string;
 };
 
-const RESPONSE_TOOL = {
+const ANSWER_TOOL = {
   name: "answer",
-  description: "Return the ranked component recommendations for the user's intent.",
+  description: "Return the ranked component recommendations for the user's intent. Only call this once you have fetched schemas for the components you're recommending.",
   input_schema: {
     type: "object" as const,
     properties: {
@@ -200,7 +301,8 @@ const RESPONSE_TOOL = {
             },
             defs_snippet: {
               type: "string",
-              description: "Pasteable defs.yaml snippet with placeholders.",
+              description:
+                "Pasteable defs.yaml snippet. Field names MUST match the schema you fetched.",
             },
           },
           required: ["component_name", "why", "category", "install_command", "defs_snippet"],
@@ -209,7 +311,8 @@ const RESPONSE_TOOL = {
       assumptions: {
         type: "array",
         items: { type: "string" },
-        description: "Assumptions the agent made when picking components (schedule, vendor, auth, etc).",
+        description:
+          "Assumptions the agent made when picking components (schedule, vendor, auth, sync mode, alternative shapes).",
       },
       shell_script: {
         type: "string",
@@ -255,13 +358,27 @@ export default async function handler(req: any, res: any) {
 
   try {
     const manifest = await loadManifest();
-    const candidates = scoreCatalog(manifest.components, intent, 150);
+    const componentsByName = new Map<string, ManifestComponent>();
+    for (const c of manifest.components) {
+      if (c.name) componentsByName.set(c.name, c);
+    }
+
+    const playbooks = matchPlaybooks(intent);
+    const boostNames = new Set<string>(playbooks.flatMap((p) => p.boost_components));
+    const candidates = scoreCatalog(manifest.components, intent, boostNames, 150);
     const catalog = candidates.map(compactLine).join("\n");
 
     const anthropic = new Anthropic({ apiKey });
-    // Haiku is fast, cheap, and plenty smart for a ranked-pick task over
-    // a pre-filtered candidate list. Overridable via env for A/B.
-    const model = process.env.DCC_AGENT_MODEL || "claude-haiku-4-5";
+    // Sonnet: catches multi-stage intents + reasons about which stages
+    // collapse when a component has a `destination` field. Haiku was
+    // faster but missed the multi-stage picks.
+    const model = process.env.DCC_AGENT_MODEL || "claude-sonnet-4-6";
+
+    const playbookBlock = playbooks.length
+      ? `\nPLAYBOOK HINTS (matched patterns — weight these heavily):\n${playbooks
+          .map((p) => `  [${p.name}] ${p.hint}`)
+          .join("\n")}\n`
+      : "";
 
     const userText = [
       `Intent: ${intent}`,
@@ -269,38 +386,105 @@ export default async function handler(req: any, res: any) {
       includeShell
         ? "The user wants a full project scaffold — include a `shell_script` in your answer."
         : "The user wants a recommendation only — do not include a `shell_script`.",
-      "",
-      `Candidate DCC catalog (${candidates.length} of ${manifest.components.length} components, pre-filtered by keyword match — pick from these ONLY):`,
+      playbookBlock,
+      `Candidate DCC catalog (${candidates.length} of ${manifest.components.length}, pre-filtered — pick ONLY from these):`,
       catalog,
+      "",
+      "Remember: fetch_component_schema for every component you're about to include in defs_snippet.",
     ].join("\n");
 
-    const response = await anthropic.messages.create({
-      model,
-      max_tokens: 4096,
-      system: SYSTEM_PROMPT,
-      tools: [RESPONSE_TOOL as any],
-      tool_choice: { type: "tool", name: RESPONSE_TOOL.name },
-      messages: [{ role: "user", content: userText }],
-    });
+    const messages: Anthropic.MessageParam[] = [{ role: "user", content: userText }];
 
-    const toolBlock = response.content.find((b: any) => b.type === "tool_use");
-    if (!toolBlock || toolBlock.type !== "tool_use") {
-      res.status(502).json({
-        error: "Claude did not return a tool_use response",
-        raw: response.content,
+    // Multi-turn tool-use loop. Cap at 8 iterations (2 schema fetches +
+    // an answer is typical; 8 gives headroom for a 4-component pipeline
+    // where each schema is fetched before writing YAML).
+    const MAX_ITERATIONS = 8;
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let schemasFetched = 0;
+    let finalAnswer: ToolInput | null = null;
+
+    for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
+      const response = await anthropic.messages.create({
+        model,
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        tools: [FETCH_SCHEMA_TOOL as any, ANSWER_TOOL as any],
+        messages,
       });
-      return;
+      inputTokens += response.usage.input_tokens;
+      outputTokens += response.usage.output_tokens;
+
+      const toolUseBlocks = response.content.filter((b: any) => b.type === "tool_use");
+      if (toolUseBlocks.length === 0) {
+        // Model returned only text — probably an error state. Bail with
+        // whatever text it gave so we can debug.
+        const text = response.content
+          .filter((b: any) => b.type === "text")
+          .map((b: any) => b.text)
+          .join("\n");
+        return res.status(502).json({ error: "Claude returned no tool_use", model_text: text });
+      }
+
+      // Push the assistant turn (with any thinking + tool_use blocks) to history.
+      messages.push({ role: "assistant", content: response.content });
+
+      // Process every tool_use in this turn; assemble tool_result payloads.
+      const toolResults: Anthropic.ToolResultBlockParam[] = [];
+      for (const block of toolUseBlocks) {
+        const b = block as any;
+        if (b.name === ANSWER_TOOL.name) {
+          finalAnswer = b.input as ToolInput;
+          // No tool_result needed — this is the terminal call.
+        } else if (b.name === FETCH_SCHEMA_TOOL.name) {
+          const requestedName = (b.input?.component_name || "").toString();
+          const component = componentsByName.get(requestedName);
+          let content: unknown;
+          if (!component) {
+            content = {
+              error: `no component named '${requestedName}' in the catalog. Fetch from the candidate list you were given.`,
+            };
+          } else {
+            content = await loadComponentSchema(component);
+          }
+          schemasFetched += 1;
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: b.id,
+            content: JSON.stringify(content),
+          });
+        } else {
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: b.id,
+            content: JSON.stringify({ error: `unknown tool ${b.name}` }),
+            is_error: true,
+          });
+        }
+      }
+
+      if (finalAnswer) break;
+
+      // Feed tool_results back to Claude for the next turn.
+      messages.push({ role: "user", content: toolResults });
     }
-    const answer = (toolBlock as any).input as ToolInput;
+
+    if (!finalAnswer) {
+      return res.status(502).json({
+        error: `agent exceeded ${MAX_ITERATIONS} iterations without calling answer(...)`,
+      });
+    }
 
     res.status(200).json({
-      ...answer,
+      ...finalAnswer,
       meta: {
         model,
-        input_tokens: response.usage.input_tokens,
-        output_tokens: response.usage.output_tokens,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
         manifest_total: manifest.components.length,
         candidates_sent: candidates.length,
+        playbooks_matched: playbooks.map((p) => p.name),
+        schemas_fetched: schemasFetched,
       },
     });
   } catch (e: any) {
