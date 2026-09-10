@@ -298,6 +298,19 @@ function scoreCatalog(
 // ── Prompt ────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are the DCC Agent — you recommend Dagster Community Components (DCC) for a user's data-engineering intent.
 
+## Answer shape
+
+Your final \`answer(...)\` call has three main fields:
+  - **summary** — required. A 1-2 sentence direct reply. This is what the user reads first.
+  - **recommendations** — 0-5 components with real defs.yaml (fields must match the schemas you fetched).
+  - **walkthroughs** — 0-4 end-to-end demos.
+
+**How to pick between recommendations vs walkthroughs:**
+  - "How do I …?" / "Sync X to Y" / "Build a pipeline that …"  →  recommendations are primary; walkthroughs optional if there's a directly relevant demo.
+  - "Do you have an example of …?" / "Show me a demo of …" / "Is there a walkthrough for …"  →  **walkthroughs are primary; recommendations are OPTIONAL** and only useful if the demo uses specific components worth pointing at.
+
+## Tools
+
 You have five tools available:
 
 1. **fetch_component_schema(component_name)** — fetch the real schema.json for a candidate component. USE THIS before writing a defs.yaml snippet for any component you haven't previously fetched. The schema has the actual field names, types, required/optional flags, and defaults. Guessing field names from the compact catalog gives wrong YAML — always fetch first.
@@ -454,6 +467,7 @@ const SEARCH_READMES_TOOL = {
 };
 
 type ToolInput = {
+  summary?: string;
   recommendations: Array<{
     component_name: string;
     why: string;
@@ -461,16 +475,28 @@ type ToolInput = {
     install_command: string;
     defs_snippet: string;
   }>;
+  walkthroughs?: Array<{
+    slug: string;
+    title: string;
+    why: string;
+    url: string;
+  }>;
   assumptions: string[];
   shell_script?: string;
 };
 
 const ANSWER_TOOL = {
   name: "answer",
-  description: "Return the ranked component recommendations for the user's intent. Only call this once you have fetched schemas for the components you're recommending.",
+  description:
+    "Return the ranked recommendations for the user's intent. Only call once you have fetched enough context (schemas, READMEs, walkthroughs) to write real defs.yaml snippets or cite real walkthroughs.",
   input_schema: {
     type: "object" as const,
     properties: {
+      summary: {
+        type: "string",
+        description:
+          "One-to-two sentence direct answer to the user's question. Written like a Slack reply, not a spec — tells the user what they're getting and why.",
+      },
       recommendations: {
         type: "array",
         maxItems: 5,
@@ -493,11 +519,34 @@ const ANSWER_TOOL = {
           required: ["component_name", "why", "category", "install_command", "defs_snippet"],
         },
       },
+      walkthroughs: {
+        type: "array",
+        maxItems: 4,
+        items: {
+          type: "object",
+          properties: {
+            slug: {
+              type: "string",
+              description: "Walkthrough slug (from the walkthroughs index).",
+            },
+            title: { type: "string", description: "Human-friendly walkthrough title." },
+            why: { type: "string", description: "Why this walkthrough matches the intent." },
+            url: {
+              type: "string",
+              description:
+                "Full URL to the walkthrough on the templates repo (raw.githubusercontent.com/.../examples/<slug>/README.md).",
+            },
+          },
+          required: ["slug", "title", "why", "url"],
+        },
+        description:
+          "End-to-end walkthroughs relevant to the intent. This is the PRIMARY answer when the user asks 'do you have an example of X' / 'show me a demo of Y' — recommendations become optional in that case.",
+      },
       assumptions: {
         type: "array",
         items: { type: "string" },
         description:
-          "Assumptions the agent made when picking components (schedule, vendor, auth, sync mode, alternative shapes).",
+          "Assumptions the agent made (schedule, vendor, auth, sync mode, alternative shapes).",
       },
       shell_script: {
         type: "string",
@@ -505,11 +554,21 @@ const ANSWER_TOOL = {
           "Full `uvx create-dagster ... && dg add ...` shell script. Only include if the user asked for a project scaffold.",
       },
     },
-    required: ["recommendations", "assumptions"],
+    required: ["summary", "assumptions"],
   },
 };
 
 // ── Handler ───────────────────────────────────────────────────────────
+//
+// Server-Sent Events (SSE) format — server emits progressive
+// `data: {"type": "...", ...}\n\n` frames so the widget can show
+// live status ("Reading Salesforce Ingestion schema", "Fetching
+// walkthrough supabase_rag", ...) instead of a static spinner.
+//
+// Event types:
+//   progress    { message: string }        — human-facing status line
+//   answer      { ...ToolInput, meta: ... } — final structured answer
+//   error       { message: string }        — fatal error
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "POST only" });
@@ -541,7 +600,19 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  // Switch to SSE mode. All subsequent writes are `data: {...}\n\n` frames.
+  res.status(200);
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("X-Accel-Buffering", "no"); // disable nginx-style buffering
+  if (typeof res.flushHeaders === "function") res.flushHeaders();
+
+  const emit = (type: string, data: Record<string, unknown> = {}) => {
+    res.write(`data: ${JSON.stringify({ type, ...data })}\n\n`);
+  };
+
   try {
+    emit("progress", { message: "Loading catalog…" });
     const manifest = await loadManifest();
     const componentsByName = new Map<string, ManifestComponent>();
     for (const c of manifest.components) {
@@ -552,6 +623,14 @@ export default async function handler(req: any, res: any) {
     const boostNames = new Set<string>(playbooks.flatMap((p) => p.boost_components));
     const candidates = scoreCatalog(manifest.components, intent, boostNames, 150);
     const catalog = candidates.map(compactLine).join("\n");
+    if (playbooks.length) {
+      emit("progress", {
+        message: `Matched playbook: ${playbooks.map((p) => p.name).join(", ")}`,
+      });
+    }
+    emit("progress", {
+      message: `Filtered to top ${candidates.length} candidates from ${manifest.components.length}`,
+    });
 
     const anthropic = new Anthropic({ apiKey });
     // Sonnet: catches multi-stage intents + reasons about which stages
@@ -565,6 +644,7 @@ export default async function handler(req: any, res: any) {
           .join("\n")}\n`
       : "";
 
+    emit("progress", { message: "Loading walkthroughs index…" });
     // Inline the walkthroughs index (~30k tokens). Non-fatal if it fails
     // to fetch — agent still works without it, just can't recommend
     // specific end-to-end demos.
@@ -600,6 +680,7 @@ export default async function handler(req: any, res: any) {
     let finalAnswer: ToolInput | null = null;
 
     for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
+      emit("progress", { message: iter === 0 ? "Asking Claude…" : "Thinking…" });
       const response = await anthropic.messages.create({
         model,
         max_tokens: 4096,
@@ -618,13 +699,12 @@ export default async function handler(req: any, res: any) {
 
       const toolUseBlocks = response.content.filter((b: any) => b.type === "tool_use");
       if (toolUseBlocks.length === 0) {
-        // Model returned only text — probably an error state. Bail with
-        // whatever text it gave so we can debug.
         const text = response.content
           .filter((b: any) => b.type === "text")
           .map((b: any) => b.text)
           .join("\n");
-        return res.status(502).json({ error: "Claude returned no tool_use", model_text: text });
+        emit("error", { message: `Claude returned no tool_use: ${text.slice(0, 500)}` });
+        return res.end();
       }
 
       // Push the assistant turn (with any thinking + tool_use blocks) to history.
@@ -639,6 +719,7 @@ export default async function handler(req: any, res: any) {
           // No tool_result needed — this is the terminal call.
         } else if (b.name === FETCH_SCHEMA_TOOL.name) {
           const requestedName = (b.input?.component_name || "").toString();
+          emit("progress", { message: `Reading schema: ${requestedName}` });
           const component = componentsByName.get(requestedName);
           let content: unknown;
           if (!component) {
@@ -656,6 +737,7 @@ export default async function handler(req: any, res: any) {
           });
         } else if (b.name === FETCH_README_TOOL.name) {
           const requestedName = (b.input?.component_name || "").toString();
+          emit("progress", { message: `Reading README: ${requestedName}` });
           const component = componentsByName.get(requestedName);
           let content: string;
           if (!component) {
@@ -671,6 +753,7 @@ export default async function handler(req: any, res: any) {
           });
         } else if (b.name === FETCH_WALKTHROUGH_TOOL.name) {
           const slug = (b.input?.slug || "").toString();
+          emit("progress", { message: `Fetching walkthrough: ${slug}` });
           const content = slug
             ? await loadWalkthrough(slug)
             : "[error: missing `slug` argument]";
@@ -682,6 +765,7 @@ export default async function handler(req: any, res: any) {
           });
         } else if (b.name === SEARCH_READMES_TOOL.name) {
           const query = (b.input?.query || "").toString();
+          emit("progress", { message: `Searching READMEs: “${query}”` });
           let content: unknown;
           if (!query) {
             content = { error: "missing `query` argument" };
@@ -711,12 +795,13 @@ export default async function handler(req: any, res: any) {
     }
 
     if (!finalAnswer) {
-      return res.status(502).json({
-        error: `agent exceeded ${MAX_ITERATIONS} iterations without calling answer(...)`,
+      emit("error", {
+        message: `agent exceeded ${MAX_ITERATIONS} iterations without calling answer(...)`,
       });
+      return res.end();
     }
 
-    res.status(200).json({
+    emit("answer", {
       ...finalAnswer,
       meta: {
         model,
@@ -731,8 +816,16 @@ export default async function handler(req: any, res: any) {
         readme_searches: readmeSearches,
       },
     });
+    res.end();
   } catch (e: any) {
     console.error("dcc-agent error", e);
-    res.status(500).json({ error: e?.message || String(e) });
+    // If we already switched to SSE headers, emit an error event; else
+    // fall back to a JSON error (only happens on very early failures).
+    try {
+      emit("error", { message: e?.message || String(e) });
+      res.end();
+    } catch {
+      res.status(500).json({ error: e?.message || String(e) });
+    }
   }
 }

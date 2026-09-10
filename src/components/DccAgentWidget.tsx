@@ -32,8 +32,17 @@ type Recommendation = {
   defs_snippet: string;
 };
 
+type Walkthrough = {
+  slug: string;
+  title: string;
+  why: string;
+  url: string;
+};
+
 type AgentResponse = {
-  recommendations: Recommendation[];
+  summary?: string;
+  recommendations?: Recommendation[];
+  walkthroughs?: Walkthrough[];
   assumptions: string[];
   shell_script?: string;
   meta?: {
@@ -65,6 +74,7 @@ export function DccAgentWidget() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [answer, setAnswer] = useState<AgentResponse | null>(null);
+  const [progress, setProgress] = useState<string[]>([]);
 
   async function submit(text?: string) {
     const q = (text ?? intent).trim();
@@ -72,6 +82,7 @@ export function DccAgentWidget() {
     setLoading(true);
     setError(null);
     setAnswer(null);
+    setProgress([]);
     try {
       const r = await fetch("/api/dcc-agent", {
         method: "POST",
@@ -81,9 +92,41 @@ export function DccAgentWidget() {
           options: { include_shell_script: includeShell },
         }),
       });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
-      setAnswer(data as AgentResponse);
+      if (!r.ok || !r.body) {
+        // Non-SSE error (very early failure)
+        const t = await r.text();
+        throw new Error(t || `HTTP ${r.status}`);
+      }
+      // Consume SSE stream: frames are `data: {json}\n\n`.
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const frames = buf.split("\n\n");
+        buf = frames.pop() ?? "";
+        for (const frame of frames) {
+          const line = frame.trim();
+          if (!line.startsWith("data:")) continue;
+          const jsonStr = line.slice(5).trim();
+          let evt: { type?: string; message?: string } & Record<string, unknown>;
+          try {
+            evt = JSON.parse(jsonStr);
+          } catch {
+            continue;
+          }
+          if (evt.type === "progress" && typeof evt.message === "string") {
+            const msg = evt.message;
+            setProgress((prev) => [...prev, msg]);
+          } else if (evt.type === "answer") {
+            setAnswer(evt as unknown as AgentResponse);
+          } else if (evt.type === "error" && typeof evt.message === "string") {
+            setError(evt.message);
+          }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -95,6 +138,7 @@ export function DccAgentWidget() {
     setIntent("");
     setAnswer(null);
     setError(null);
+    setProgress([]);
   }
 
   // ── Closed: FAB ──────────────────────────────────────────────────
@@ -239,8 +283,33 @@ export function DccAgentWidget() {
         )}
 
         {loading && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-muted)", fontSize: 13 }}>
-            <Loader2 size={14} className="spin" aria-hidden /> Thinking …
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text)", fontSize: 13, fontWeight: 500 }}>
+              <Loader2 size={14} className="spin" aria-hidden />
+              <span>
+                {progress.length > 0 ? progress[progress.length - 1] : "Thinking"}
+                <span className="dcc-dots"><span>.</span><span>.</span><span>.</span></span>
+              </span>
+            </div>
+            {progress.length > 1 && (
+              <ul
+                style={{
+                  margin: "4px 0 0 22px",
+                  padding: 0,
+                  fontSize: 11,
+                  color: "var(--text-muted)",
+                  lineHeight: 1.5,
+                  listStyle: "none",
+                }}
+              >
+                {progress.slice(0, -1).slice(-6).map((line, i) => (
+                  <li key={`${line}-${i}`} className="dcc-fade-in" style={{ marginTop: 2 }}>
+                    <span style={{ color: "var(--text-dim, var(--text-muted))" }}>✓ </span>
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 
@@ -255,8 +324,36 @@ export function DccAgentWidget() {
 
         {answer && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {answer.summary && (
+              <section className="dcc-fade-in">
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                    color: "var(--text)",
+                  }}
+                >
+                  {answer.summary}
+                </p>
+              </section>
+            )}
+
+            {answer.walkthroughs && answer.walkthroughs.length > 0 && (
+              <section className="dcc-fade-in">
+                <div style={sectionTitleStyle}>
+                  Walkthroughs ({answer.walkthroughs.length})
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
+                  {answer.walkthroughs.map((w) => (
+                    <WalkthroughCard key={w.slug} wt={w} />
+                  ))}
+                </div>
+              </section>
+            )}
+
             {answer.assumptions?.length > 0 && (
-              <section>
+              <section className="dcc-fade-in">
                 <div style={sectionTitleStyle}>Assumptions</div>
                 <ul style={{ margin: "6px 0 0 18px", padding: 0, lineHeight: 1.55, fontSize: 12 }}>
                   {answer.assumptions.map((a, i) => (
@@ -266,16 +363,18 @@ export function DccAgentWidget() {
               </section>
             )}
 
-            <section>
-              <div style={sectionTitleStyle}>
-                Recommended ({answer.recommendations.length})
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6 }}>
-                {answer.recommendations.map((r) => (
-                  <RecommendationCard key={r.component_name} rec={r} />
-                ))}
-              </div>
-            </section>
+            {answer.recommendations && answer.recommendations.length > 0 && (
+              <section className="dcc-fade-in">
+                <div style={sectionTitleStyle}>
+                  Recommended ({answer.recommendations.length})
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6 }}>
+                  {answer.recommendations.map((r) => (
+                    <RecommendationCard key={r.component_name} rec={r} />
+                  ))}
+                </div>
+              </section>
+            )}
 
             {answer.shell_script && (
               <section>
@@ -397,6 +496,56 @@ export function DccAgentWidget() {
         </div>
       </form>
     </div>
+  );
+}
+
+function WalkthroughCard({ wt }: { wt: Walkthrough }) {
+  return (
+    <a
+      href={wt.url}
+      target="_blank"
+      rel="noreferrer"
+      style={{
+        display: "block",
+        border: "1px solid var(--border)",
+        borderRadius: 8,
+        padding: 10,
+        background: "var(--bg-elevated)",
+        textDecoration: "none",
+        color: "inherit",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: 6,
+          marginBottom: 4,
+        }}
+      >
+        <span
+          style={{
+            fontWeight: 700,
+            fontSize: 13,
+            color: "var(--cyan)",
+          }}
+        >
+          {wt.title}
+        </span>
+        <span
+          style={{
+            fontSize: 10,
+            fontFamily: "var(--font-mono, monospace)",
+            color: "var(--text-muted)",
+          }}
+        >
+          {wt.slug}
+        </span>
+      </div>
+      <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
+        {wt.why}
+      </p>
+    </a>
   );
 }
 
