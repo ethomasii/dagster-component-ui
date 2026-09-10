@@ -131,6 +131,40 @@ chmod +x pull_credit_usage.py
     sharedReadmeUrl: SHARED_OVERVIEW_README,
     requires: ["Python 3.8+ (stdlib only — no external deps)", "Dagster+ user API token"],
   },
+  {
+    id: "pull_audit_logs",
+    title: "pull_audit_logs.py",
+    category: "pull",
+    oneLiner: "Pull Dagster+ audit log entries by date range + optional filters, CSV/JSON export.",
+    description:
+      "The Dagster+ UI shows audit logs under Cloud Settings but doesn't expose a bulk " +
+      "download or SIEM-friendly export. This CLI hits `auditLog.auditLogEntries` and " +
+      "paginates through the full result set. Filters compose: deployment, actor email, " +
+      "event type, and date range. Ships one `pull` subcommand + `deployments` (token " +
+      "sanity check). Requires an **org-admin** user API token and a Dagster+ **Pro** " +
+      "plan (audit logs are Pro-only).",
+    usage:
+`export DAGSTER_CLOUD_API_TOKEN=user:xxxxxxxx
+
+curl -fsSL ${RAW}/cli/pull_audit_logs/pull_audit_logs.py -o pull_audit_logs.py
+chmod +x pull_audit_logs.py
+
+# Everything in a 10-day window, CSV to stdout:
+./pull_audit_logs.py --org acme \\
+    pull --start 2026-09-01 --end 2026-09-10
+
+# Scoped filters + JSON out (SIEM-friendly):
+./pull_audit_logs.py --org acme \\
+    pull --start 2026-09-01 --end 2026-09-10 \\
+    --deployments prod \\
+    --event-types UPDATE_CODE_LOCATION,DELETE_CODE_LOCATION \\
+    --output-json audit.json`,
+    rawUrl: `${RAW}/cli/pull_audit_logs/pull_audit_logs.py`,
+    githubUrl: `${REPO}/blob/main/cli/pull_audit_logs/pull_audit_logs.py`,
+    readmeUrl: `${RAW}/cli/pull_audit_logs/README.md`,
+    sharedReadmeUrl: SHARED_OVERVIEW_README,
+    requires: ["Python 3.8+ (stdlib only — no external deps)", "Dagster+ user API token (org-admin scope)", "Dagster+ Pro plan"],
+  },
 ];
 
 export function findCli(id: string): CliScript | undefined {
