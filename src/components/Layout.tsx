@@ -349,6 +349,13 @@ export function Layout({ children }: { children: ReactNode }) {
               CLIs
             </Link>
             <Link
+              to="/ask"
+              style={navPillStyle(loc.pathname.startsWith("/ask"))}
+              title="Ask the DCC Agent — describe your intent, get ranked components + install commands"
+            >
+              Ask
+            </Link>
+            <Link
               to="/get-started"
               style={navPillStyle(loc.pathname === "/get-started")}
               title="Install the CLI and add templates (uvx or pip)"
