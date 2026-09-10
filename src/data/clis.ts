@@ -93,14 +93,17 @@ chmod +x sync_custom_metrics.py
     id: "pull_credit_usage",
     title: "pull_credit_usage.py",
     category: "pull",
-    oneLiner: "Pull Dagster+ credit usage sliced by deployment × code location × asset × day.",
+    oneLiner: "Pull Dagster+ Insights metrics sliced by deployment × code location × asset × day.",
     description:
-      "The Dagster+ UI shows credit usage under Insights but doesn't expose a cross-" +
-      "deployment / per-code-location / per-asset download as one report. This CLI hits " +
-      "the same GraphQL endpoints the UI does (`reportingMetricsByAsset` on both the " +
-      "VICTORIA_METRICS + POSTGRES stores) and merges into one table. Handles the " +
-      "120-day API cap by auto-chunking longer windows; unions the two metric stores so " +
-      "date ranges spanning VM's ~6-month retention pick up the historical POSTGRES data.",
+      "The Dagster+ UI shows Insights metrics but doesn't expose a cross-deployment / " +
+      "per-code-location / per-asset download as one report. This CLI hits the same " +
+      "GraphQL endpoints the UI does (`reportingMetricsByAsset` on both the " +
+      "VICTORIA_METRICS + POSTGRES stores) and merges into one table. Ships two pull " +
+      "subcommands: `credits` (ergonomic default — credits + compute_seconds with ms→s " +
+      "conversion) and `metrics` (generic — pull any built-in or custom Insights metric " +
+      "by name). Handles the 120-day API cap by auto-chunking longer windows; unions the " +
+      "two metric stores so date ranges spanning VM's ~6-month retention pick up the " +
+      "historical POSTGRES data.",
     usage:
 `export DAGSTER_CLOUD_API_TOKEN=user:xxxxxxxx
 
@@ -114,7 +117,14 @@ chmod +x pull_credit_usage.py
 ./pull_credit_usage.py --org acme \\
     credits --start 2026-01-01 --end 2026-09-30 \\
     --group-by deployment,code_location,asset,day \\
-    --output-csv credits.csv`,
+    --output-csv credits.csv
+
+# Same, but pull a custom Insights metric (or any built-in) by name:
+./pull_credit_usage.py --org acme \\
+    metrics --start 2026-01-01 --end 2026-09-30 \\
+    --metrics rows_ingested,cost_usd \\
+    --group-by deployment,asset,day \\
+    --output-csv custom.csv`,
     rawUrl: `${RAW}/cli/pull_credit_usage/pull_credit_usage.py`,
     githubUrl: `${REPO}/blob/main/cli/pull_credit_usage/pull_credit_usage.py`,
     readmeUrl: `${RAW}/cli/pull_credit_usage/README.md`,
