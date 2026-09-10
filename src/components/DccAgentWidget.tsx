@@ -112,10 +112,10 @@ export function DccAgentWidget() {
           fontWeight: 600,
           borderRadius: 999,
           border: "none",
-          background: "var(--cyan)",
-          color: "#000",
+          background: "linear-gradient(135deg, var(--accent) 0%, #5b21b6 100%)",
+          color: "#fff",
           cursor: "pointer",
-          boxShadow: "0 10px 25px rgba(0,0,0,0.25)",
+          boxShadow: "0 10px 25px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.08)",
         }}
       >
         <Sparkles size={16} aria-hidden />
@@ -123,6 +123,8 @@ export function DccAgentWidget() {
       </button>
     );
   }
+
+  // The remainder renders the open panel.
 
   // ── Open: floating panel ─────────────────────────────────────────
   const panelWidth = expanded ? "min(700px, 92vw)" : "min(420px, 92vw)";
@@ -142,8 +144,8 @@ export function DccAgentWidget() {
         display: "flex",
         flexDirection: "column",
         borderRadius: 16,
-        border: "1px solid var(--border)",
-        background: "var(--surface)",
+        border: "1px solid var(--border-strong)",
+        background: "var(--bg-card)",
         boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
         overflow: "hidden",
       }}
@@ -321,7 +323,7 @@ export function DccAgentWidget() {
             lineHeight: 1.5,
             borderRadius: 8,
             border: "1px solid var(--border)",
-            background: "var(--surface-elevated, var(--surface))",
+            background: "var(--bg-elevated)",
             color: "var(--text)",
             resize: "none",
             boxSizing: "border-box",
@@ -359,9 +361,9 @@ export function DccAgentWidget() {
               cursor: intent.trim() && !loading ? "pointer" : "not-allowed",
               background:
                 intent.trim() && !loading
-                  ? "var(--cyan)"
-                  : "var(--surface-elevated, rgba(148,163,184,0.2))",
-              color: intent.trim() && !loading ? "#000" : "var(--text-muted)",
+                  ? "linear-gradient(135deg, var(--accent) 0%, #5b21b6 100%)"
+                  : "var(--bg-elevated)",
+              color: intent.trim() && !loading ? "#fff" : "var(--text-muted)",
               display: "inline-flex",
               alignItems: "center",
               gap: 4,
@@ -387,7 +389,7 @@ function RecommendationCard({ rec }: { rec: Recommendation }) {
         border: "1px solid var(--border)",
         borderRadius: 8,
         padding: 10,
-        background: "var(--surface-elevated, var(--surface))",
+        background: "var(--bg-elevated)",
       }}
     >
       <div
