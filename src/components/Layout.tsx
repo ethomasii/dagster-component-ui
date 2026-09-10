@@ -342,6 +342,13 @@ export function Layout({ children }: { children: ReactNode }) {
               Categories
             </Link>
             <Link
+              to="/cli"
+              style={navPillStyle(loc.pathname.startsWith("/cli"))}
+              title="Standalone Dagster+ CLI scripts — sync catalog views, sync custom metrics, pull credit usage"
+            >
+              CLIs
+            </Link>
+            <Link
               to="/get-started"
               style={navPillStyle(loc.pathname === "/get-started")}
               title="Install the CLI and add templates (uvx or pip)"
