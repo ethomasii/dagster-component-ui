@@ -104,7 +104,7 @@ chmod +x sync_custom_metrics.py
     usage:
 `export DAGSTER_CLOUD_API_TOKEN=user:xxxxxxxx
 
-curl -fsSL ${RAW}/cli/pull_credit_usage.py -o pull_credit_usage.py
+curl -fsSL ${RAW}/cli/pull_credit_usage/pull_credit_usage.py -o pull_credit_usage.py
 chmod +x pull_credit_usage.py
 
 # List deployments in the org (validates token):
@@ -115,8 +115,8 @@ chmod +x pull_credit_usage.py
     credits --start 2026-01-01 --end 2026-09-30 \\
     --group-by deployment,code_location,asset,day \\
     --output-csv credits.csv`,
-    rawUrl: `${RAW}/cli/pull_credit_usage.py`,
-    githubUrl: `${REPO}/blob/main/cli/pull_credit_usage.py`,
+    rawUrl: `${RAW}/cli/pull_credit_usage/pull_credit_usage.py`,
+    githubUrl: `${REPO}/blob/main/cli/pull_credit_usage/pull_credit_usage.py`,
     readmeUrl: `${RAW}/cli/pull_credit_usage/README.md`,
     sharedReadmeUrl: SHARED_OVERVIEW_README,
     requires: ["Python 3.8+ (stdlib only — no external deps)", "Dagster+ user API token"],
