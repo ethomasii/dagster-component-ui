@@ -60,10 +60,14 @@ type AgentResponse = {
 };
 
 const STARTER_PROMPTS = [
+  // Q&A intents (agent answers with summary + optional walkthrough / docs link)
+  "Do you have an example of pgvector RAG?",
+  "How does incremental loading work in dlt ingestion?",
+  "What Salesforce components are available and when should I use them vs dagster-salesforce?",
+  // Build intents (agent recommends components + generates defs.yaml)
   "Sync Salesforce contacts into BigQuery every 6 hours with schema validation",
   "Ingest CSV drops from S3 into DuckDB, deduped by primary key",
   "Score customer churn nightly with XGBoost, write predictions to Postgres",
-  "Run a dbt transformation on Snowflake with freshness alerts",
 ];
 
 export function DccAgentWidget() {
@@ -255,10 +259,15 @@ export function DccAgentWidget() {
         {!answer && !loading && !error && (
           <>
             <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.55 }}>
-              Describe what you want to build. The agent picks the DCC components that fit,
-              generates install commands + <code>defs.yaml</code> snippets, and can produce a full
-              project-scaffold shell script.
+              Ask a question <em>or</em> describe what you want to build. The agent can:
             </p>
+            <ul style={{ margin: "4px 0 0 18px", padding: 0, fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.6 }}>
+              <li>Answer how-does-X-work questions (dips into READMEs + schemas)</li>
+              <li>Point at live-validated walkthroughs when you want an example</li>
+              <li>Recommend components + generate <code>defs.yaml</code> for a pipeline</li>
+              <li>Fall back to the official <code>dagster-&lt;vendor&gt;</code> package when no community component fits</li>
+              <li>Produce a full project-scaffold shell script (opt-in below)</li>
+            </ul>
             <div>
               <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6, fontWeight: 600 }}>
                 Try one:

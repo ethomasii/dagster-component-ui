@@ -227,6 +227,111 @@ function matchPlaybooks(intent: string): Playbook[] {
   return PLAYBOOKS.filter((p) => p.match.test(intent));
 }
 
+// ── Official Dagster integrations (docs.dagster.io/integrations/libraries) ─
+//
+// Sourced 2026-09 from docs.dagster.io. The community components repo
+// intentionally does NOT duplicate any official `dagster-<vendor>`
+// integration — when a user asks about one of these vendors, the agent
+// should recommend the official package + link to its docs rather than
+// try to shoehorn a community component in.
+//
+// One line per integration: `vendor | pip-package | docs-slug`.
+// Docs URL = https://docs.dagster.io/integrations/libraries/<slug>.
+const OFFICIAL_INTEGRATIONS: Array<[string, string, string]> = [
+  ["ADBC", "dagster-adbc", "adbc"],
+  ["Airbyte", "dagster-airbyte", "airbyte"],
+  ["Airlift", "dagster-airlift", "airlift"],
+  ["Anthropic", "dagster-anthropic", "anthropic"],
+  ["Apprise", "dagster-apprise", "apprise"],
+  ["Atlan", "dagster-atlan", "atlan"],
+  ["AWS", "dagster-aws", "aws"],
+  ["Azure", "dagster-azure", "azure"],
+  ["Celery", "dagster-celery", "celery"],
+  ["Census", "dagster-census", "census"],
+  ["Chroma", "dagster-chroma", "chroma"],
+  ["ClickHouse", "dagster-clickhouse", "clickhouse"],
+  ["Cube", "dagster-cube", "cube"],
+  ["Dask", "dagster-dask", "dask"],
+  ["Databricks", "dagster-databricks", "databricks"],
+  ["Datadog", "dagster-datadog", "datadog"],
+  ["Datahub", "dagster-datahub", "datahub"],
+  ["HF Datasets", "dagster-hf-datasets", "hf-datasets"],
+  ["dbt", "dagster-dbt", "dbt"],
+  ["Delta Lake", "dagster-deltalake", "deltalake"],
+  ["DingTalk", "dagster-dingtalk", "dingtalk"],
+  ["dlt", "dagster-dlt", "dlt"],
+  ["Docker", "dagster-docker", "docker"],
+  ["Elasticsearch", "dagster-elasticsearch", "elasticsearch"],
+  ["Evidence", "dagster-evidence", "evidence"],
+  ["Fivetran", "dagster-fivetran", "fivetran"],
+  ["GCP", "dagster-gcp", "gcp"],
+  ["Gemini", "dagster-gemini", "gemini"],
+  ["GitHub", "dagster-github", "github"],
+  ["Great Expectations", "dagster-great-expectations", "great-expectations"],
+  ["HashiCorp Nomad", "dagster-hashicorp-nomad", "hashicorp-nomad"],
+  ["HashiCorp Vault", "dagster-hashicorp", "hashicorp"],
+  ["Hex", "dagster-hex", "hex"],
+  ["Hightouch", "dagster-hightouch", "hightouch"],
+  ["Iceberg", "dagster-iceberg", "iceberg"],
+  ["Java", "dagster-java", "java"],
+  ["Jupyter Notebooks", "dagster-jupyter", "jupyter"],
+  ["Kubernetes", "dagster-k8s", "kubernetes"],
+  ["LakeFS", "dagster-lakefs", "lakefs"],
+  ["Looker", "dagster-looker", "looker"],
+  ["Meltano", "dagster-meltano", "meltano"],
+  ["MLflow", "dagster-mlflow", "mlflow"],
+  ["Modal", "dagster-modal", "modal"],
+  ["MotherDuck", "dagster-motherduck", "motherduck"],
+  ["MSSQL Bulk Copy Tool", "dagster-mssql-bulk-copy-tool", "mssql-bulk-copy-tool"],
+  ["Microsoft Teams", "dagster-msteams", "msteams"],
+  ["MySQL", "dagster-mysql", "mysql"],
+  ["Not Diamond", "dagster-notdiamond", "notdiamond"],
+  ["obstore", "dagster-obstore", "obstore"],
+  ["Omni", "dagster-omni", "omni"],
+  ["Open Metadata", "dagster-open-metadata", "open-metadata"],
+  ["OpenAI", "dagster-openai", "openai"],
+  ["OpenLineage", "dagster-openlineage", "openlineage"],
+  ["PagerDuty", "dagster-pagerduty", "pagerduty"],
+  ["Pandas", "dagster-pandas", "pandas"],
+  ["Pandera", "dagster-pandera", "pandera"],
+  ["Papertrail", "dagster-papertrail", "papertrail"],
+  ["Patito", "dagster-patito", "patito"],
+  ["Perian", "dagster-perian", "perian"],
+  ["Dagster Pipes", "dagster-pipes", "pipes"],
+  ["Polars", "dagster-polars", "polars"],
+  ["Postgres", "dagster-postgres", "postgres"],
+  ["Power BI", "dagster-powerbi", "powerbi"],
+  ["Prometheus", "dagster-prometheus", "prometheus"],
+  ["PySpark", "dagster-pyspark", "pyspark"],
+  ["Qdrant", "dagster-qdrant", "qdrant"],
+  ["Ray", "dagster-ray", "ray"],
+  ["Rust", "dagster-rust", "rust"],
+  ["Salesforce", "dagster-salesforce", "salesforce"],
+  ["Secoda", "dagster-secoda", "secoda"],
+  ["SFTP", "dagster-sftp", "sftp"],
+  ["SharePoint", "dagster-sharepoint", "sharepoint"],
+  ["Sigma", "dagster-sigma", "sigma"],
+  ["Slack", "dagster-slack", "slack"],
+  ["Sling", "dagster-sling", "sling"],
+  ["SLURM", "dagster-slurm", "slurm"],
+  ["Snowflake", "dagster-snowflake", "snowflake"],
+  ["Soda", "dagster-soda", "soda"],
+  ["Spark", "dagster-spark", "spark"],
+  ["SSH", "dagster-ssh", "ssh"],
+  ["Tableau", "dagster-tableau", "tableau"],
+  ["Teradata", "dagster-teradata", "teradata"],
+  ["Twilio", "dagster-twilio", "twilio"],
+  ["TypeScript", "dagster-typescript", "typescript"],
+  ["Weights & Biases", "dagster-wandb", "wandb"],
+  ["Weaviate", "dagster-weaviate", "weaviate"],
+];
+
+function formatOfficialIntegrations(): string {
+  return OFFICIAL_INTEGRATIONS
+    .map(([v, p, s]) => `  ${v} — ${p} — https://docs.dagster.io/integrations/libraries/${s}`)
+    .join("\n");
+}
+
 // ── Compact catalog for the LLM prompt ────────────────────────────────
 function compactLine(c: ManifestComponent): string {
   const hints = c.agent_hints || {};
@@ -297,6 +402,21 @@ function scoreCatalog(
 
 // ── Prompt ────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are the DCC Agent — you recommend Dagster Community Components (DCC) for a user's data-engineering intent.
+
+## Scope — community components are the default; official integrations are the fallback
+
+You have TWO layers of Dagster building blocks:
+
+1. **Community components (DCC)** — 991 higher-level, opinionated components (in the candidate catalog below). These are typically the *right* recommendation because they're purpose-built for common patterns (ingestion with baked-in schedules + destinations, agentic pipelines, sensor patterns, sinks with schema handling, etc.). Many are built ON TOP OF the official integrations to give a better ergonomic surface.
+
+2. **Official Dagster integrations** — \`dagster-<vendor>\` PyPI packages maintained by Dagster (see OFFICIAL INTEGRATIONS block in the user message). These are LOWER-LEVEL building blocks — resources, IO managers, and primitive assets. Useful as a fallback when no community component fits, or when the user explicitly asks about them.
+
+**Recommendation policy:**
+
+- **Prefer community components when they exist.** Even for vendors with an official integration (Salesforce, Snowflake, dbt, etc.), the community catalog often has a more useful, higher-level component that WRAPS the official one. Recommend the community component; it's fine to note in \`assumptions\` that it builds on the official \`dagster-<vendor>\` package.
+- **Fall back to official** when the candidate catalog genuinely has nothing that fits the intent — the vendor is covered ONLY by an official integration. Then cite the official package + link its docs URL in your \`summary\`.
+- **Cite both** when the intent is ambiguous or the user might want to know both exist (e.g. "I need a Salesforce resource" → community \`Salesforce Resource\` component OR the official \`dagster-salesforce\` package; different shapes, mention both briefly).
+- **Never invent a community component name.** Only recommend from the candidate catalog. If the candidate catalog doesn't have what's needed, use the official integration.
 
 ## Answer shape
 
@@ -660,10 +780,13 @@ export default async function handler(req: any, res: any) {
         ? "The user wants a full project scaffold — include a `shell_script` in your answer."
         : "The user wants a recommendation only — do not include a `shell_script`.",
       playbookBlock,
-      `Candidate DCC catalog (${candidates.length} of ${manifest.components.length}, pre-filtered — pick ONLY from these):`,
+      `Candidate DCC community catalog (${candidates.length} of ${manifest.components.length} community components, pre-filtered by intent match — PREFER these when any of them fit):`,
       catalog,
+      "",
+      `OFFICIAL INTEGRATIONS (Dagster-maintained \`dagster-<vendor>\` packages — the fallback layer when no community component in the candidate list fits. Also useful as building blocks that some community components wrap):`,
+      formatOfficialIntegrations(),
       walkthroughsBlock,
-      "Remember: fetch_component_schema for every component you're about to include in defs_snippet. Use fetch_component_readme when the user asks HOW something works. Use fetch_walkthrough when they want an end-to-end example.",
+      "Remember: fetch_component_schema for every community component you're about to include in defs_snippet. Use fetch_component_readme when the user asks HOW something works. Use fetch_walkthrough when they want an end-to-end example. Only cite the official `dagster-<vendor>` package when no community component in the candidate list fits — the community layer is the default.",
     ].join("\n");
 
     const messages: Anthropic.MessageParam[] = [{ role: "user", content: userText }];
