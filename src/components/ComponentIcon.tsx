@@ -41,10 +41,14 @@ export function ComponentIcon({ icon, size = 24, title, className }: Props) {
 
   if (icon.startsWith("si:")) {
     const slug = icon.slice(3).toLowerCase();
+    // jsdelivr's simple-icons mirror has 100% coverage of the npm
+    // package. cdn.simpleicons.org has a partial index that 404s on
+    // many valid slugs (aws, openai, microsoftazure, ...) — using the
+    // full npm mirror instead so every `si:*` slug renders.
     return (
       <img
         className={`component-icon component-icon--brand ${className ?? ""}`}
-        src={`https://cdn.simpleicons.org/${slug}`}
+        src={`https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/${slug}.svg`}
         width={size}
         height={size}
         alt=""
