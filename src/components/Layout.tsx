@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronDown, Rss, Search } from "lucide-react";
+import { DccAgentWidget } from "./DccAgentWidget";
 
 // GitHub's Octocat mark — inline SVG since lucide-react dropped brand icons for licensing.
 function GithubIcon({ size = 18 }: { size?: number }) {
@@ -349,13 +350,6 @@ export function Layout({ children }: { children: ReactNode }) {
               CLIs
             </Link>
             <Link
-              to="/ask"
-              style={navPillStyle(loc.pathname.startsWith("/ask"))}
-              title="Ask the DCC Agent — describe your intent, get ranked components + install commands"
-            >
-              Ask
-            </Link>
-            <Link
               to="/get-started"
               style={navPillStyle(loc.pathname === "/get-started")}
               title="Install the CLI and add templates (uvx or pip)"
@@ -422,6 +416,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <span>Open source · MIT</span>
         </div>
       </footer>
+      <DccAgentWidget />
     </div>
   );
 }

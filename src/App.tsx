@@ -10,7 +10,6 @@ import { CategoriesIndex } from "./pages/CategoriesIndex";
 import { CategoryDetail } from "./pages/CategoryDetail";
 import { CliIndex } from "./pages/CliIndex";
 import { CliDetail } from "./pages/CliDetail";
-import { AskPage } from "./pages/AskPage";
 import { ComponentDetail } from "./pages/ComponentDetail";
 import { GetStartedPage } from "./pages/GetStartedPage";
 import { AiAssistantsPage } from "./pages/AiAssistantsPage";
@@ -38,7 +37,6 @@ export default function App() {
           <Route path="/categories/:slug" element={<CategoryDetail />} />
           <Route path="/cli" element={<CliIndex />} />
           <Route path="/cli/:id" element={<CliDetail />} />
-          <Route path="/ask" element={<AskPage />} />
           <Route path="/c/:id" element={<ComponentDetail />} />
           <Route path="/search" element={<UnifiedSearch />} />
         </Routes>
