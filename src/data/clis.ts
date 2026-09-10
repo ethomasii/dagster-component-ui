@@ -15,9 +15,16 @@ export type CliScript = {
   oneLiner: string;
   description: string;
   usage: string;
+  /** Raw .py file URL — kept at the flat cli/ path (never moved, so any
+   *  customer who already curl'd it keeps working). */
   rawUrl: string;
+  /** Human-facing GitHub blob URL for the .py. */
   githubUrl: string;
+  /** Per-CLI dedicated README (lives in `cli/<id>/README.md`). */
   readmeUrl: string;
+  /** Shared overview README covering all three CLIs — kept at the
+   *  historical URL because customers have it bookmarked. */
+  sharedReadmeUrl: string;
   requires: string[];
 };
 
@@ -26,7 +33,10 @@ export type CliScript = {
 // name on GitHub differs).
 const REPO = "https://github.com/eric-thomas-dagster/dagster-component-templates";
 const RAW  = "https://raw.githubusercontent.com/eric-thomas-dagster/dagster-component-templates/main";
-const READMEURL = `${RAW}/cli/README.md`;
+// Shared overview README — kept at its historical URL because it's been
+// shared with customers. Per-CLI dedicated READMEs live in
+// `cli/<id>/README.md` sibling folders.
+const SHARED_OVERVIEW_README = `${RAW}/cli/README.md`;
 
 export const CLIS: CliScript[] = [
   {
@@ -50,7 +60,8 @@ chmod +x sync_catalog_views.py
     --dry-run`,
     rawUrl: `${RAW}/cli/sync_catalog_views.py`,
     githubUrl: `${REPO}/blob/main/cli/sync_catalog_views.py`,
-    readmeUrl: READMEURL,
+    readmeUrl: `${RAW}/cli/sync_catalog_views/README.md`,
+    sharedReadmeUrl: SHARED_OVERVIEW_README,
     requires: ["Python 3.8+", "PyYAML (`pip install pyyaml`)", "Dagster+ user API token"],
   },
   {
@@ -74,7 +85,8 @@ chmod +x sync_custom_metrics.py
     --dry-run`,
     rawUrl: `${RAW}/cli/sync_custom_metrics.py`,
     githubUrl: `${REPO}/blob/main/cli/sync_custom_metrics.py`,
-    readmeUrl: READMEURL,
+    readmeUrl: `${RAW}/cli/sync_custom_metrics/README.md`,
+    sharedReadmeUrl: SHARED_OVERVIEW_README,
     requires: ["Python 3.8+", "PyYAML (`pip install pyyaml`)", "Dagster+ user API token"],
   },
   {
@@ -105,7 +117,8 @@ chmod +x pull_credit_usage.py
     --output-csv credits.csv`,
     rawUrl: `${RAW}/cli/pull_credit_usage.py`,
     githubUrl: `${REPO}/blob/main/cli/pull_credit_usage.py`,
-    readmeUrl: READMEURL,
+    readmeUrl: `${RAW}/cli/pull_credit_usage/README.md`,
+    sharedReadmeUrl: SHARED_OVERVIEW_README,
     requires: ["Python 3.8+ (stdlib only — no external deps)", "Dagster+ user API token"],
   },
 ];

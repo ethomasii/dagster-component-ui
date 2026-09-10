@@ -1,33 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
 import { CLIS, findCli } from "../data/clis";
 
 /**
- * `/cli/:id` — per-CLI detail page. Fetches the raw .py file, extracts
- * the module-level docstring, and renders it as markdown. Docstrings
- * in the shipped CLIs are structured (usage examples, notes on
- * Dagster+ schema versioning, retry behavior, etc.) — no separate
- * .md files needed.
+ * `/cli/:id` — per-CLI detail page. Fetches the dedicated README from
+ * `cli/<id>/README.md` in the templates repo and renders it as markdown.
+ *
+ * Each CLI has its own README that expands on the module-level docstring
+ * with sections (install, usage, subcommands, options, common failure
+ * modes, sharing-with-customers notes). The shared cli/README.md
+ * overview lives at its historical URL for customer bookmark compat.
  */
-
-function extractDocstring(pySource: string): string | null {
-  // Skip shebang + `from __future__` etc. lines to find the first
-  // triple-quoted string literal.
-  const stripped = pySource.replace(/^#!.*\n/, "");
-  const m = stripped.match(/^\s*(?:from\s+__future__[^\n]*\n)*\s*"""([\s\S]*?)"""/m);
-  if (!m) return null;
-  return m[1].trim();
-}
-
 
 export function CliDetail() {
   const { id: rawId } = useParams<{ id: string }>();
   const id = rawId ? decodeURIComponent(rawId) : "";
   const cli = findCli(id);
 
-  const [pySource, setPySource] = useState<string | null>(null);
+  const [md, setMd] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -36,13 +28,13 @@ export function CliDetail() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    setPySource(null);
+    setMd(null);
     (async () => {
       try {
-        const r = await fetch(cli.rawUrl);
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const r = await fetch(cli.readmeUrl);
+        if (!r.ok) throw new Error(`HTTP ${r.status} fetching README`);
         const text = await r.text();
-        if (!cancelled) setPySource(text);
+        if (!cancelled) setMd(text);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "fetch failed");
       } finally {
@@ -51,17 +43,6 @@ export function CliDetail() {
     })();
     return () => { cancelled = true; };
   }, [cli]);
-
-  const docMd = useMemo(() => {
-    if (!pySource) return "";
-    const doc = extractDocstring(pySource);
-    if (!doc) return "";
-    // Wrap the docstring in a markdown fenced block so multi-line
-    // shell examples render as code, but let the description prose
-    // render as regular text. The shipped docstrings already use
-    // markdown-style headers + fenced code, so we can render directly.
-    return doc;
-  }, [pySource]);
 
   if (!cli) {
     return (
@@ -107,46 +88,43 @@ export function CliDetail() {
       <p style={{ fontSize: 15, color: "var(--text-muted)", margin: "0 0 12px", lineHeight: 1.55 }}>
         {cli.oneLiner}
       </p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 24, fontSize: 13 }}>
-        <a href={cli.githubUrl} target="_blank" rel="noreferrer" style={{
-          display: "inline-flex", alignItems: "center", gap: 4,
-          color: "var(--cyan)", textDecoration: "none",
-        }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginBottom: 24, fontSize: 13 }}>
+        <a href={cli.githubUrl} target="_blank" rel="noreferrer" style={linkStyle}>
           Source on GitHub <ExternalLink size={12} />
         </a>
-        <a href={cli.rawUrl} target="_blank" rel="noreferrer" style={{
-          display: "inline-flex", alignItems: "center", gap: 4,
-          color: "var(--cyan)", textDecoration: "none",
-        }}>
+        <a href={cli.rawUrl} target="_blank" rel="noreferrer" style={linkStyle}>
           Raw .py <ExternalLink size={12} />
         </a>
-        <a href={cli.readmeUrl} target="_blank" rel="noreferrer" style={{
-          display: "inline-flex", alignItems: "center", gap: 4,
-          color: "var(--cyan)", textDecoration: "none",
-        }}>
-          Shared cli/README.md <ExternalLink size={12} />
+        <a href={cli.readmeUrl} target="_blank" rel="noreferrer" style={linkStyle}>
+          Raw README.md <ExternalLink size={12} />
+        </a>
+        <a href={cli.sharedReadmeUrl} target="_blank" rel="noreferrer" style={linkStyle}>
+          Shared overview README <ExternalLink size={12} />
         </a>
       </div>
 
-      {loading && <p style={{ color: "var(--text-muted)" }}>Loading module docstring …</p>}
+      {loading && <p style={{ color: "var(--text-muted)" }}>Loading README …</p>}
       {error && (
         <div className="callout-help" style={{ borderLeftColor: "var(--error)" }}>
-          <p style={{ margin: 0, fontWeight: 600 }}>Could not fetch {cli.title}</p>
+          <p style={{ margin: 0, fontWeight: 600 }}>Could not fetch {cli.title} README</p>
           <p style={{ margin: "8px 0 0", fontSize: 14, color: "var(--text-muted)" }}>{error}</p>
           <p style={{ margin: "12px 0 0", fontSize: 13 }}>
+            Try opening directly on GitHub:{" "}
             <a href={cli.githubUrl} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
-              View on GitHub →
+              {cli.title} →
             </a>
           </p>
         </div>
       )}
-      {docMd && (
-        <ExamplesMarkdown>
-{`\`\`\`
-${docMd}
-\`\`\``}
-        </ExamplesMarkdown>
-      )}
+      {md != null && md !== "" && <ExamplesMarkdown>{md}</ExamplesMarkdown>}
     </div>
   );
 }
+
+const linkStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+  color: "var(--cyan)",
+  textDecoration: "none",
+};
