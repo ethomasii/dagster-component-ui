@@ -22,12 +22,21 @@
  */
 import Anthropic from "@anthropic-ai/sdk";
 
-// ── Manifest cache ────────────────────────────────────────────────────
+// ── Manifest + docs cache ─────────────────────────────────────────────
 const RAW_BASE =
   "https://raw.githubusercontent.com/eric-thomas-dagster/dagster-component-templates/main";
 const MANIFEST_URL = `${RAW_BASE}/manifest.json`;
+
+// Walkthroughs live in a separate repo (dagster-community-components-cli).
+// Small index (~30k tokens) is inlined in the prompt; individual walkthrough
+// files are fetched on demand via the fetch_walkthrough tool.
+const WALKTHROUGHS_RAW_BASE =
+  "https://raw.githubusercontent.com/eric-thomas-dagster/dagster-community-components-cli/main/examples";
+const WALKTHROUGHS_INDEX_URL = `${WALKTHROUGHS_RAW_BASE}/README.md`;
+
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const SCHEMA_CACHE_TTL_MS = 30 * 60 * 1000;
+const READMES_CACHE_TTL_MS = 30 * 60 * 1000;
 
 type ManifestComponent = {
   name?: string;
@@ -46,7 +55,10 @@ type ManifestComponent = {
 type Manifest = { version: string; total?: number; components: ManifestComponent[] };
 
 let cachedManifest: { at: number; data: Manifest } | null = null;
+let cachedWalkthroughsIndex: { at: number; data: string } | null = null;
 const schemaCache: Map<string, { at: number; data: unknown }> = new Map();
+const readmeCache: Map<string, { at: number; data: string }> = new Map();
+const walkthroughCache: Map<string, { at: number; data: string }> = new Map();
 
 async function loadManifest(): Promise<Manifest> {
   const now = Date.now();
@@ -55,6 +67,21 @@ async function loadManifest(): Promise<Manifest> {
   if (!r.ok) throw new Error(`manifest fetch failed: HTTP ${r.status}`);
   const data = (await r.json()) as Manifest;
   cachedManifest = { at: now, data };
+  return data;
+}
+
+async function loadWalkthroughsIndex(): Promise<string> {
+  const now = Date.now();
+  if (cachedWalkthroughsIndex && now - cachedWalkthroughsIndex.at < CACHE_TTL_MS) {
+    return cachedWalkthroughsIndex.data;
+  }
+  const r = await fetch(WALKTHROUGHS_INDEX_URL);
+  if (!r.ok) {
+    // Non-fatal — agent can still function without the walkthroughs index.
+    return "";
+  }
+  const data = await r.text();
+  cachedWalkthroughsIndex = { at: now, data };
   return data;
 }
 
@@ -71,6 +98,53 @@ async function loadComponentSchema(component: ManifestComponent): Promise<unknow
   const data = await r.json();
   schemaCache.set(key, { at: now, data });
   return data;
+}
+
+async function loadComponentReadme(component: ManifestComponent): Promise<string> {
+  if (!component.readme_url) {
+    return `[error: component '${component.name}' has no readme_url]`;
+  }
+  const key = component.readme_url;
+  const now = Date.now();
+  const hit = readmeCache.get(key);
+  if (hit && now - hit.at < READMES_CACHE_TTL_MS) return hit.data;
+  const r = await fetch(component.readme_url);
+  if (!r.ok) return `[error: README fetch failed for '${component.name}': HTTP ${r.status}]`;
+  const text = await r.text();
+  // Trim aggressively — READMEs can be 20+ KB and we don't want to blow
+  // context. Cap at 12k chars per fetch; agent can re-fetch if truncated
+  // matters to a specific answer.
+  const trimmed = text.length > 12000
+    ? text.slice(0, 12000) + `\n\n[... truncated at 12000 chars; full README at ${component.readme_url}]`
+    : text;
+  readmeCache.set(key, { at: now, data: trimmed });
+  return trimmed;
+}
+
+async function loadWalkthrough(slug: string): Promise<string> {
+  const cleaned = slug.replace(/\.md$/i, "");
+  const now = Date.now();
+  const hit = walkthroughCache.get(cleaned);
+  if (hit && now - hit.at < READMES_CACHE_TTL_MS) return hit.data;
+  // Two layouts: examples/<slug>/README.md OR examples/<slug>.md (older).
+  const candidates = [
+    `${WALKTHROUGHS_RAW_BASE}/${cleaned}/README.md`,
+    `${WALKTHROUGHS_RAW_BASE}/${cleaned}.md`,
+  ];
+  let lastStatus = 0;
+  for (const url of candidates) {
+    const r = await fetch(url);
+    if (r.ok) {
+      const text = await r.text();
+      const trimmed = text.length > 20000
+        ? text.slice(0, 20000) + `\n\n[... truncated at 20000 chars; full walkthrough at ${url}]`
+        : text;
+      walkthroughCache.set(cleaned, { at: now, data: trimmed });
+      return trimmed;
+    }
+    lastStatus = r.status;
+  }
+  return `[error: walkthrough '${cleaned}' not found; last HTTP status ${lastStatus}]`;
 }
 
 // ── Playbooks — canned patterns for the most-common asks ──────────────
@@ -224,11 +298,17 @@ function scoreCatalog(
 // ── Prompt ────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are the DCC Agent — you recommend Dagster Community Components (DCC) for a user's data-engineering intent.
 
-You have two tools available:
+You have five tools available:
 
 1. **fetch_component_schema(component_name)** — fetch the real schema.json for a candidate component. USE THIS before writing a defs.yaml snippet for any component you haven't previously fetched. The schema has the actual field names, types, required/optional flags, and defaults. Guessing field names from the compact catalog gives wrong YAML — always fetch first.
 
-2. **answer(...)** — return the final ranked recommendations. Only call this once you have enough component context to write real defs.yaml snippets.
+2. **fetch_component_readme(component_name)** — fetch the full README (~12KB trimmed). Use when the user asks HOW a component works (auth modes, incremental loading semantics, gotchas, examples) or when the schema alone doesn't give enough context to write a defs.yaml. Complements fetch_component_schema.
+
+3. **search_component_readmes(query)** — keyword-search across README bodies. Use when the intent needs a capability that isn't obviously in any component name/tag — e.g. "rate-limit handling", "incremental cursor", "schema evolution". Returns component names + relevant snippets.
+
+4. **fetch_walkthrough(slug)** — fetch a full end-to-end demo walkthrough by slug. The walkthroughs index is inlined in the user message below — pick a slug from there. Best source for "do you have an example of X" questions.
+
+5. **answer(...)** — return the final ranked recommendations. Only call once you have enough context to write real defs.yaml snippets.
 
 ## How to work
 
@@ -251,6 +331,62 @@ If include_shell_script is set, the shell script scaffolds a fresh project and a
 
 Always state assumptions (schedule cadence, target vendor, auth method, sync mode) so the user can correct you.`;
 
+// ── Search across README bodies ───────────────────────────────────────
+//
+// Two-stage: score against compact summaries → top-20 candidates → fetch
+// their README bodies concurrently → re-rank by body content. Uses the
+// module-level README cache so repeat searches are near-free.
+function countMatches(haystack: string, needles: string[]): number {
+  const low = haystack.toLowerCase();
+  let n = 0;
+  for (const t of needles) {
+    if (t.length < 2) continue;
+    let idx = 0;
+    while ((idx = low.indexOf(t, idx)) !== -1) {
+      n += 1;
+      idx += t.length;
+    }
+  }
+  return n;
+}
+
+function bestSnippet(body: string, needles: string[], radius = 180): string {
+  const low = body.toLowerCase();
+  let bestIdx = -1;
+  for (const t of needles) {
+    if (t.length < 2) continue;
+    const i = low.indexOf(t);
+    if (i !== -1 && (bestIdx === -1 || i < bestIdx)) bestIdx = i;
+  }
+  if (bestIdx === -1) return body.slice(0, radius * 2);
+  const start = Math.max(0, bestIdx - radius);
+  const end = Math.min(body.length, bestIdx + radius);
+  return (start > 0 ? "… " : "") + body.slice(start, end).replace(/\s+/g, " ").trim() + (end < body.length ? " …" : "");
+}
+
+async function searchComponentReadmes(
+  components: ManifestComponent[],
+  query: string,
+  topN = 5,
+): Promise<Array<{ component_name: string; category: string; snippet: string; score: number }>> {
+  const tokens = tokenize(query);
+  const shortlist = scoreCatalog(components, query, new Set(), 20);
+  const bodies = await Promise.all(
+    shortlist.map(async (c) => ({ c, body: await loadComponentReadme(c) })),
+  );
+  const scored = bodies
+    .filter((b) => !b.body.startsWith("[error"))
+    .map(({ c, body }) => ({
+      component_name: c.name || "",
+      category: c.category || "",
+      score: countMatches(body, tokens),
+      snippet: bestSnippet(body, tokens),
+    }))
+    .filter((r) => r.score > 0);
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, topN);
+}
+
 // ── Tool definitions ──────────────────────────────────────────────────
 const FETCH_SCHEMA_TOOL = {
   name: "fetch_component_schema",
@@ -265,6 +401,55 @@ const FETCH_SCHEMA_TOOL = {
       },
     },
     required: ["component_name"],
+  },
+};
+
+const FETCH_README_TOOL = {
+  name: "fetch_component_readme",
+  description:
+    "Fetch the full README.md for a component — richer than the compact catalog line. Use when the user asks HOW a component works (auth modes, gotchas, examples, incremental loading, config semantics) or when the schema alone doesn't answer the question. Returned text is trimmed to ~12KB — call again with a follow-up question if needed.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      component_name: {
+        type: "string",
+        description: "Exact component name from the candidate catalog.",
+      },
+    },
+    required: ["component_name"],
+  },
+};
+
+const FETCH_WALKTHROUGH_TOOL = {
+  name: "fetch_walkthrough",
+  description:
+    "Fetch a full end-to-end walkthrough by slug (from the walkthroughs index shown in the user message). Walkthroughs are live-validated demos with setup scripts, defs.yaml, and expected output — the best source for 'do you have an example of X' questions.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      slug: {
+        type: "string",
+        description:
+          "Walkthrough slug (filename without .md), e.g. 'mlflow_pipeline', 'crm_reconciliation', 'agentic_pipeline'.",
+      },
+    },
+    required: ["slug"],
+  },
+};
+
+const SEARCH_READMES_TOOL = {
+  name: "search_component_readmes",
+  description:
+    "Keyword-search across component README bodies (not just the summaries in the candidate catalog). Use when the user's intent needs a capability that isn't named in any component name/tags but might be documented deep in a README — e.g. 'rate-limit handling', 'incremental cursor', 'schema evolution'. Returns component names + relevant snippets. Prefer this over guessing which component covers a niche capability.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      query: {
+        type: "string",
+        description: "Keywords or a short phrase describing the capability.",
+      },
+    },
+    required: ["query"],
   },
 };
 
@@ -380,6 +565,14 @@ export default async function handler(req: any, res: any) {
           .join("\n")}\n`
       : "";
 
+    // Inline the walkthroughs index (~30k tokens). Non-fatal if it fails
+    // to fetch — agent still works without it, just can't recommend
+    // specific end-to-end demos.
+    const walkthroughsIndex = await loadWalkthroughsIndex();
+    const walkthroughsBlock = walkthroughsIndex
+      ? `\nWALKTHROUGHS INDEX (live-validated end-to-end demos — cite by slug in fetch_walkthrough):\n\n${walkthroughsIndex}\n`
+      : "";
+
     const userText = [
       `Intent: ${intent}`,
       "",
@@ -389,19 +582,21 @@ export default async function handler(req: any, res: any) {
       playbookBlock,
       `Candidate DCC catalog (${candidates.length} of ${manifest.components.length}, pre-filtered — pick ONLY from these):`,
       catalog,
-      "",
-      "Remember: fetch_component_schema for every component you're about to include in defs_snippet.",
+      walkthroughsBlock,
+      "Remember: fetch_component_schema for every component you're about to include in defs_snippet. Use fetch_component_readme when the user asks HOW something works. Use fetch_walkthrough when they want an end-to-end example.",
     ].join("\n");
 
     const messages: Anthropic.MessageParam[] = [{ role: "user", content: userText }];
 
-    // Multi-turn tool-use loop. Cap at 8 iterations (2 schema fetches +
-    // an answer is typical; 8 gives headroom for a 4-component pipeline
-    // where each schema is fetched before writing YAML).
-    const MAX_ITERATIONS = 8;
+    // Multi-turn tool-use loop. Cap at 12 iterations — with 5 tools
+    // now, agent may do several fetches + a search + an answer.
+    const MAX_ITERATIONS = 12;
     let inputTokens = 0;
     let outputTokens = 0;
     let schemasFetched = 0;
+    let readmesFetched = 0;
+    let walkthroughsFetched = 0;
+    let readmeSearches = 0;
     let finalAnswer: ToolInput | null = null;
 
     for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
@@ -409,7 +604,13 @@ export default async function handler(req: any, res: any) {
         model,
         max_tokens: 4096,
         system: SYSTEM_PROMPT,
-        tools: [FETCH_SCHEMA_TOOL as any, ANSWER_TOOL as any],
+        tools: [
+          FETCH_SCHEMA_TOOL as any,
+          FETCH_README_TOOL as any,
+          FETCH_WALKTHROUGH_TOOL as any,
+          SEARCH_READMES_TOOL as any,
+          ANSWER_TOOL as any,
+        ],
         messages,
       });
       inputTokens += response.usage.input_tokens;
@@ -442,12 +643,52 @@ export default async function handler(req: any, res: any) {
           let content: unknown;
           if (!component) {
             content = {
-              error: `no component named '${requestedName}' in the catalog. Fetch from the candidate list you were given.`,
+              error: `no component named '${requestedName}' in the catalog.`,
             };
           } else {
             content = await loadComponentSchema(component);
           }
           schemasFetched += 1;
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: b.id,
+            content: JSON.stringify(content),
+          });
+        } else if (b.name === FETCH_README_TOOL.name) {
+          const requestedName = (b.input?.component_name || "").toString();
+          const component = componentsByName.get(requestedName);
+          let content: string;
+          if (!component) {
+            content = `[error: no component named '${requestedName}' in the catalog]`;
+          } else {
+            content = await loadComponentReadme(component);
+          }
+          readmesFetched += 1;
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: b.id,
+            content,
+          });
+        } else if (b.name === FETCH_WALKTHROUGH_TOOL.name) {
+          const slug = (b.input?.slug || "").toString();
+          const content = slug
+            ? await loadWalkthrough(slug)
+            : "[error: missing `slug` argument]";
+          walkthroughsFetched += 1;
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: b.id,
+            content,
+          });
+        } else if (b.name === SEARCH_READMES_TOOL.name) {
+          const query = (b.input?.query || "").toString();
+          let content: unknown;
+          if (!query) {
+            content = { error: "missing `query` argument" };
+          } else {
+            content = await searchComponentReadmes(manifest.components, query, 5);
+          }
+          readmeSearches += 1;
           toolResults.push({
             type: "tool_result",
             tool_use_id: b.id,
@@ -485,6 +726,9 @@ export default async function handler(req: any, res: any) {
         candidates_sent: candidates.length,
         playbooks_matched: playbooks.map((p) => p.name),
         schemas_fetched: schemasFetched,
+        readmes_fetched: readmesFetched,
+        walkthroughs_fetched: walkthroughsFetched,
+        readme_searches: readmeSearches,
       },
     });
   } catch (e: any) {

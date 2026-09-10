@@ -44,6 +44,9 @@ type AgentResponse = {
     candidates_sent?: number;
     playbooks_matched?: string[];
     schemas_fetched?: number;
+    readmes_fetched?: number;
+    walkthroughs_fetched?: number;
+    readme_searches?: number;
   };
 };
 
@@ -287,8 +290,14 @@ export function DccAgentWidget() {
                 {answer.meta.output_tokens} tok · catalog {answer.meta.manifest_total}
                 {answer.meta.candidates_sent != null &&
                   ` (top ${answer.meta.candidates_sent})`}
-                {answer.meta.schemas_fetched != null &&
-                  ` · ${answer.meta.schemas_fetched} schema${answer.meta.schemas_fetched === 1 ? "" : "s"} fetched`}
+                {(answer.meta.schemas_fetched ?? 0) > 0 &&
+                  ` · ${answer.meta.schemas_fetched} schema${answer.meta.schemas_fetched === 1 ? "" : "s"}`}
+                {(answer.meta.readmes_fetched ?? 0) > 0 &&
+                  ` · ${answer.meta.readmes_fetched} README${answer.meta.readmes_fetched === 1 ? "" : "s"}`}
+                {(answer.meta.walkthroughs_fetched ?? 0) > 0 &&
+                  ` · ${answer.meta.walkthroughs_fetched} walkthrough${answer.meta.walkthroughs_fetched === 1 ? "" : "s"}`}
+                {(answer.meta.readme_searches ?? 0) > 0 &&
+                  ` · ${answer.meta.readme_searches} README search${answer.meta.readme_searches === 1 ? "" : "es"}`}
                 {answer.meta.playbooks_matched && answer.meta.playbooks_matched.length > 0 &&
                   ` · playbook: ${answer.meta.playbooks_matched.join(", ")}`}
               </p>
