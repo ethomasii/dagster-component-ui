@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Copy, Check, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Copy, Check, ExternalLink, ArrowRight } from "lucide-react";
+import { CLIS, CLI_REPO } from "../data/clis";
 
 /**
  * `/cli` — standalone Dagster+ CLI scripts (not components, not installed
@@ -7,106 +9,10 @@ import { Copy, Check, ExternalLink } from "lucide-react";
  * customers can `curl` and run against their Dagster+ deployment via a
  * user API token.
  *
- * Kept out of the component `/categories` grid deliberately — they have a
- * different install model (curl + chmod, not `dagster-component add`),
- * different runtime (standalone script vs Dagster project file), and
- * different mental model (ops tooling vs pipeline building blocks).
+ * Each card links to `/cli/:id` for the full per-script docstring rendered
+ * as markdown (usage examples, notes on Dagster+ schema versioning,
+ * retry behavior, retention story for pull_credit_usage, etc.).
  */
-
-type CliScript = {
-  id: string;
-  title: string;
-  category: "sync" | "pull";
-  oneLiner: string;
-  description: string;
-  usage: string;
-  rawUrl: string;
-  githubUrl: string;
-  requires: string[];
-};
-
-const REPO = "https://github.com/eric-thomas-dagster/dagster-community-components";
-const RAW  = "https://raw.githubusercontent.com/eric-thomas-dagster/dagster-community-components/main";
-
-const CLIS: CliScript[] = [
-  {
-    id: "sync_catalog_views",
-    title: "sync_catalog_views.py",
-    category: "sync",
-    oneLiner: "GitOps sync of Catalog Views (named asset selections) to a Dagster+ deployment.",
-    description:
-      "Push a YAML manifest of Catalog Views into a Dagster+ deployment via the real GraphQL API " +
-      "(`createOrUpdateCatalogView`). Idempotent — matches by view name and updates in place; " +
-      "creates new views when unmatched. `--dry-run` previews without touching the deployment; " +
-      "`--prune` optionally removes views not in the manifest.",
-    usage:
-`export DAGSTER_CLOUD_API_TOKEN=user:xxxxxxxx
-
-curl -fsSL ${RAW}/cli/sync_catalog_views.py -o sync_catalog_views.py
-chmod +x sync_catalog_views.py
-
-./sync_catalog_views.py sync catalog_views.yaml \\
-    --deployment-url https://acme.dagster.cloud/prod \\
-    --dry-run`,
-    rawUrl: `${RAW}/cli/sync_catalog_views.py`,
-    githubUrl: `${REPO}/blob/main/cli/sync_catalog_views.py`,
-    requires: ["Python 3.8+", "PyYAML (`pip install pyyaml`)", "Dagster+ user API token"],
-  },
-  {
-    id: "sync_custom_metrics",
-    title: "sync_custom_metrics.py",
-    category: "sync",
-    oneLiner: "GitOps sync of custom Insights metrics to a Dagster+ deployment.",
-    description:
-      "Push a YAML manifest of custom Insights metrics into a Dagster+ deployment via " +
-      "`createCustomMetric` / `updateCustomMetric`. Idempotent — matches by " +
-      "`metadata_key` and updates in place. Supports `unit_type: INTEGER | TIME_MS | " +
-      "TIME_SECONDS | FLOAT | BYTES`. `--dry-run` + `--prune` flags as with catalog views.",
-    usage:
-`export DAGSTER_CLOUD_API_TOKEN=user:xxxxxxxx
-
-curl -fsSL ${RAW}/cli/sync_custom_metrics.py -o sync_custom_metrics.py
-chmod +x sync_custom_metrics.py
-
-./sync_custom_metrics.py sync metrics.yaml \\
-    --deployment-url https://acme.dagster.cloud/prod \\
-    --dry-run`,
-    rawUrl: `${RAW}/cli/sync_custom_metrics.py`,
-    githubUrl: `${REPO}/blob/main/cli/sync_custom_metrics.py`,
-    requires: ["Python 3.8+", "PyYAML (`pip install pyyaml`)", "Dagster+ user API token"],
-  },
-  {
-    id: "pull_credit_usage",
-    title: "pull_credit_usage.py",
-    category: "pull",
-    oneLiner: "Pull Dagster+ credit usage sliced by deployment × code location × asset × day.",
-    description:
-      "The Dagster+ UI shows credit usage under Insights but doesn't expose a cross-" +
-      "deployment / per-code-location / per-asset download as one report. This CLI hits " +
-      "the same GraphQL endpoints the UI does (`reportingMetricsByAsset` on both the " +
-      "VICTORIA_METRICS + POSTGRES stores) and merges into one table. Handles the " +
-      "120-day API cap by auto-chunking longer windows; unions the two metric stores so " +
-      "date ranges spanning VM's ~6-month retention pick up the historical POSTGRES data.",
-    usage:
-`export DAGSTER_CLOUD_API_TOKEN=user:xxxxxxxx
-
-curl -fsSL ${RAW}/cli/pull_credit_usage.py -o pull_credit_usage.py
-chmod +x pull_credit_usage.py
-
-# List deployments in the org (validates token):
-./pull_credit_usage.py --org acme deployments
-
-# 9-month credit usage per deployment × code location × asset × day, CSV:
-./pull_credit_usage.py --org acme \\
-    credits --start 2026-01-01 --end 2026-09-30 \\
-    --group-by deployment,code_location,asset,day \\
-    --output-csv credits.csv`,
-    rawUrl: `${RAW}/cli/pull_credit_usage.py`,
-    githubUrl: `${REPO}/blob/main/cli/pull_credit_usage.py`,
-    requires: ["Python 3.8+ (stdlib only — no external deps)", "Dagster+ user API token"],
-  },
-];
-
 
 function CopyBtn({ text, label = "Copy" }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -175,6 +81,7 @@ export function CliIndex() {
       <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 32px", lineHeight: 1.5 }}>
         All three scripts have been verified end-to-end against a live Dagster+ deployment. Safe to
         hand a customer directly — no dependency on any registry component or internal tooling.
+        Click any card for the full per-script docs (fetched from the script's module docstring).
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -189,12 +96,20 @@ export function CliIndex() {
             }}
           >
             <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
-              <h3 style={{
-                margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: "-0.01em",
-                fontFamily: "var(--font-mono, monospace)",
-              }}>
+              <Link
+                to={`/cli/${encodeURIComponent(cli.id)}`}
+                style={{
+                  margin: 0,
+                  fontSize: 20,
+                  fontWeight: 700,
+                  letterSpacing: "-0.01em",
+                  fontFamily: "var(--font-mono, monospace)",
+                  color: "var(--text)",
+                  textDecoration: "none",
+                }}
+              >
                 {cli.title}
-              </h3>
+              </Link>
               <span
                 style={{
                   fontSize: 11,
@@ -252,24 +167,39 @@ export function CliIndex() {
               whiteSpace: "pre",
             }}>{cli.usage}</pre>
 
-            <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
-              <span style={{
-                fontSize: 11, fontWeight: 700, letterSpacing: "0.1em",
-                textTransform: "uppercase", color: "var(--text-dim)",
-              }}>
-                Requires
-              </span>
-              {cli.requires.map((req, i) => (
-                <span key={i} style={{
-                  fontSize: 12, color: "var(--text-muted)",
-                  padding: "3px 8px",
-                  borderRadius: 6,
-                  background: "var(--bg-elevated)",
-                  border: "1px solid var(--border)",
+            <div style={{
+              marginTop: 16, display: "flex", flexWrap: "wrap", gap: 12,
+              alignItems: "center", justifyContent: "space-between",
+            }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, letterSpacing: "0.1em",
+                  textTransform: "uppercase", color: "var(--text-dim)",
                 }}>
-                  {req}
+                  Requires
                 </span>
-              ))}
+                {cli.requires.map((req, i) => (
+                  <span key={i} style={{
+                    fontSize: 12, color: "var(--text-muted)",
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                    background: "var(--bg-elevated)",
+                    border: "1px solid var(--border)",
+                  }}>
+                    {req}
+                  </span>
+                ))}
+              </div>
+              <Link
+                to={`/cli/${encodeURIComponent(cli.id)}`}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  fontSize: 13, fontWeight: 600, color: "var(--cyan)",
+                  textDecoration: "none",
+                }}
+              >
+                Full docs <ArrowRight size={14} />
+              </Link>
             </div>
           </div>
         ))}
@@ -277,8 +207,8 @@ export function CliIndex() {
 
       <p style={{ marginTop: 32, fontSize: 13, color: "var(--text-dim)", lineHeight: 1.5 }}>
         Missing something? Open an issue at{" "}
-        <a href={`${REPO}/issues`} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
-          {REPO.replace("https://github.com/", "")}/issues
+        <a href={`${CLI_REPO}/issues`} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
+          {CLI_REPO.replace("https://github.com/", "")}/issues
         </a>
         {" "}or hand-roll the shape from the three above — they're all stdlib-only and follow the same
         `subcommand + arg` pattern.
