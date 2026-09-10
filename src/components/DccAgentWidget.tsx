@@ -26,6 +26,7 @@ import {
 
 type Recommendation = {
   component_name: string;
+  component_id?: string;
   why: string;
   category: string;
   install_command: string;
@@ -577,18 +578,31 @@ function RecommendationCard({ rec }: { rec: Recommendation }) {
           marginBottom: 4,
         }}
       >
-        <a
-          href={`/c/${encodeURIComponent(rec.component_name)}`}
-          style={{
-            fontFamily: "var(--font-mono, monospace)",
-            fontWeight: 700,
-            fontSize: 13,
-            color: "var(--cyan)",
-            textDecoration: "none",
-          }}
-        >
-          {rec.component_name}
-        </a>
+        {rec.component_id ? (
+          <a
+            href={`/c/${encodeURIComponent(rec.component_id)}`}
+            style={{
+              fontFamily: "var(--font-mono, monospace)",
+              fontWeight: 700,
+              fontSize: 13,
+              color: "var(--cyan)",
+              textDecoration: "none",
+            }}
+          >
+            {rec.component_name}
+          </a>
+        ) : (
+          <span
+            style={{
+              fontFamily: "var(--font-mono, monospace)",
+              fontWeight: 700,
+              fontSize: 13,
+              color: "var(--text)",
+            }}
+          >
+            {rec.component_name}
+          </span>
+        )}
         <span
           style={{
             fontSize: 10,

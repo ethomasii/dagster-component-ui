@@ -39,7 +39,9 @@ const SCHEMA_CACHE_TTL_MS = 30 * 60 * 1000;
 const READMES_CACHE_TTL_MS = 30 * 60 * 1000;
 
 type ManifestComponent = {
+  id?: string;
   name?: string;
+  path?: string;
   category?: string;
   description?: string;
   tags?: string[];
@@ -590,6 +592,7 @@ type ToolInput = {
   summary?: string;
   recommendations: Array<{
     component_name: string;
+    component_id?: string; // populated server-side from the manifest before emit
     why: string;
     category: string;
     install_command: string;
@@ -922,6 +925,23 @@ export default async function handler(req: any, res: any) {
         message: `agent exceeded ${MAX_ITERATIONS} iterations without calling answer(...)`,
       });
       return res.end();
+    }
+
+    // Resolve component_id (the manifest slug used by /c/:id URLs) for
+    // each recommendation. Widget links to /c/<id>, not /c/<display-name>.
+    // Falls back to last-path-segment if manifest doesn't include an
+    // explicit id — same rule as src/lib/componentId.ts in the UI.
+    const componentIdOf = (c: ManifestComponent | undefined): string => {
+      if (!c) return "";
+      if (c.id && c.id.trim()) return c.id.trim();
+      const seg = c.path?.replace(/\/+$/, "").split("/").pop()?.trim();
+      return seg ?? "";
+    };
+    if (finalAnswer.recommendations) {
+      for (const rec of finalAnswer.recommendations) {
+        const comp = componentsByName.get(rec.component_name);
+        rec.component_id = componentIdOf(comp);
+      }
     }
 
     emit("answer", {
