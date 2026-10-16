@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { docMarkdownRemarkPlugins, docMarkdownRehypePlugins } from "../lib/markdownPlugins";
+import { useScrollToHash } from "../lib/useScrollToHash";
 
 type Props = { url: string };
 
@@ -35,6 +36,8 @@ export function ComponentReadme({ url }: Props) {
       cancelled = true;
     };
   }, [url]);
+
+  useScrollToHash(content != null);
 
   if (loading) {
     return (
