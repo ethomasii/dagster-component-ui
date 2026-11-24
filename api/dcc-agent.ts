@@ -6,19 +6,33 @@
  *
  * Multi-turn tool-use loop:
  *
- *   1. Server pre-filters the 991-component catalog to top ~150 by
- *      keyword match against the intent + boosts components named in
- *      any matching playbook.
- *   2. Claude gets the candidate list + optional playbook hint and
+ *   1. Server sends Claude the FULL component catalog (every entry,
+ *      not a lossy keyword-filtered subset) in a fixed, intent-
+ *      independent order — never reordered or truncated per query, so
+ *      the block stays byte-identical across requests and caches
+ *      across users, not just within one conversation (see "Prompt
+ *      caching" below). Matched playbooks still surface as a short,
+ *      per-query hint pointing Claude at specific components by name.
+ *   2. Claude gets the full catalog + optional playbook hint and
  *      can call `fetch_component_schema(name)` to drill into any
  *      component's real schema (so defs.yaml uses actual field names,
  *      not hallucinated ones).
  *   3. When Claude has enough context it calls `answer(...)` with the
  *      final recommendations + defs snippets + optional shell script.
  *
+ * Prompt caching: the system prompt and the static catalog/walkthroughs/
+ * official-integrations block are identical across every request
+ * (they don't depend on `intent`), so both get an explicit `cache_control`
+ * breakpoint — the first request in any 5-minute window pays full price,
+ * every request after it (across ALL users, not just one conversation)
+ * reads that block at ~1/10th the cost. The growing tool-loop tail within
+ * one request is covered by top-level automatic caching. Only the
+ * `Intent: ...` line and per-query playbook hints sit after the last
+ * breakpoint.
+ *
  * Env vars:
  *   ANTHROPIC_API_KEY   — required, server-side only
- *   DCC_AGENT_MODEL     — optional override; default claude-sonnet-4-6
+ *   DCC_AGENT_MODEL     — optional override; default claude-sonnet-5-5
  */
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -349,7 +363,8 @@ function compactLine(c: ManifestComponent): string {
   return `${c.name} (${c.category})${vendor}${io} — ${c.description}${tags ? ` #${tags}` : ""}`;
 }
 
-// ── Server-side pre-filter (keyword ranking + playbook boost) ─────────
+// ── Relevance ranking (no longer a lossy pre-filter — sorts the FULL
+// catalog so likely matches render first; nothing is dropped) ─────────
 const STOPWORDS = new Set([
   "a", "an", "the", "and", "or", "of", "to", "in", "on", "for", "with", "into",
   "from", "at", "by", "as", "is", "are", "be", "my", "our", "your", "their",
@@ -365,11 +380,15 @@ function tokenize(s: string): string[] {
   );
 }
 
+/** Sorts (never truncates) the catalog by relevance to `intent`, with
+ * playbook-named components boosted to the front. `topK` is optional —
+ * pass it only for the narrower README-body-search shortlist, which has
+ * a real cost (one HTTP fetch per candidate), unlike this ranking pass. */
 function scoreCatalog(
   components: ManifestComponent[],
   intent: string,
   boostNames: Set<string>,
-  topK: number,
+  topK?: number,
 ): ManifestComponent[] {
   const intentTokens = tokenize(intent);
   const intentSet = new Set(intentTokens);
@@ -393,13 +412,14 @@ function scoreCatalog(
       }
       const tagsHit = tagToks.filter((t) => intentSet.has(t)).length;
       score += Math.min(tagsHit, 3);
-      // Playbook boost: force this component into the top-K.
+      // Playbook boost: float this component to the front of the list.
       if (boostNames.has(c.name || "")) score += 100;
       return { c, score };
     });
 
   scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, topK).map((x) => x.c);
+  const ranked = scored.map((x) => x.c);
+  return topK != null ? ranked.slice(0, topK) : ranked;
 }
 
 // ── Prompt ────────────────────────────────────────────────────────────
@@ -409,7 +429,7 @@ const SYSTEM_PROMPT = `You are the DCC Agent — you recommend Dagster Community
 
 You have TWO layers of Dagster building blocks:
 
-1. **Community components (DCC)** — 991 higher-level, opinionated components (in the candidate catalog below). These are typically the *right* recommendation because they're purpose-built for common patterns (ingestion with baked-in schedules + destinations, agentic pipelines, sensor patterns, sinks with schema handling, etc.). Many are built ON TOP OF the official integrations to give a better ergonomic surface.
+1. **Community components (DCC)** — a large, growing catalog of higher-level, opinionated components (the full catalog is in the candidate list below). These are typically the *right* recommendation because they're purpose-built for common patterns (ingestion with baked-in schedules + destinations, agentic pipelines, sensor patterns, sinks with schema handling, etc.). Many are built ON TOP OF the official integrations to give a better ergonomic surface.
 
 2. **Official Dagster integrations** — \`dagster-<vendor>\` PyPI packages maintained by Dagster (see OFFICIAL INTEGRATIONS block in the user message). These are LOWER-LEVEL building blocks — resources, IO managers, and primitive assets. Useful as a fallback when no community component fits, or when the user explicitly asks about them.
 
@@ -447,7 +467,7 @@ You have five tools available:
 
 ## How to work
 
-You will receive a pre-filtered candidate catalog (each line: name, category, vendor, IO types, description, tags/keywords). Every entry keyword-matches the user's intent — all candidates are plausibly relevant. You may also receive playbook hints — short notes about how the ecosystem's best pattern for this intent shape. Weight playbook hints heavily.
+You will receive the FULL candidate catalog (each line: name, category, vendor, IO types, description, tags/keywords) in no particular order — nothing has been filtered out, so read the whole list before concluding nothing fits. You may also receive playbook hints — short notes about how the ecosystem's best pattern for this intent shape. Weight playbook hints heavily.
 
 **Picking rules:**
 
@@ -468,7 +488,7 @@ Always state assumptions (schedule cadence, target vendor, auth method, sync mod
 
 // ── Search across README bodies ───────────────────────────────────────
 //
-// Two-stage: score against compact summaries → top-20 candidates → fetch
+// Two-stage: score against compact summaries → top-60 candidates → fetch
 // their README bodies concurrently → re-rank by body content. Uses the
 // module-level README cache so repeat searches are near-free.
 function countMatches(haystack: string, needles: string[]): number {
@@ -505,7 +525,10 @@ async function searchComponentReadmes(
   topN = 5,
 ): Promise<Array<{ component_name: string; category: string; snippet: string; score: number }>> {
   const tokens = tokenize(query);
-  const shortlist = scoreCatalog(components, query, new Set(), 20);
+  // Wider than the old cap (20) — this shortlist exists to bound the number
+  // of README fetches (an I/O cost, not a model-context cost), so it can
+  // afford to be generous now that the main catalog is no longer filtered.
+  const shortlist = scoreCatalog(components, query, new Set(), 60);
   const bodies = await Promise.all(
     shortlist.map(async (c) => ({ c, body: await loadComponentReadme(c) })),
   );
@@ -743,23 +766,35 @@ export default async function handler(req: any, res: any) {
     }
 
     const playbooks = matchPlaybooks(intent);
-    const boostNames = new Set<string>(playbooks.flatMap((p) => p.boost_components));
-    const candidates = scoreCatalog(manifest.components, intent, boostNames, 150);
-    const catalog = candidates.map(compactLine).join("\n");
+    // Fixed, intent-INDEPENDENT order (manifest order, every component) —
+    // not scoreCatalog's intent-sorted ranking. The whole point of the
+    // cache_control breakpoint below is that this block is byte-identical
+    // across every request regardless of who's asking what; sorting it by
+    // relevance to one specific intent would make every distinct query
+    // write its own cache entry and defeat cross-request cache hits. (A
+    // relevance SORT only ever mattered for deciding what got cut under
+    // the old top-150 truncation — now that nothing is cut, the model sees
+    // every component regardless of order.) scoreCatalog is still used
+    // below for search_component_readmes's shortlist, which isn't part of
+    // this cached block.
+    const catalogComponents = manifest.components.filter((c) => c.name);
+    const catalog = catalogComponents.map(compactLine).join("\n");
     if (playbooks.length) {
       emit("progress", {
         message: `Matched playbook: ${playbooks.map((p) => p.name).join(", ")}`,
       });
     }
     emit("progress", {
-      message: `Filtered to top ${candidates.length} candidates from ${manifest.components.length}`,
+      message: `Sending the full catalog (${catalogComponents.length} components, nothing filtered out)`,
     });
 
     const anthropic = new Anthropic({ apiKey });
     // Sonnet: catches multi-stage intents + reasons about which stages
     // collapse when a component has a `destination` field. Haiku was
-    // faster but missed the multi-stage picks.
-    const model = process.env.DCC_AGENT_MODEL || "claude-sonnet-4-6";
+    // faster but missed the multi-stage picks. Current-gen Sonnet (not the
+    // older claude-sonnet-4-6) for its 1M-token context — needed now that
+    // the full catalog + walkthroughs index can run well past 100k tokens.
+    const model = process.env.DCC_AGENT_MODEL || "claude-sonnet-5-5";
 
     const playbookBlock = playbooks.length
       ? `\nPLAYBOOK HINTS (matched patterns — weight these heavily):\n${playbooks
@@ -776,14 +811,14 @@ export default async function handler(req: any, res: any) {
       ? `\nWALKTHROUGHS INDEX (live-validated end-to-end demos — cite by slug in fetch_walkthrough):\n\n${walkthroughsIndex}\n`
       : "";
 
-    const userText = [
-      `Intent: ${intent}`,
-      "",
-      includeShell
-        ? "The user wants a full project scaffold — include a `shell_script` in your answer."
-        : "The user wants a recommendation only — do not include a `shell_script`.",
-      playbookBlock,
-      `Candidate DCC community catalog (${candidates.length} of ${manifest.components.length} community components, pre-filtered by intent match — PREFER these when any of them fit):`,
+    // Everything below is identical across every request within the
+    // manifest/walkthroughs cache window (5-30 min) — it doesn't depend on
+    // `intent`. Gets its own cache_control breakpoint so the ~full-catalog
+    // + walkthroughs text (the expensive part of this prompt) is read from
+    // cache, not reprocessed, on every request that lands in that window —
+    // not just repeat turns within one conversation.
+    const staticCatalogBlock = [
+      `Candidate DCC community catalog (${catalogComponents.length} community components — the FULL catalog; PREFER these when any of them fit):`,
       catalog,
       "",
       `OFFICIAL INTEGRATIONS (Dagster-maintained \`dagster-<vendor>\` packages — the fallback layer when no community component in the candidate list fits. Also useful as building blocks that some community components wrap):`,
@@ -792,13 +827,37 @@ export default async function handler(req: any, res: any) {
       "Remember: fetch_component_schema for every community component you're about to include in defs_snippet. Use fetch_component_readme when the user asks HOW something works. Use fetch_walkthrough when they want an end-to-end example. Only cite the official `dagster-<vendor>` package when no community component in the candidate list fits — the community layer is the default.",
     ].join("\n");
 
-    const messages: Anthropic.MessageParam[] = [{ role: "user", content: userText }];
+    // Only this part varies per request — kept after the cache breakpoint.
+    const dynamicIntentBlock = [
+      `Intent: ${intent}`,
+      "",
+      includeShell
+        ? "The user wants a full project scaffold — include a `shell_script` in your answer."
+        : "The user wants a recommendation only — do not include a `shell_script`.",
+      playbookBlock,
+    ].join("\n");
+
+    const messages: Anthropic.MessageParam[] = [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: staticCatalogBlock,
+            cache_control: { type: "ephemeral" },
+          },
+          { type: "text", text: dynamicIntentBlock },
+        ],
+      },
+    ];
 
     // Multi-turn tool-use loop. Cap at 12 iterations — with 5 tools
     // now, agent may do several fetches + a search + an answer.
     const MAX_ITERATIONS = 12;
     let inputTokens = 0;
     let outputTokens = 0;
+    let cacheReadTokens = 0;
+    let cacheWriteTokens = 0;
     let schemasFetched = 0;
     let readmesFetched = 0;
     let walkthroughsFetched = 0;
@@ -810,7 +869,14 @@ export default async function handler(req: any, res: any) {
       const response = await anthropic.messages.create({
         model,
         max_tokens: 4096,
-        system: SYSTEM_PROMPT,
+        // Explicit breakpoint caches tools + system together (tools render
+        // first, so a breakpoint on the last system block covers both).
+        system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+        // Top-level automatic caching covers the growing tool-loop tail
+        // (each turn's tool_result/assistant messages) on top of the
+        // explicit breakpoints above and on the static catalog block —
+        // the combination recommended for multi-turn agent loops.
+        cache_control: { type: "ephemeral" },
         tools: [
           FETCH_SCHEMA_TOOL as any,
           FETCH_README_TOOL as any,
@@ -822,6 +888,8 @@ export default async function handler(req: any, res: any) {
       });
       inputTokens += response.usage.input_tokens;
       outputTokens += response.usage.output_tokens;
+      cacheReadTokens += response.usage.cache_read_input_tokens ?? 0;
+      cacheWriteTokens += response.usage.cache_creation_input_tokens ?? 0;
 
       const toolUseBlocks = response.content.filter((b: any) => b.type === "tool_use");
       if (toolUseBlocks.length === 0) {
@@ -950,8 +1018,9 @@ export default async function handler(req: any, res: any) {
         model,
         input_tokens: inputTokens,
         output_tokens: outputTokens,
+        cache_read_tokens: cacheReadTokens,
+        cache_write_tokens: cacheWriteTokens,
         manifest_total: manifest.components.length,
-        candidates_sent: candidates.length,
         playbooks_matched: playbooks.map((p) => p.name),
         schemas_fetched: schemasFetched,
         readmes_fetched: readmesFetched,

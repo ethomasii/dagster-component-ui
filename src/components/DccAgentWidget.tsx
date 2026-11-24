@@ -51,8 +51,9 @@ type AgentResponse = {
     model: string;
     input_tokens: number;
     output_tokens: number;
+    cache_read_tokens?: number;
+    cache_write_tokens?: number;
     manifest_total: number;
-    candidates_sent?: number;
     playbooks_matched?: string[];
     schemas_fetched?: number;
     readmes_fetched?: number;
@@ -414,9 +415,10 @@ export function DccAgentWidget() {
             {answer.meta && (
               <p style={{ fontSize: 10, color: "var(--text-dim, var(--text-muted))", margin: 0 }}>
                 {answer.meta.model} · in {answer.meta.input_tokens} tok · out{" "}
-                {answer.meta.output_tokens} tok · catalog {answer.meta.manifest_total}
-                {answer.meta.candidates_sent != null &&
-                  ` (top ${answer.meta.candidates_sent})`}
+                {answer.meta.output_tokens} tok
+                {(answer.meta.cache_read_tokens ?? 0) > 0 &&
+                  ` · ${answer.meta.cache_read_tokens} cached`}
+                {" "}· catalog {answer.meta.manifest_total} (full)
                 {(answer.meta.schemas_fetched ?? 0) > 0 &&
                   ` · ${answer.meta.schemas_fetched} schema${answer.meta.schemas_fetched === 1 ? "" : "s"}`}
                 {(answer.meta.readmes_fetched ?? 0) > 0 &&
