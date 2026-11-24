@@ -11,6 +11,7 @@ import {
 } from "../lib/registryRequirements";
 import { markdownFirstH1, stripMarkdownFirstH1 } from "../lib/loadCommunityExamples";
 import { PageEyebrow } from "../components/PageEyebrow";
+import { PageHeroBand } from "../components/PageHeroBand";
 
 export function DeployDagsterPlusPage() {
   const [md, setMd] = useState<string | null>(null);
@@ -46,35 +47,17 @@ export function DeployDagsterPlusPage() {
   const bodyMd = md ? (titleFromDoc ? stripMarkdownFirstH1(md) : md) : "";
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <p style={{ margin: "0 0 8px" }}>
-        <Link to="/" style={{ fontSize: 14, color: "var(--cyan)", textDecoration: "none" }}>
-          ← Registry
-        </Link>
-      </p>
+    <>
+      <PageHeroBand>
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 36px" }}>
+          <p style={{ margin: "0 0 16px" }}>
+            <Link to="/" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
+              ← Registry
+            </Link>
+          </p>
 
-      <PageEyebrow style={{ margin: "16px 0 10px" }}>Dagster+</PageEyebrow>
+          <PageEyebrow light>Dagster+</PageEyebrow>
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "flex-start",
-          gap: 16,
-          marginBottom: 22,
-        }}
-      >
-        <div
-          style={{
-            flex: "1 1 280px",
-            minWidth: 0,
-            padding: "18px 20px",
-            borderRadius: 14,
-            border: "1px solid var(--border)",
-            background:
-              "linear-gradient(145deg, rgba(124, 58, 237, 0.12) 0%, var(--bg-card) 42%, var(--bg-card) 100%)",
-          }}
-        >
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
             <span
               style={{
@@ -84,8 +67,9 @@ export function DeployDagsterPlusPage() {
                 width: 40,
                 height: 40,
                 borderRadius: 10,
-                background: "rgba(124, 58, 237, 0.25)",
-                color: "var(--accent-bright)",
+                background: "rgba(255,255,255,0.14)",
+                color: "#67e8f9",
+                flexShrink: 0,
               }}
               aria-hidden
             >
@@ -93,27 +77,29 @@ export function DeployDagsterPlusPage() {
             </span>
             <h1
               style={{
-                fontSize: "clamp(1.45rem, 3.5vw, 1.85rem)",
+                fontSize: "clamp(1.5rem, 3.5vw, 2rem)",
                 fontWeight: 700,
                 letterSpacing: "-0.03em",
                 margin: 0,
                 lineHeight: 1.15,
+                color: "#fff",
               }}
             >
               {loading ? "Deploy to Dagster+…" : displayTitle}
             </h1>
           </div>
-          <p style={{ margin: 0, fontSize: 14, color: "var(--text-muted)", lineHeight: 1.55 }}>
+          <p style={{ margin: 0, fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.55 }}>
             This guide is maintained in the{" "}
-            <a href={COMMUNITY_CLI_REPO_WEB} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
+            <a href={COMMUNITY_CLI_REPO_WEB} target="_blank" rel="noreferrer" style={{ color: "#67e8f9" }}>
               dagster-community-components-cli
             </a>{" "}
-            repo under <span className="mono">examples/</span>. The registry mirrors the Markdown here so you can read
+            repo under <span className="mono" style={{ background: "rgba(255,255,255,0.14)", color: "#fff" }}>examples/</span>. The registry mirrors the Markdown here so you can read
             it next to templates and demos.
           </p>
         </div>
-      </div>
+      </PageHeroBand>
 
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 64px" }}>
       <div
         style={{
           display: "flex",
@@ -183,6 +169,7 @@ export function DeployDagsterPlusPage() {
           <ExamplesMarkdown>{bodyMd}</ExamplesMarkdown>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

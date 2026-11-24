@@ -254,7 +254,18 @@ export function ExamplesIndex() {
       <PageHeroBand>
         <div style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px 36px" }}>
           <PageEyebrow light>Examples</PageEyebrow>
-
+          <h1
+            style={{
+              fontSize: "clamp(1.75rem, 3.5vw, 2.25rem)",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              margin: "0 0 12px",
+              lineHeight: 1.2,
+              color: "#fff",
+            }}
+          >
+            End-to-end demos
+          </h1>
           <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "0 0 20px", lineHeight: 1.55 }}>
             This page mirrors the demos folder README from the CLI repo—it updates whenever that file changes (no duplicated
             list in this codebase). Browse the folder on GitHub:{" "}

@@ -71,7 +71,18 @@ export function VendorsIndex() {
       <PageHeroBand>
         <div style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px 36px" }}>
           <PageEyebrow light>Vendors</PageEyebrow>
-
+          <h1
+            style={{
+              fontSize: "clamp(1.75rem, 3.5vw, 2.25rem)",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              margin: "0 0 12px",
+              lineHeight: 1.2,
+              color: "#fff",
+            }}
+          >
+            Browse by vendor
+          </h1>
           <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "0 0 20px", lineHeight: 1.55, maxWidth: 760 }}>
             One-stop pages for each vendor or vendor family—components, validation, walkthroughs, and connection notes.
             This index mirrors{" "}

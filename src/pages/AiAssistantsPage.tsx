@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { CopyButton } from "../components/CopyButton";
 import { COMMUNITY_CLI_README_WEB, CLI_QUICK_COMMANDS_UVX_PREAMBLE } from "../lib/registryRequirements";
 import { useCatalog } from "../context/CatalogContext";
+import { PageEyebrow } from "../components/PageEyebrow";
+import { PageHeroBand } from "../components/PageHeroBand";
 
 const DEFAULT_PUBLIC_ORIGIN = "https://dagster-component-ui.vercel.app";
 
@@ -99,21 +101,39 @@ Generate a minimal \`example.yaml\` for dev only. Use only attribute keys from t
 `.trim();
 
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <p style={{ margin: "0 0 8px" }}>
-        <Link to="/" style={{ fontSize: 14, color: "var(--cyan)", textDecoration: "none" }}>
-          ← Registry
-        </Link>
-      </p>
-      <p style={{ ...mutedP, marginTop: 16 }}>
-        Point your coding assistant at this registry and the <span className="mono">dagster-component</span> CLI so it uses
-        real template ids and workflows instead of inventing YAML. The one-step setup is below.
-      </p>
+    <>
+      <PageHeroBand>
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "20px 24px 32px" }}>
+          <p style={{ margin: "0 0 16px" }}>
+            <Link to="/" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
+              ← Registry
+            </Link>
+          </p>
+          <PageEyebrow light>AI assistants</PageEyebrow>
+          <h1
+            style={{
+              fontSize: "clamp(1.75rem, 4.2vw, 2.25rem)",
+              fontWeight: 700,
+              letterSpacing: "-0.03em",
+              margin: "0 0 12px",
+              lineHeight: 1.2,
+              color: "#fff",
+            }}
+          >
+            Use with Claude, Cursor, or Copilot
+          </h1>
+          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: 0, lineHeight: 1.65 }}>
+            Point your coding assistant at this registry and the <span className="mono" style={{ background: "rgba(255,255,255,0.14)", color: "#fff" }}>dagster-component</span> CLI so it uses
+            real template ids and workflows instead of inventing YAML. The one-step setup is below.
+          </p>
+        </div>
+      </PageHeroBand>
+
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "28px 24px 64px" }}>
 
       {/* Section 1 — TL;DR hero */}
       <section
         style={{
-          marginTop: 20,
           padding: "28px 26px 32px",
           borderRadius: 14,
           border: "1px solid var(--border)",
@@ -122,18 +142,6 @@ Generate a minimal \`example.yaml\` for dev only. Use only attribute keys from t
           boxShadow: "0 4px 24px rgba(0, 0, 0, 0.06)",
         }}
       >
-        <h1
-          style={{
-            fontSize: "clamp(1.65rem, 4.2vw, 2.35rem)",
-            fontWeight: 700,
-            letterSpacing: "-0.03em",
-            margin: "0 0 18px",
-            lineHeight: 1.2,
-            color: "var(--text)",
-          }}
-        >
-          Use with Claude, Cursor, or Copilot
-        </h1>
         <p style={{ ...mutedP, fontSize: 16, marginBottom: 14 }}>
           One command. From your Dagster project root:
         </p>
@@ -281,6 +289,7 @@ Generate a minimal \`example.yaml\` for dev only. Use only attribute keys from t
           Examples
         </Link>
       </p>
-    </div>
+      </div>
+    </>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
 import { CopyButton } from "../components/CopyButton";
+import { PageHeroBand } from "../components/PageHeroBand";
 import { exampleSetupScriptCurl } from "../data/examplesCatalog";
 import {
   UVX_ALTERNATIVE_PIP_CLI,
@@ -115,32 +116,38 @@ export function ExampleDetail() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <p style={{ margin: "0 0 8px" }}>
-        <Link to="/examples" style={{ fontSize: 14, color: "var(--cyan)", textDecoration: "none" }}>
-          ← Examples index (folder README)
-        </Link>
-      </p>
+    <>
+      <PageHeroBand>
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
+          <p style={{ margin: "0 0 16px" }}>
+            <Link to="/examples" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
+              ← Examples index (folder README)
+            </Link>
+          </p>
 
-      <h1
-        style={{
-          fontSize: "clamp(1.5rem, 3.5vw, 2rem)",
-          fontWeight: 700,
-          letterSpacing: "-0.02em",
-          margin: "12px 0 8px",
-          lineHeight: 1.2,
-        }}
-      >
-        {loading ? slug : displayTitle}
-      </h1>
-      <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px", lineHeight: 1.45 }}>
-        Resolves&nbsp;
-        <code className="mono" style={{ fontSize: 12 }}>examples/{slug}/README.md</code>
-        &nbsp;first, then&nbsp;
-        <code className="mono" style={{ fontSize: 12 }}>examples/{slug}.md</code>
-        &nbsp;— whatever exists in the repo for this slug.
-      </p>
+          <h1
+            style={{
+              fontSize: "clamp(1.5rem, 3.5vw, 2rem)",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              margin: "0 0 8px",
+              lineHeight: 1.2,
+              color: "#fff",
+            }}
+          >
+            {loading ? slug : displayTitle}
+          </h1>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", margin: 0, lineHeight: 1.45 }}>
+            Resolves&nbsp;
+            <code className="mono" style={{ fontSize: 12, background: "rgba(255,255,255,0.14)", color: "#fff" }}>examples/{slug}/README.md</code>
+            &nbsp;first, then&nbsp;
+            <code className="mono" style={{ fontSize: 12, background: "rgba(255,255,255,0.14)", color: "#fff" }}>examples/{slug}.md</code>
+            &nbsp;— whatever exists in the repo for this slug.
+          </p>
+        </div>
+      </PageHeroBand>
 
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 64px" }}>
       <div
         style={{
           marginBottom: 28,
@@ -201,6 +208,7 @@ export function ExampleDetail() {
         </div>
       )}
       {linkedMd.length > 0 && !err && <ExamplesMarkdown>{linkedMd}</ExamplesMarkdown>}
-    </div>
+      </div>
+    </>
   );
 }

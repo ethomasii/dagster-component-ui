@@ -47,6 +47,7 @@ import { DocViewerModal, type DocViewerKind } from "../components/DocViewerModal
 import { ComponentReadme } from "../components/ComponentReadme";
 import { ComponentChangeHistory } from "../components/ComponentChangeHistory";
 import { VerificationBadge } from "../components/VerificationBadge";
+import { PageHeroBand } from "../components/PageHeroBand";
 import { FieldIoIcon } from "../components/FieldIoIcon";
 import { inferAttributeFieldRole } from "../lib/schemaFieldIo";
 import { componentDisplayName } from "../lib/componentDisplay";
@@ -259,10 +260,11 @@ export function ComponentDetail() {
         <p style={{ color: "var(--text-muted)" }}>Loading…</p>
       ) : (
         <>
+          <PageHeroBand style={{ borderRadius: 20, padding: "24px 24px 28px", marginBottom: 28 }}>
           <nav
             style={{
               fontSize: 13,
-              color: "var(--text-muted)",
+              color: "rgba(255,255,255,0.75)",
               marginBottom: 20,
               display: "flex",
               flexWrap: "wrap",
@@ -271,32 +273,32 @@ export function ComponentDetail() {
             }}
             aria-label="Breadcrumb"
           >
-            <Link to="/" style={{ color: "var(--text-muted)" }}>
+            <Link to="/" style={{ color: "rgba(255,255,255,0.75)" }}>
               Registry
             </Link>
-            <span aria-hidden style={{ color: "var(--text-dim)" }}>
+            <span aria-hidden style={{ color: "rgba(255,255,255,0.4)" }}>
               /
             </span>
             {manifest && (
               <>
                 <Link
                   to={`/?category=${encodeURIComponent(manifest.category)}`}
-                  style={{ color: "var(--text-muted)" }}
+                  style={{ color: "rgba(255,255,255,0.75)" }}
                 >
                   {categoryLabel(manifest.category)}
                 </Link>
-                <span aria-hidden style={{ color: "var(--text-dim)" }}>
+                <span aria-hidden style={{ color: "rgba(255,255,255,0.4)" }}>
                   /
                 </span>
               </>
             )}
-            <span style={{ color: "var(--text)", fontWeight: 500 }}>{displayTitle}</span>
+            <span style={{ color: "#fff", fontWeight: 500 }}>{displayTitle}</span>
           </nav>
 
           <div
             style={{
               fontSize: 12,
-              color: "var(--text-muted)",
+              color: "rgba(255,255,255,0.75)",
               marginBottom: 18,
               display: "flex",
               flexWrap: "wrap",
@@ -307,7 +309,7 @@ export function ComponentDetail() {
           >
             <span
               style={{
-                color: "var(--text-dim)",
+                color: "rgba(255,255,255,0.55)",
                 fontWeight: 600,
                 letterSpacing: "0.06em",
                 textTransform: "uppercase",
@@ -315,24 +317,24 @@ export function ComponentDetail() {
             >
               Tips
             </span>
-            <a href="#ecosystem-yaml" style={{ color: "var(--cyan)", fontWeight: 500 }}>
+            <a href="#ecosystem-yaml" style={{ color: "#67e8f9", fontWeight: 500 }}>
               YAML + schema
             </a>
-            <span style={{ color: "var(--text-dim)" }} aria-hidden>
+            <span style={{ color: "rgba(255,255,255,0.4)" }} aria-hidden>
               ·
             </span>
-            <a href="#ecosystem-ai" style={{ color: "var(--cyan)", fontWeight: 500 }}>
+            <a href="#ecosystem-ai" style={{ color: "#67e8f9", fontWeight: 500 }}>
               AI assistants
             </a>
-            <span style={{ color: "var(--text-dim)" }} aria-hidden>
+            <span style={{ color: "rgba(255,255,255,0.4)" }} aria-hidden>
               ·
             </span>
-            <a href="#ecosystem-installer" style={{ color: "var(--cyan)", fontWeight: 500 }}>
+            <a href="#ecosystem-installer" style={{ color: "#67e8f9", fontWeight: 500 }}>
               Community installer
             </a>
           </div>
 
-          <header style={{ marginBottom: 28 }}>
+          <header style={{ marginBottom: 0 }}>
             <div
               style={{
                 display: "flex",
@@ -347,8 +349,8 @@ export function ComponentDetail() {
                   width: 72,
                   height: 72,
                   borderRadius: 16,
-                  background: "var(--bg-card)",
-                  border: "1px solid var(--border)",
+                  background: "rgba(255,255,255,0.14)",
+                  border: "1px solid rgba(255,255,255,0.2)",
                   display: "grid",
                   placeItems: "center",
                   flexShrink: 0,
@@ -373,12 +375,12 @@ export function ComponentDetail() {
                       alignItems: "center",
                       padding: "4px 12px",
                       borderRadius: 8,
-                      background: "var(--pill-bg)",
-                      border: "1px solid var(--pill-border)",
+                      background: "rgba(255,255,255,0.16)",
+                      border: "1px solid rgba(255,255,255,0.28)",
                       fontSize: 12,
                       fontWeight: 650,
                       letterSpacing: "-0.02em",
-                      color: "var(--accent-bright)",
+                      color: "#fff",
                       flexShrink: 0,
                       maxWidth: "100%",
                     }}
@@ -391,8 +393,8 @@ export function ComponentDetail() {
                         fontSize: 12,
                         padding: "4px 10px",
                         borderRadius: 8,
-                        background: "var(--code-bg)",
-                        color: "var(--text-muted)",
+                        background: "rgba(255,255,255,0.12)",
+                        color: "rgba(255,255,255,0.8)",
                       }}
                     >
                       v{manifest.version}
@@ -415,24 +417,27 @@ export function ComponentDetail() {
                       letterSpacing: "-0.03em",
                       flex: "1 1 200px",
                       minWidth: 0,
+                      color: "#fff",
                     }}
                   >
                     {displayTitle}
                   </h1>
                   {manifest ? <VerificationBadge c={manifest} size="md" /> : null}
                 </div>
-                <p className="mono" style={{ fontSize: 14, color: "var(--cyan)", margin: "0 0 12px" }}>
+                <p className="mono" style={{ fontSize: 14, color: "#67e8f9", margin: "0 0 12px" }}>
                   {cid}
                 </p>
-                <p style={{ fontSize: 17, color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>
+                <p style={{ fontSize: 17, color: "rgba(255,255,255,0.85)", lineHeight: 1.6, margin: 0 }}>
                   {manifest?.description}
                 </p>
               </div>
             </div>
+          </header>
+          </PageHeroBand>
 
-            <div
-              style={{
-                display: "grid",
+          <div
+            style={{
+              display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
                 gap: 12,
                 marginBottom: 22,
@@ -887,7 +892,6 @@ export function ComponentDetail() {
                 </a>
               )}
             </div>
-          </header>
 
             {ghParsed && repoUrl && manifest?.path && (
               <ComponentChangeHistory repoUrl={repoUrl} folderPath={manifest.path} />

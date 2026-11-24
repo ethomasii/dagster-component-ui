@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { CopyButton } from "../components/CopyButton";
 import { PageEyebrow } from "../components/PageEyebrow";
+import { PageHeroBand } from "../components/PageHeroBand";
 import {
   INSTALL_PYPI_NOTE,
   INSTALL_VERSION_NOTE,
@@ -18,51 +19,57 @@ import {
 
 export function GetStartedPage() {
   return (
-    <div style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <p style={{ margin: "0 0 8px" }}>
-        <Link to="/" style={{ fontSize: 14, color: "var(--cyan)", textDecoration: "none" }}>
-          ← Registry
-        </Link>
-      </p>
-      <PageEyebrow style={{ margin: "16px 0 12px" }}>Install &amp; CLI</PageEyebrow>
-      <h1
-        style={{
-          fontSize: "clamp(1.75rem, 4vw, 2.25rem)",
-          fontWeight: 700,
-          letterSpacing: "-0.03em",
-          margin: "0 0 16px",
-          lineHeight: 1.15,
-        }}
-      >
-        Get started with the component CLI
-      </h1>
-      <p style={{ fontSize: 15, color: "var(--text-muted)", margin: "0 0 12px", lineHeight: 1.65 }}>
-        Install <span className="mono">dagster-community-components-cli</span> from PyPI (or run via{" "}
-        <span className="mono">uvx</span> without pip-installing the CLI, but <strong>uvx requires uv</strong>; see
-        prerequisites below). From your Dagster code-location root, <span className="mono">dagster-component add</span>{" "}
-        copies a template and installs its declared pip dependencies. You still need{" "}
-        <span className="mono">dagster</span> in the environment for your project. On each template page in this registry,
-        the copy button uses that template&apos;s id instead of{" "}
-        <code className="mono" style={{ fontSize: 13 }}>{CLI_HOME_PLACEHOLDER_COMPONENT_ID}</code>.
-      </p>
-      <p style={{ fontSize: 15, color: "var(--text-muted)", margin: "0 0 20px", lineHeight: 1.65 }}>
-        {COMMUNITY_CLI_VALUE_PROP}{" "}
-        <a href={COMMUNITY_CLI_README_WEB} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
-          Full command reference (CLI README on GitHub)
-        </a>
-        .
-      </p>
-      <p style={{ fontSize: 14, color: "var(--text-dim)", margin: "0 0 20px", lineHeight: 1.55 }}>
-        Using <Link to="/ai-assistants" style={{ color: "var(--cyan)" }}>Claude, Cursor, or Copilot</Link>? From your project
-        root run{" "}
-        <span className="mono">uvx --from dagster-community-components-cli dagster-component init</span> so assistants prefer
-        real catalog commands over inventing YAML. See the{" "}
-        <Link to="/ai-assistants" style={{ color: "var(--cyan)" }}>
-          AI assistants
-        </Link>{" "}
-        page for details.
-      </p>
+    <>
+      <PageHeroBand>
+        <div style={{ maxWidth: 920, margin: "0 auto", padding: "20px 24px 36px" }}>
+          <p style={{ margin: "0 0 16px" }}>
+            <Link to="/" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
+              ← Registry
+            </Link>
+          </p>
+          <PageEyebrow light>Install &amp; CLI</PageEyebrow>
+          <h1
+            style={{
+              fontSize: "clamp(1.75rem, 4vw, 2.25rem)",
+              fontWeight: 700,
+              letterSpacing: "-0.03em",
+              margin: "0 0 16px",
+              lineHeight: 1.15,
+              color: "#fff",
+            }}
+          >
+            Get started with the component CLI
+          </h1>
+          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "0 0 12px", lineHeight: 1.65 }}>
+            Install <span className="mono" style={{ background: "rgba(255,255,255,0.14)", color: "#fff" }}>dagster-community-components-cli</span> from PyPI (or run via{" "}
+            <span className="mono" style={{ background: "rgba(255,255,255,0.14)", color: "#fff" }}>uvx</span> without pip-installing the CLI, but <strong style={{ color: "#fff" }}>uvx requires uv</strong>; see
+            prerequisites below). From your Dagster code-location root, <span className="mono" style={{ background: "rgba(255,255,255,0.14)", color: "#fff" }}>dagster-component add</span>{" "}
+            copies a template and installs its declared pip dependencies. You still need{" "}
+            <span className="mono" style={{ background: "rgba(255,255,255,0.14)", color: "#fff" }}>dagster</span> in the environment for your project. On each template page in this registry,
+            the copy button uses that template&apos;s id instead of{" "}
+            <code className="mono" style={{ fontSize: 13, background: "rgba(255,255,255,0.14)", color: "#fff" }}>{CLI_HOME_PLACEHOLDER_COMPONENT_ID}</code>.
+          </p>
+          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "0 0 20px", lineHeight: 1.65 }}>
+            {COMMUNITY_CLI_VALUE_PROP}{" "}
+            <a href={COMMUNITY_CLI_README_WEB} target="_blank" rel="noreferrer" style={{ color: "#67e8f9" }}>
+              Full command reference (CLI README on GitHub)
+            </a>
+            .
+          </p>
+          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", margin: 0, lineHeight: 1.55 }}>
+            Using <Link to="/ai-assistants" style={{ color: "#67e8f9" }}>Claude, Cursor, or Copilot</Link>? From your project
+            root run{" "}
+            <span className="mono" style={{ background: "rgba(255,255,255,0.14)", color: "#fff" }}>uvx --from dagster-community-components-cli dagster-component init</span> so assistants prefer
+            real catalog commands over inventing YAML. See the{" "}
+            <Link to="/ai-assistants" style={{ color: "#67e8f9" }}>
+              AI assistants
+            </Link>{" "}
+            page for details.
+          </p>
+        </div>
+      </PageHeroBand>
 
+      <div style={{ maxWidth: 920, margin: "0 auto", padding: "28px 24px 64px" }}>
       <h2
         style={{
           fontSize: 12,
@@ -195,6 +202,7 @@ export function GetStartedPage() {
           ))}
         </ul>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
