@@ -439,8 +439,9 @@ export function Home() {
             ? undefined
             : {
                 background:
-                  "radial-gradient(ellipse 1100px 480px at 50% -15%, var(--accent-glow), transparent 70%), " +
-                  "linear-gradient(180deg, var(--accent-wash, rgba(124, 58, 237, 0.05)) 0%, transparent 65%)",
+                  "radial-gradient(ellipse 1400px 700px at 15% -20%, rgba(139, 92, 246, 0.55), transparent 60%), " +
+                  "linear-gradient(135deg, var(--accent) 0%, #5b21b6 45%, #3b0764 100%)",
+                color: "#fff",
               }
         }
       >
@@ -544,10 +545,10 @@ export function Home() {
             <p
               style={{
                 fontSize: 13,
-                fontWeight: 600,
+                fontWeight: 700,
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
-                color: "var(--cyan)",
+                color: "#67e8f9",
                 margin: "0 0 10px",
               }}
             >
@@ -561,14 +562,16 @@ export function Home() {
                 margin: "0 0 14px",
                 lineHeight: 1.12,
                 maxWidth: 920,
+                color: "#fff",
               }}
             >
               Find the right{" "}
-              <span style={{ color: "var(--accent-bright)" }}>component templates</span> for your pipelines
+              <span style={{ color: "#67e8f9" }}>component templates</span> for your pipelines
             </h1>
-            <p style={{ fontSize: 17, color: "var(--text-muted)", maxWidth: 680, margin: "0 0 24px" }}>
+            <p style={{ fontSize: 17, color: "rgba(255,255,255,0.82)", maxWidth: 680, margin: "0 0 24px" }}>
               Browse community-maintained component templates — each folder includes YAML and a{" "}
-              <span className="mono">schema.json</span> you copy straight into your Dagster project.
+              <span className="mono" style={{ background: "rgba(255,255,255,0.14)", color: "#fff" }}>schema.json</span> you
+              copy straight into your Dagster project.
             </p>
 
             <div
@@ -581,7 +584,7 @@ export function Home() {
                 maxWidth: 720,
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-dim)", marginRight: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", marginRight: 4 }}>
                 Try:
               </span>
               {QUICK_SEARCHES.map(({ label, q }) => (
@@ -592,9 +595,9 @@ export function Home() {
                   style={{
                     padding: "6px 12px",
                     borderRadius: 999,
-                    border: "1px solid var(--border)",
-                    background: "var(--bg-card)",
-                    color: "var(--text-muted)",
+                    border: "1px solid rgba(255,255,255,0.3)",
+                    background: "rgba(255,255,255,0.12)",
+                    color: "#fff",
                     fontSize: 13,
                     fontWeight: 500,
                   }}
@@ -637,9 +640,9 @@ export function Home() {
                   padding: "12px 22px",
                   borderRadius: 12,
                   border: "none",
-                  background: "linear-gradient(135deg, var(--accent) 0%, #5b21b6 100%)",
-                  color: "#fff",
-                  fontWeight: 600,
+                  background: "#fff",
+                  color: "#5b21b6",
+                  fontWeight: 700,
                   fontSize: 15,
                 }}
               >
@@ -650,24 +653,25 @@ export function Home() {
             <div
               style={{
                 marginTop: 28,
-                maxWidth: 780,
-                padding: "22px 24px",
+                padding: "24px 28px",
                 borderRadius: 16,
-                border: "1px solid var(--accent-glow)",
-                background:
-                  "linear-gradient(135deg, rgba(124, 58, 237, 0.10) 0%, rgba(34, 211, 238, 0.05) 100%)",
-                boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset",
+                border: "1px solid rgba(255,255,255,0.22)",
+                background: "rgba(255,255,255,0.08)",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 1px 0 rgba(255,255,255,0.08) inset",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <Sparkles size={18} style={{ color: "var(--accent-bright)" }} aria-hidden />
-                <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.01em" }}>
+                <Sparkles size={18} style={{ color: "#67e8f9" }} aria-hidden />
+                <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em", color: "#fff" }}>
                   Not sure where to start?
                 </span>
               </div>
-              <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.78)", margin: "0 0 14px", lineHeight: 1.5 }}>
                 Tell the DCC Agent what you want to build — it'll recommend real components, generate
-                install commands and a <span className="mono">defs.yaml</span>, even scaffold the project.
+                install commands and a{" "}
+                <span className="mono" style={{ background: "rgba(255,255,255,0.14)", color: "#fff" }}>defs.yaml</span>,
+                even scaffold the project.
               </p>
               <form
                 onSubmit={(e) => {
@@ -702,9 +706,9 @@ export function Home() {
                     padding: "12px 20px",
                     borderRadius: 12,
                     border: "none",
-                    background: "linear-gradient(135deg, var(--accent) 0%, #5b21b6 100%)",
-                    color: "#fff",
-                    fontWeight: 600,
+                    background: "#fff",
+                    color: "#5b21b6",
+                    fontWeight: 700,
                     fontSize: 15,
                     whiteSpace: "nowrap",
                   }}
@@ -748,7 +752,7 @@ export function Home() {
         <>
       {/* "At a glance" + Trust signals as one visually distinct shelf -- full-bleed band so
           the page reads as sections, not one undifferentiated scroll. */}
-      <div style={{ background: "var(--bg-elevated)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+      <div style={{ background: "var(--bg-elevated)", borderBottom: "1px solid var(--border)" }}>
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px" }}>
         <h2
           style={{
