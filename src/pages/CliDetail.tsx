@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
 import { PageHeroBand } from "../components/PageHeroBand";
+import { Breadcrumb } from "../components/Breadcrumb";
 import { CLIS, findCli } from "../data/clis";
 
 /**
@@ -50,11 +51,13 @@ export function CliDetail() {
       <>
         <PageHeroBand>
           <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
-            <p style={{ margin: "0 0 16px" }}>
-              <Link to="/cli" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
-                ← CLIs
-              </Link>
-            </p>
+            <Breadcrumb
+              crumbs={[
+                { label: "Registry", to: "/" },
+                { label: "CLIs", to: "/cli" },
+                { label: `Not found: ${id}` },
+              ]}
+            />
             <h1 style={{ fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, margin: 0, color: "#fff" }}>
               Not found: {id}
             </h1>
@@ -73,11 +76,13 @@ export function CliDetail() {
     <>
       <PageHeroBand>
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
-          <p style={{ margin: "0 0 16px" }}>
-            <Link to="/cli" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
-              ← CLIs
-            </Link>
-          </p>
+          <Breadcrumb
+            crumbs={[
+              { label: "Registry", to: "/" },
+              { label: "CLIs", to: "/cli" },
+              { label: cli.title },
+            ]}
+          />
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", margin: "0 0 8px" }}>
             <h1 style={{
               fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, letterSpacing: "-0.02em",

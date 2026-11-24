@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
 import { useCatalog } from "../context/CatalogContext";
 import { categoryLabel, categoryDescription } from "../lib/format";
@@ -7,6 +7,7 @@ import { componentId } from "../lib/componentId";
 import { ComponentCard } from "../components/ComponentCard";
 import { PageHeroBand } from "../components/PageHeroBand";
 import { PageEyebrow } from "../components/PageEyebrow";
+import { Breadcrumb } from "../components/Breadcrumb";
 import type { ManifestComponent } from "../types";
 
 /**
@@ -115,11 +116,13 @@ export function CategoryDetail() {
       <>
         <PageHeroBand>
           <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
-            <p style={{ margin: "0 0 16px" }}>
-              <Link to="/categories" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
-                ← Categories
-              </Link>
-            </p>
+            <Breadcrumb
+              crumbs={[
+                { label: "Registry", to: "/" },
+                { label: "Categories", to: "/categories" },
+                { label: categoryLabel(slug) },
+              ]}
+            />
             <PageEyebrow light>Category</PageEyebrow>
             <h1 style={{ fontSize: "clamp(1.75rem, 4vw, 2.25rem)", fontWeight: 700, margin: 0, color: "#fff" }}>
               {categoryLabel(slug)}
@@ -139,11 +142,13 @@ export function CategoryDetail() {
     <>
       <PageHeroBand>
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 24px 32px" }}>
-          <p style={{ margin: "0 0 16px" }}>
-            <Link to="/categories" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
-              ← Categories
-            </Link>
-          </p>
+          <Breadcrumb
+            crumbs={[
+              { label: "Registry", to: "/" },
+              { label: "Categories", to: "/categories" },
+              { label: categoryLabel(slug) },
+            ]}
+          />
           <PageEyebrow light>Category</PageEyebrow>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", margin: "0 0 12px" }}>
             <h1 style={{ fontSize: "clamp(1.75rem, 4vw, 2.25rem)", fontWeight: 700, letterSpacing: "-0.02em", margin: 0, lineHeight: 1.2, color: "#fff" }}>

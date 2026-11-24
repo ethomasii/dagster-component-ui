@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
 import { PageHeroBand } from "../components/PageHeroBand";
+import { Breadcrumb } from "../components/Breadcrumb";
 import { useCatalog } from "../context/CatalogContext";
 import {
   fetchVendorMarkdown,
@@ -68,11 +69,13 @@ export function VendorDetail() {
     <>
       <PageHeroBand>
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
-          <p style={{ margin: "0 0 16px" }}>
-            <Link to="/vendors" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
-              ← Vendors index
-            </Link>
-          </p>
+          <Breadcrumb
+            crumbs={[
+              { label: "Registry", to: "/" },
+              { label: "Vendors", to: "/vendors" },
+              { label: loading ? slug : displayTitle },
+            ]}
+          />
 
           <h1
             style={{

@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
 import { PageHeroBand } from "../components/PageHeroBand";
+import { Breadcrumb } from "../components/Breadcrumb";
 import { stripFrontmatter } from "../lib/loadBlogPosts";
 import { SKILLS, findSkill } from "../data/skills";
 
@@ -47,11 +48,13 @@ export function SkillDetail() {
       <>
         <PageHeroBand>
           <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
-            <p style={{ margin: "0 0 16px" }}>
-              <Link to="/skills" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
-                ← Skills
-              </Link>
-            </p>
+            <Breadcrumb
+              crumbs={[
+                { label: "Registry", to: "/" },
+                { label: "Skills", to: "/skills" },
+                { label: `Not found: ${id}` },
+              ]}
+            />
             <h1 style={{ fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, margin: 0, color: "#fff" }}>
               Not found: {id}
             </h1>
@@ -70,11 +73,13 @@ export function SkillDetail() {
     <>
       <PageHeroBand>
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
-          <p style={{ margin: "0 0 16px" }}>
-            <Link to="/skills" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
-              ← Skills
-            </Link>
-          </p>
+          <Breadcrumb
+            crumbs={[
+              { label: "Registry", to: "/" },
+              { label: "Skills", to: "/skills" },
+              { label: skill.name },
+            ]}
+          />
           <h1 style={{
             fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, letterSpacing: "-0.02em",
             margin: "0 0 8px", lineHeight: 1.2, fontFamily: "var(--font-mono, monospace)", color: "#fff",

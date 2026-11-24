@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { useParams } from "react-router-dom";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
 import { PageHeroBand } from "../components/PageHeroBand";
+import { Breadcrumb } from "../components/Breadcrumb";
 import {
   COMMUNITY_BLOG_RAW_BASE,
   COMMUNITY_BLOG_TREE_WEB,
@@ -59,22 +59,13 @@ export function BlogDetail() {
     <>
       <PageHeroBand>
         <div style={{ maxWidth: 780, margin: "0 auto", padding: "28px 24px 32px" }}>
-          <div style={{ marginBottom: 16 }}>
-            <Link
-              to="/blog"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                color: "#67e8f9",
-                textDecoration: "none",
-                fontSize: 14,
-              }}
-            >
-              <ArrowLeft size={14} strokeWidth={2} />
-              All posts
-            </Link>
-          </div>
+          <Breadcrumb
+            crumbs={[
+              { label: "Registry", to: "/" },
+              { label: "Blog", to: "/blog" },
+              { label: md !== null ? displayTitle : "…" },
+            ]}
+          />
           {md !== null && (
             <>
               <h1

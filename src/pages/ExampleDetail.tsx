@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
 import { CopyButton } from "../components/CopyButton";
 import { PageHeroBand } from "../components/PageHeroBand";
+import { Breadcrumb } from "../components/Breadcrumb";
 import { exampleSetupScriptCurl } from "../data/examplesCatalog";
 import {
   UVX_ALTERNATIVE_PIP_CLI,
@@ -119,11 +120,13 @@ export function ExampleDetail() {
     <>
       <PageHeroBand>
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
-          <p style={{ margin: "0 0 16px" }}>
-            <Link to="/examples" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
-              ← Examples index (folder README)
-            </Link>
-          </p>
+          <Breadcrumb
+            crumbs={[
+              { label: "Registry", to: "/" },
+              { label: "Examples", to: "/examples" },
+              { label: loading ? slug : displayTitle },
+            ]}
+          />
 
           <h1
             style={{

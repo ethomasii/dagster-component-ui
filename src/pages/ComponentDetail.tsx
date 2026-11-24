@@ -48,6 +48,7 @@ import { ComponentReadme } from "../components/ComponentReadme";
 import { ComponentChangeHistory } from "../components/ComponentChangeHistory";
 import { VerificationBadge } from "../components/VerificationBadge";
 import { PageHeroBand } from "../components/PageHeroBand";
+import { Breadcrumb } from "../components/Breadcrumb";
 import { FieldIoIcon } from "../components/FieldIoIcon";
 import { inferAttributeFieldRole } from "../lib/schemaFieldIo";
 import { componentDisplayName } from "../lib/componentDisplay";
@@ -264,39 +265,15 @@ export function ComponentDetail() {
         <>
           <PageHeroBand>
           <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 24px 32px" }}>
-          <nav
-            style={{
-              fontSize: 13,
-              color: "rgba(255,255,255,0.75)",
-              marginBottom: 20,
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              gap: 8,
-            }}
-            aria-label="Breadcrumb"
-          >
-            <Link to="/" style={{ color: "rgba(255,255,255,0.75)" }}>
-              Registry
-            </Link>
-            <span aria-hidden style={{ color: "rgba(255,255,255,0.4)" }}>
-              /
-            </span>
-            {manifest && (
-              <>
-                <Link
-                  to={`/?category=${encodeURIComponent(manifest.category)}`}
-                  style={{ color: "rgba(255,255,255,0.75)" }}
-                >
-                  {categoryLabel(manifest.category)}
-                </Link>
-                <span aria-hidden style={{ color: "rgba(255,255,255,0.4)" }}>
-                  /
-                </span>
-              </>
-            )}
-            <span style={{ color: "#fff", fontWeight: 500 }}>{displayTitle}</span>
-          </nav>
+          <Breadcrumb
+            crumbs={[
+              { label: "Registry", to: "/" },
+              ...(manifest
+                ? [{ label: categoryLabel(manifest.category), to: `/categories/${encodeURIComponent(manifest.category)}` }]
+                : []),
+              { label: displayTitle },
+            ]}
+          />
 
           <div
             style={{
