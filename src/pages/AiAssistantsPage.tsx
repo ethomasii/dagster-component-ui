@@ -5,6 +5,7 @@ import { COMMUNITY_CLI_README_WEB, CLI_QUICK_COMMANDS_UVX_PREAMBLE } from "../li
 import { useCatalog } from "../context/CatalogContext";
 import { PageEyebrow } from "../components/PageEyebrow";
 import { PageHeroBand } from "../components/PageHeroBand";
+import { findSkill } from "../data/skills";
 
 const DEFAULT_PUBLIC_ORIGIN = "https://dagster-component-ui.vercel.app";
 
@@ -65,6 +66,11 @@ function ExamplePrompt({ text, label }: { text: string; label: string }) {
     </div>
   );
 }
+
+const DCC_SKILL = findSkill("dagster-community-components");
+const DCC_SKILL_INSTALL_SNIPPET = DCC_SKILL
+  ? `git clone --depth 1 ${DCC_SKILL.githubUrl.split("/blob/")[0]} /tmp/_skill_src && mkdir -p .claude/skills/${DCC_SKILL.id} && cp -r "/tmp/_skill_src/${DCC_SKILL.path.replace(/\/SKILL\.md$/, "")}/." .claude/skills/${DCC_SKILL.id}/ && rm -rf /tmp/_skill_src`
+  : "";
 
 export function AiAssistantsPage() {
   const { catalogTotal } = useCatalog();
@@ -223,6 +229,60 @@ Generate a minimal \`example.yaml\` for dev only. Use only attribute keys from t
         Continue, Aider — paste the contents of <span className="mono">CLAUDE.md</span> (or any of the three files — they&apos;re
         equivalent) into a project instruction or system prompt. Same content, same effect.
       </p>
+
+      {/* Section 2.5 — the dedicated Claude Code skill (deeper, optional) */}
+      {DCC_SKILL && (
+        <>
+          <h2 style={sectionH2}>Claude Code: the dedicated skill (deeper, optional)</h2>
+          <p style={mutedP}>
+            <span className="mono">init</span>&apos;s <span className="mono">CLAUDE.md</span> is a good baseline every
+            assistant gets automatically. For Claude Code specifically, the{" "}
+            <Link to={`/skills/${encodeURIComponent(DCC_SKILL.id)}`} style={{ color: "var(--cyan)" }}>
+              {DCC_SKILL.name}
+            </Link>{" "}
+            skill goes further — real categories and validation tiers, the full{" "}
+            <span className="mono">dagster-component</span> CLI surface, the real (and inconsistently-populated)
+            manifest schema, how to tell a stale README table from the auto-generated one, and a repeatable recipe
+            for building an end-to-end demo from the catalog. It loads automatically once installed — no slash
+            command to remember.
+          </p>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 12,
+              padding: "16px 18px",
+              borderRadius: 10,
+              background: "var(--code-bg)",
+              border: "1px solid var(--border)",
+              marginBottom: 12,
+            }}
+          >
+            <code
+              className="mono"
+              style={{
+                fontSize: 13,
+                color: "var(--text)",
+                flex: "1 1 240px",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              {DCC_SKILL_INSTALL_SNIPPET}
+            </code>
+            <CopyButton text={DCC_SKILL_INSTALL_SNIPPET} label="Copy" />
+          </div>
+          <p style={{ ...mutedP, fontSize: 13, marginBottom: 0 }}>
+            Ships <span className="mono">reference/</span> pages alongside <span className="mono">SKILL.md</span> —
+            the clone-and-copy above gets all of it, where a single-file curl would silently miss them.{" "}
+            <Link to="/skills" style={{ color: "var(--cyan)" }}>
+              Browse all published skills
+            </Link>
+            .
+          </p>
+        </>
+      )}
 
       {/* Section 3 — Reference prompts (disclosure) */}
       <h2 style={sectionH2}>Reference prompts</h2>

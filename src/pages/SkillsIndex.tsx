@@ -6,8 +6,9 @@ import { PageHeroBand } from "../components/PageHeroBand";
 
 /**
  * `/skills` — Claude Agent Skills (SKILL.md files) published across this registry's repos,
- * grouped by what they're for: migration guides (one external scheduler/ETL tool -> Dagster
- * each) vs. component-authoring skills (paired with a specific component).
+ * grouped by what they're for: using the registry itself (the catalog-wide reference skill)
+ * vs. migration guides (one external scheduler/ETL tool -> Dagster each) vs. component-authoring
+ * skills (paired with a specific component).
  *
  * Distinct from `resources/skill_resource` (a component that lets a PROJECT register its own
  * skills for its agent components to reference by `skill_keys`) — that's a registry
@@ -15,11 +16,13 @@ import { PageHeroBand } from "../components/PageHeroBand";
  */
 
 const GROUP_LABELS: Record<SkillEntry["group"], string> = {
+  registry: "Using the registry",
   migration: "Migration guides",
   component: "Component authoring",
 };
 
 const GROUP_BLURBS: Record<SkillEntry["group"], string> = {
+  registry: "How to search, evaluate, and install from the DCC catalog itself — not paired with one component.",
   migration: "Map an external scheduler or ETL tool's constructs onto the right Dagster components.",
   component: "Paired with one specific component — author, validate, or debug its YAML.",
 };
@@ -93,7 +96,7 @@ function SkillCard({ skill }: { skill: SkillEntry }) {
 }
 
 export function SkillsIndex() {
-  const groups: SkillEntry["group"][] = ["migration", "component"];
+  const groups: SkillEntry["group"][] = ["registry", "migration", "component"];
 
   return (
     <>

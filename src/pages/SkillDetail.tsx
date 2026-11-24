@@ -108,12 +108,20 @@ export function SkillDetail() {
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
       <div className="callout-help" style={{ marginBottom: 24 }}>
         <p style={{ margin: 0, fontWeight: 600 }}>Install this skill</p>
+        <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--text-muted)" }}>
+          A single-file curl only grabs <span className="mono">SKILL.md</span> — several skills in this registry
+          (this one included) also ship <span className="mono">reference/</span>, <span className="mono">scripts/</span>, or{" "}
+          <span className="mono">examples/</span> alongside it, so a shallow clone + copy of the whole folder is the
+          reliable way to get everything the skill actually references.
+        </p>
         <pre style={{
           margin: "8px 0 0", padding: 12, borderRadius: 8,
           background: "var(--bg-elevated)", border: "1px solid var(--border)",
           fontSize: 12.5, fontFamily: "var(--font-mono, monospace)", overflowX: "auto",
-        }}>{`mkdir -p .claude/skills/${skill.id}
-curl -fsSL ${skill.rawUrl} -o .claude/skills/${skill.id}/SKILL.md`}</pre>
+        }}>{`git clone --depth 1 ${skill.githubUrl.split("/blob/")[0]} /tmp/_skill_src
+mkdir -p .claude/skills/${skill.id}
+cp -r "/tmp/_skill_src/${skill.path.replace(/\/SKILL\.md$/, "")}/." .claude/skills/${skill.id}/
+rm -rf /tmp/_skill_src`}</pre>
       </div>
 
       {loading && <p style={{ color: "var(--text-muted)" }}>Loading SKILL.md …</p>}

@@ -1,13 +1,17 @@
 /** Claude Agent Skills (SKILL.md files, Anthropic's Agent Skills convention) published
  *  across two registry repos. Consumed by both /skills (index) and /skills/:id (detail).
  *
- *  Two source repos, two groups:
+ *  Two source repos, three groups:
  *    1. "component" skills live alongside a specific component in dagster-component-templates
  *       — e.g. `assets/ai/agentic_pipeline_authoring_tools/SKILL.md`.
  *    2. "migration" skills (migrating-airflow-to-dagster, migrating-adf-to-dagster,
  *       migrating-runmyjobs-to-dagster) live under `skills/` in
  *       dagster-community-components-cli — the CLI repo, not the templates repo. Each one
  *       guides migrating an external scheduler/ETL tool's constructs to Dagster components.
+ *    3. "registry" is the single catalog-wide skill (`dagster-community-components`,
+ *       also under `skills/` in the CLI repo) — not paired with one component and not a
+ *       migration guide, but a reference for the whole registry: categories, validation
+ *       tiers, the real manifest schema, the CLI, and how to write correct YAML from it.
  *
  *  Separately, `resources/skill_resource` (`SkillResourceComponent`) is a Dagster component
  *  that lets a PROJECT register its OWN skills (by git_url/git_path) for its MCP-aware agent
@@ -24,7 +28,7 @@ export type SkillEntry = {
   name: string;
   /** From the SKILL.md YAML frontmatter `description` field. */
   description: string;
-  group: "component" | "migration";
+  group: "component" | "migration" | "registry";
   /** The component this skill was published alongside, if any (group: "component" only). */
   componentId?: string;
   /** Path to the SKILL.md within its source repo. */
@@ -42,6 +46,20 @@ const CLI_RAW = "https://raw.githubusercontent.com/eric-thomas-dagster/dagster-c
 export const SKILL_RESOURCE_COMPONENT_ID = "skill_resource";
 
 export const SKILLS: SkillEntry[] = [
+  {
+    id: "dagster-community-components",
+    name: "dagster-community-components",
+    description:
+      "Discover, evaluate, and use the Dagster Community Components (DCC) catalog itself — " +
+      "real categories and validation tiers, the full `dagster-component` CLI, the real " +
+      "(and inconsistent) manifest schema, how to tell a stale README table from the " +
+      "auto-generated one, and a repeatable recipe for building an end-to-end demo from " +
+      "the catalog. Load `dagster-expert` alongside it for core Dagster APIs.",
+    group: "registry",
+    path: "skills/dagster-community-components/SKILL.md",
+    rawUrl: `${CLI_RAW}/skills/dagster-community-components/SKILL.md`,
+    githubUrl: `${CLI_REPO}/blob/main/skills/dagster-community-components/SKILL.md`,
+  },
   {
     id: "agentic-pipeline-authoring",
     name: "agentic-pipeline-authoring",
