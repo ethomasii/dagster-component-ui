@@ -17,11 +17,13 @@ import {
   type TrustUrlFilter,
 } from "../lib/verification";
 import { CategoryBrowseDropdown } from "../components/CategoryBrowseDropdown";
-import { REGISTRY_DAGSTER_SPEC, UV_INSTALL_DOCS } from "../lib/registryRequirements";
 import { countExampleIndexEntries } from "../lib/examplesSearch";
 import { fetchExamplesIndexReadmeCached } from "../lib/loadCommunityExamples";
 
 const PAGE_SIZE = 48;
+/** Spotlight shows one component from the N biggest categories, not all of them — a full
+ *  one-per-category grid (23+ cards) was the single biggest source of homepage clutter. */
+const SPOTLIGHT_COUNT = 8;
 
 /** Link to browse manifest.json on GitHub (same repo URI as manifest `repository`). */
 function manifestGithubBlobUrl(repository: string): string {
@@ -35,30 +37,6 @@ const QUICK_SEARCHES: { label: string; q: string }[] = [
   { label: "Postgres", q: "postgres" },
   { label: "BigQuery", q: "bigquery" },
   { label: "Kafka", q: "kafka" },
-];
-
-/** Ecosystem tiles: each maps to a primary category. */
-const ECOSYSTEM_TILES: { slug: string; title: string; blurb: string }[] = [
-  {
-    slug: "ingestion",
-    title: "Databases & warehouses",
-    blurb: "PostgreSQL, MySQL, warehouses, and database-backed ingestion.",
-  },
-  {
-    slug: "integration",
-    title: "Cloud platforms",
-    blurb: "AWS, GCP, Azure, Databricks, Glue, BigQuery, and similar.",
-  },
-  {
-    slug: "ai",
-    title: "AI & ML",
-    blurb: "LLMs, embeddings, LangChain, and ML-adjacent enrichment.",
-  },
-  {
-    slug: "analytics",
-    title: "Analytics & processing",
-    blurb: "Transforms, segmentation, attribution, and warehouse analytics.",
-  },
 ];
 
 const USE_CASES: { slug: string; title: string; blurb: string }[] = [
@@ -602,34 +580,10 @@ export function Home() {
               Find the right{" "}
               <span style={{ color: "var(--accent-bright)" }}>component templates</span> for your pipelines
             </h1>
-            <p style={{ fontSize: 16, color: "var(--text-muted)", maxWidth: 720, margin: "0 0 8px" }}>
-              Browse community-maintained <strong style={{ color: "var(--text)" }}>component templates</strong>—each
-              folder includes YAML and a <span className="mono">schema.json</span> so you can wire assets with clear
-              metadata. Templates live in GitHub; you copy them into your project (they are not published as PyPI
-              packages per template).
+            <p style={{ fontSize: 16, color: "var(--text-muted)", maxWidth: 720, margin: "0 0 20px" }}>
+              Browse community-maintained component templates — each folder includes YAML and a{" "}
+              <span className="mono">schema.json</span> you copy straight into your Dagster project.
             </p>
-            <p style={{ fontSize: 14, color: "var(--text-dim)", maxWidth: 720, margin: "0 0 8px" }}>
-              <strong style={{ color: "var(--text)" }}>{catalogTotal || "—"}</strong> templates ·{" "}
-              <strong style={{ color: "var(--text)" }}>{catCount || "—"}</strong> categories ·{" "}
-              <strong style={{ color: "var(--text)" }}>{integrationBrands || "—"}</strong> branded integrations (
-              <span className="mono">si:*</span> icons)
-            </p>
-            <p style={{ fontSize: 13, color: "var(--text-dim)", maxWidth: 720, margin: "0 0 16px", lineHeight: 1.55 }}>
-              <Link to="/get-started" style={{ color: "var(--cyan)", fontWeight: 600, textDecoration: "none" }}>
-                Get started
-              </Link>{" "}
-              covers <span className="mono">uvx</span> (install{" "}
-              <a href={UV_INSTALL_DOCS} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
-                uv
-              </a>{" "}
-              first) and <span className="mono">dagster{REGISTRY_DAGSTER_SPEC}</span> for your code location.
-            </p>
-
-            <TrustSignalsStrip
-              histogram={trustHistogram}
-              trustParam={trustParam}
-              onPickTrust={(next) => setTrustFilter(trustParam === next ? "" : next)}
-            />
 
             <div
               style={{
@@ -771,7 +725,7 @@ export function Home() {
               : "—"
           }
           label="Trust signals"
-          hint="Templates with a recorded positive signal (informational—use trust pills in the hero to filter)"
+          hint="Templates with a recorded positive signal — see the breakdown below"
         />
         <StatBox
           value={examplesIndexCount === null ? "—" : String(examplesIndexCount)}
@@ -785,71 +739,46 @@ export function Home() {
           hint="maintainer-run manifest.json on GitHub (last_updated)"
         />
         </div>
+
+        <div style={{ marginTop: 24 }}>
+          <TrustSignalsStrip
+            histogram={trustHistogram}
+            trustParam={trustParam}
+            onPickTrust={(next) => setTrustFilter(trustParam === next ? "" : next)}
+          />
+        </div>
+
         {manifestMeta && (
-          <p
-            style={{
-              margin: "14px 0 0",
-              padding: "0",
-              fontSize: 13,
-              color: "var(--text-muted)",
-              lineHeight: 1.6,
-              maxWidth: 760,
-            }}
-          >
-            <strong style={{ color: "var(--text)" }}>Source of truth:</strong> the template total and catalog date
-            come from {" "}
+          <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6 }}>
+            Community templates, not independently tested — trust signals above show what's verified. Data from{" "}
             <a href={manifestGithubBlobUrl(manifestMeta.repo)} target="_blank" rel="noreferrer">
               manifest.json
-            </a>{" "}
-            in the templates repo—they update when you regenerate commit that file (field{" "}
-            <span className="mono">last_updated</span>). This site reads that JSON at runtime; it does not scrape
-            folders independently.{" "}
+            </a>
             {manifestFetchedAt ? (
-              <>
-                Your browser last loaded it: {" "}
-                <strong>{new Date(manifestFetchedAt).toLocaleString()}</strong>
-                .{" "}
-              </>
+              <>, loaded {new Date(manifestFetchedAt).toLocaleString()}</>
             ) : null}
+            .{" "}
             <button
               type="button"
               disabled={catalogRefreshBusy}
               onClick={() => void refreshCatalogNow()}
               style={{
-                marginLeft: 8,
-                padding: "4px 10px",
-                fontSize: 12,
+                padding: "2px 8px",
+                fontSize: 11,
                 fontWeight: 600,
-                borderRadius: 8,
-                border: "1px solid var(--border-strong)",
-                background: catalogRefreshBusy ? "var(--code-bg)" : "var(--bg-card)",
-                color: "var(--text-muted)",
+                borderRadius: 6,
+                border: "1px solid var(--border)",
+                background: "transparent",
+                color: "var(--text-dim)",
                 cursor: catalogRefreshBusy ? "wait" : "pointer",
               }}
             >
-              {catalogRefreshBusy ? "Refreshing…" : "Reload catalog"}
-            </button>
+              {catalogRefreshBusy ? "Refreshing…" : "Reload"}
+            </button>{" "}
+            · Report issue on a template page to reach maintainers.
           </p>
         )}
       </section>
-
-      <div
-        style={{
-          maxWidth: 1200,
-          margin: "0 auto 24px",
-          padding: "10px 24px",
-          fontSize: 12,
-          color: "var(--text-dim)",
-          lineHeight: 1.5,
-          borderTop: "1px solid var(--border)",
-          borderBottom: "1px solid var(--border)",
-        }}
-      >
-        Most components just work — but they're community templates, not independently tested. Component pages show
-        trust signals (CI status, manual checks, validation tier: code / infra / live) when the manifest records them;
-        otherwise treat as unverified. Use <strong style={{ color: "var(--text)" }}>Report issue</strong> on a template
-        to reach maintainers on GitHub.
-      </div>
 
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 32px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
@@ -892,45 +821,13 @@ export function Home() {
         </section>
       )}
 
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 40px" }}>
-        <h2 style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)", margin: "0 0 8px" }}>
-          Browse by ecosystem
-        </h2>
-        <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 12px", maxWidth: 720 }}>
-          Thematic shortcuts (not exhaustive). Use{" "}
-          <strong style={{ color: "var(--text)" }}>Categories</strong> above for the full list.
-        </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-          {ECOSYSTEM_TILES.map((u) => (
-            <button
-              key={u.slug}
-              type="button"
-              title={u.blurb}
-              onClick={() => setCategory(u.slug)}
-              style={{
-                padding: "6px 14px",
-                borderRadius: 999,
-                border: `1px solid ${catParam === u.slug ? "var(--accent-bright)" : "var(--border)"}`,
-                background: catParam === u.slug ? "rgba(124, 58, 237, 0.18)" : "var(--bg-card)",
-                color: catParam === u.slug ? "var(--text)" : "var(--text-muted)",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              {u.title}
-            </button>
-          ))}
-        </div>
-      </section>
-
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 48px" }}>
         <h2 style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)", margin: "0 0 8px" }}>
-          More use cases
+          Browse by use case
         </h2>
         <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 12px", maxWidth: 720 }}>
-          Curated workload shortcuts; anything not listed is still under{" "}
-          <strong style={{ color: "var(--text)" }}>Categories</strong>.
+          Curated workload shortcuts (not exhaustive); anything not listed is still under{" "}
+          <strong style={{ color: "var(--text)" }}>Categories</strong> above.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           {USE_CASES.map((u) => (
@@ -962,16 +859,17 @@ export function Home() {
             Spotlight
           </h2>
           <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 20px", maxWidth: 640 }}>
-            One sample component per category ({catCount} total)—narrow with search or Browse all below.
+            One sample component from each of the {SPOTLIGHT_COUNT} biggest categories (of {catCount} total)—browse
+            Categories above for the rest, or search / Browse all below.
           </p>
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-              gap: 16,
+              gap: 20,
             }}
           >
-            {spotlight.map((c) => (
+            {spotlight.slice(0, SPOTLIGHT_COUNT).map((c) => (
               <ComponentCard key={componentId(c)} c={c} />
             ))}
           </div>
@@ -1178,7 +1076,7 @@ function StatBox({
   pressed?: boolean;
 }) {
   const boxStyle: CSSProperties = {
-    padding: "20px 18px",
+    padding: "18px 18px",
     borderRadius: "var(--radius)",
     border: `1px solid ${pressed ? "var(--accent-bright)" : "var(--border)"}`,
     background: pressed
@@ -1188,11 +1086,13 @@ function StatBox({
     textAlign: "left" as const,
   };
 
+  // Full explanation lives in `title` (native tooltip on hover) rather than always-on body
+  // text — Airflow's equivalent stat strip is just number + one word; the inline 1-3 line
+  // explanations here were the single densest part of the old "At a glance" section.
   const inner = (
     <>
       <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.03em" }}>{value}</div>
-      <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>{label}</div>
-      <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>{hint}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, marginTop: 4, color: "var(--text-muted)" }}>{label}</div>
     </>
   );
 
@@ -1202,6 +1102,7 @@ function StatBox({
         type="button"
         onClick={onClick}
         aria-pressed={pressed}
+        title={hint}
         style={{ ...boxStyle, color: "var(--text)", font: "inherit" }}
       >
         {inner}
@@ -1209,5 +1110,9 @@ function StatBox({
     );
   }
 
-  return <div style={boxStyle}>{inner}</div>;
+  return (
+    <div style={boxStyle} title={hint}>
+      {inner}
+    </div>
+  );
 }

@@ -4,28 +4,24 @@ import { Search } from "lucide-react";
 import { useCatalog } from "../context/CatalogContext";
 import { componentId } from "../lib/componentId";
 import { ComponentCard } from "../components/ComponentCard";
+import { AGENTIC_GROUPS, ALL_GROUPED_IDS } from "../data/agenticGroups";
 import type { ManifestComponent } from "../types";
 
 /**
- * `/agentic` — every component tagged `agentic` in the manifest, across
- * whatever `category` they happen to live under.
+ * `/agentic` — every component tagged `agentic` in the manifest, grouped into named
+ * sub-categories (Pipelines, Agents, MCP tool servers, Approval & review, Memory &
+ * registry, Chat platform wiring, Skills & resources) rather than one flat 57-card grid.
  *
- * Unlike `/categories/:slug` (one manifest.category value), "agentic" is a
- * cross-cutting manifest.tags value: components that implement or directly
- * support an autonomous or semi-autonomous agent loop — MCP-aware tool-use
- * agents, agentic_pipeline, agent memory/card/review-queue infra, MCP tool
- * servers built for an agent to call, human-in-the-loop approval gates, and
- * the chat-platform (Slack/Teams) agent request/reply wiring. Deliberately
- * excludes single-shot LLM utilities (extractors, classifiers, embedders)
- * even where LLM-powered — most of those live under `category: "ai"` too,
- * which is why this view exists instead of just linking to that category.
+ * Grouping is a UI-only curation (`src/data/agenticGroups.ts`) layered on top of the
+ * manifest's flat `agentic` tag — the tag says "this supports an agent loop," the groups
+ * say what kind. An "Other agentic" catch-all covers anything tagged but not yet triaged
+ * into a named group, so nothing is silently dropped as new components get tagged.
  */
 export function AgenticIndex() {
   const { components } = useCatalog();
   const [params, setParams] = useSearchParams();
   const qParam = params.get("q") ?? "";
-  const vendorParam = params.get("vendor") ?? "";
-  const validationParam = params.get("validation") ?? "";
+  const groupParam = params.get("group") ?? "";
 
   const setParam = (key: string, next: string) => {
     const p = new URLSearchParams(params);
@@ -39,70 +35,43 @@ export function AgenticIndex() {
     [components]
   );
 
-  const vendorCounts = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const c of agentic) {
-      const v = c.vendor?.trim();
-      if (!v) continue;
-      m.set(v, (m.get(v) ?? 0) + 1);
-    }
-    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  const byId = useMemo(() => {
+    const m = new Map<string, ManifestComponent>();
+    for (const c of agentic) m.set(componentId(c), c);
+    return m;
   }, [agentic]);
 
-  const validationCounts = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const c of agentic) {
-      const v = c.validation?.level?.trim();
-      if (!v) continue;
-      m.set(v, (m.get(v) ?? 0) + 1);
+  const sections = useMemo(() => {
+    const named = AGENTIC_GROUPS.map((g) => ({
+      id: g.id,
+      label: g.label,
+      description: g.description,
+      items: g.componentIds.map((id) => byId.get(id)).filter((c): c is ManifestComponent => Boolean(c)),
+    }));
+    const other = agentic.filter((c) => !ALL_GROUPED_IDS.has(componentId(c)));
+    if (other.length) {
+      named.push({ id: "other", label: "Other agentic", description: "Tagged `agentic` but not yet triaged into a named group above.", items: other });
     }
-    return [...m.entries()].sort((a, b) => b[1] - a[1]);
-  }, [agentic]);
+    return named;
+  }, [byId, agentic]);
 
-  const filtered = useMemo(() => {
+  const matchesQuery = (c: ManifestComponent, q: string): boolean => {
+    if (!q) return true;
+    const haystack = [componentId(c), c.name ?? "", c.description ?? "", ...(c.keywords ?? [])]
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(q);
+  };
+
+  const visibleSections = useMemo(() => {
     const q = qParam.trim().toLowerCase();
-    return agentic.filter((c) => {
-      if (vendorParam && c.vendor !== vendorParam) return false;
-      if (validationParam && c.validation?.level !== validationParam) return false;
-      if (!q) return true;
-      const haystack = [
-        componentId(c),
-        c.name ?? "",
-        c.description ?? "",
-        ...(c.keywords ?? []),
-      ].join(" ").toLowerCase();
-      return haystack.includes(q);
-    });
-  }, [agentic, qParam, vendorParam, validationParam]);
+    return sections
+      .filter((s) => !groupParam || s.id === groupParam)
+      .map((s) => ({ ...s, items: s.items.filter((c) => matchesQuery(c, q)) }))
+      .filter((s) => s.items.length > 0);
+  }, [sections, qParam, groupParam]);
 
-  const sorted = useMemo(() => {
-    // Same 8-signal ranking as every other catalog grid in the app.
-    const lvlWeight = (l?: string) => (l === "live" ? 3 : l === "smoke" ? 2 : l ? 1 : 0);
-    const ts = (c: ManifestComponent) => {
-      const raw = c.validation?.last_validated ?? "";
-      const p = raw ? Date.parse(raw) : NaN;
-      return Number.isFinite(p) ? p : 0;
-    };
-    const idHash = (id: string) => {
-      let h = 5381;
-      for (let i = 0; i < id.length; i++) h = ((h << 5) + h + id.charCodeAt(i)) | 0;
-      return h >>> 0;
-    };
-    const score = (c: ManifestComponent): number[] => [
-      c.featured ? 1 : 0,
-      lvlWeight(c.validation?.level),
-      c.validation?.evidence ? 1 : 0,
-      ts(c),
-      c.agent_hints && Object.keys(c.agent_hints).length > 0 ? 1 : 0,
-      c.keywords?.length ?? 0,
-      (c.description ?? "").split(/\s+/).filter(Boolean).length,
-    ];
-    return [...filtered].sort((a, b) => {
-      const sa = score(a), sb = score(b);
-      for (let i = 0; i < sa.length; i++) if (sb[i] !== sa[i]) return sb[i] - sa[i];
-      return idHash(componentId(a)) - idHash(componentId(b));
-    });
-  }, [filtered]);
+  const visibleCount = visibleSections.reduce((n, s) => n + s.items.length, 0);
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 64px" }}>
@@ -128,21 +97,19 @@ export function AgenticIndex() {
       </div>
       <p style={{ fontSize: 15, color: "var(--text-muted)", margin: "0 0 12px", lineHeight: 1.55 }}>
         Everything that implements or directly supports an autonomous or semi-autonomous agent
-        loop: MCP-aware tool-use agents (LiteLLM, OpenAI, Anthropic, Gemini, Vercel AI Gateway,
-        Snowflake Cortex), <code className="mono" style={{ fontSize: 13 }}>agentic_pipeline</code>,
-        agent memory + card registry + review queue, MCP tool servers built for an agent to call
-        (Dagster, GitHub, Linear, Notion, OpenAPI, Slack, Teams, …), human-in-the-loop approval
-        gates, and the Slack/Teams agent request-and-reply sensors and sinks.
+        loop, grouped by what kind — pipelines, agents, MCP tool servers an agent calls,
+        human-in-the-loop approval, memory/registry, and the chat-platform wiring that triggers
+        a run and posts its reply.
       </p>
       <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 24px", lineHeight: 1.5 }}>
-        This is narrower than browsing <Link to="/categories/ai" style={{ color: "var(--cyan)" }}>category: ai</Link> directly —
-        that category also holds single-shot LLM utilities (extractors, classifiers, embedders)
-        that don't run an agent loop. Manifest key: <code className="mono" style={{ fontSize: 12 }}>tags: ["agentic", …]</code>.
+        Narrower than browsing <Link to="/categories/ai" style={{ color: "var(--cyan)" }}>category: ai</Link> directly —
+        that category also holds single-shot LLM utilities that don't run an agent loop.
+        Manifest key: <code className="mono" style={{ fontSize: 12 }}>tags: ["agentic", …]</code>.
       </p>
 
       <form
         onSubmit={(e) => e.preventDefault()}
-        style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 20 }}
+        style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 16 }}
       >
         <div style={{
           display: "flex", alignItems: "center", gap: 10,
@@ -164,7 +131,7 @@ export function AgenticIndex() {
             }}
           />
         </div>
-        {(qParam || vendorParam || validationParam) ? (
+        {(qParam || groupParam) ? (
           <button
             type="button"
             onClick={() => setParams(new URLSearchParams(), { replace: true })}
@@ -179,70 +146,15 @@ export function AgenticIndex() {
         ) : null}
       </form>
 
-      {(vendorCounts.length > 0 || validationCounts.length > 0) ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 20, marginBottom: 24 }}>
-          {vendorCounts.length > 0 ? (
-            <FacetBlock
-              label="Vendor"
-              options={vendorCounts}
-              selected={vendorParam}
-              onSelect={(v) => setParam("vendor", v === vendorParam ? "" : v)}
-            />
-          ) : null}
-          {validationCounts.length > 0 ? (
-            <FacetBlock
-              label="Validation"
-              options={validationCounts}
-              selected={validationParam}
-              onSelect={(v) => setParam("validation", v === validationParam ? "" : v)}
-            />
-          ) : null}
-        </div>
-      ) : null}
-
-      <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 12px" }}>
-        Showing {sorted.length} of {agentic.length}
-      </p>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
-        {sorted.map((c) => (
-          <ComponentCard key={componentId(c)} c={c} />
-        ))}
-      </div>
-      {sorted.length === 0 ? (
-        <p style={{ color: "var(--text-muted)", marginTop: 24 }}>
-          No components match the current filter. Clear filters to see all {agentic.length}.
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function FacetBlock({
-  label,
-  options,
-  selected,
-  onSelect,
-}: {
-  label: string;
-  options: [string, number][];
-  selected: string;
-  onSelect: (v: string) => void;
-}) {
-  return (
-    <div style={{ minWidth: 200 }}>
-      <div style={{
-        fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
-        color: "var(--text-dim)", marginBottom: 8,
-      }}>{label}</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {options.map(([v, n]) => {
-          const active = selected === v;
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 28 }}>
+        {sections.map((s) => {
+          const active = groupParam === s.id;
           return (
             <button
-              key={v}
+              key={s.id}
               type="button"
-              onClick={() => onSelect(v)}
+              title={s.description}
+              onClick={() => setParam("group", active ? "" : s.id)}
               style={{
                 padding: "5px 10px", borderRadius: 999,
                 border: `1px solid ${active ? "var(--cyan)" : "var(--border)"}`,
@@ -252,11 +164,41 @@ function FacetBlock({
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              {v} <span style={{ opacity: 0.6 }}>· {n}</span>
+              {s.label} <span style={{ opacity: 0.6 }}>· {s.items.length}</span>
             </button>
           );
         })}
       </div>
+
+      <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" }}>
+        Showing {visibleCount} of {agentic.length}
+      </p>
+
+      {visibleSections.map((s) => (
+        <section key={s.id} style={{ marginBottom: 40 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", margin: 0 }}>
+              {s.label}
+            </h2>
+            <span style={{ fontSize: 13, color: "var(--text-dim)", fontVariantNumeric: "tabular-nums" }}>
+              {s.items.length}
+            </span>
+          </div>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 16px", maxWidth: 760, lineHeight: 1.5 }}>
+            {s.description}
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+            {s.items.map((c) => (
+              <ComponentCard key={componentId(c)} c={c} />
+            ))}
+          </div>
+        </section>
+      ))}
+      {visibleSections.length === 0 ? (
+        <p style={{ color: "var(--text-muted)", marginTop: 24 }}>
+          No components match the current filter. Clear filters to see all {agentic.length}.
+        </p>
+      ) : null}
     </div>
   );
 }

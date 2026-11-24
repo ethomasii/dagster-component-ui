@@ -34,7 +34,7 @@ const externalNav: ExternalNavItem[] = [
 
 function navPillStyle(active: boolean): CSSProperties {
   return {
-    padding: "8px 14px",
+    padding: "7px 11px",
     borderRadius: 8,
     fontSize: 14,
     fontWeight: 500,
@@ -58,7 +58,9 @@ function LearnDropdown() {
   const active =
     loc.pathname === "/ai-assistants" ||
     loc.pathname === "/dagster-plus" ||
-    loc.pathname.startsWith("/blog");
+    loc.pathname.startsWith("/blog") ||
+    loc.pathname.startsWith("/skills") ||
+    loc.pathname.startsWith("/vendors");
 
   useEffect(() => {
     if (!open) return;
@@ -178,6 +180,28 @@ function LearnDropdown() {
             </a>
           </Link>
           <Link
+            to="/skills"
+            role="menuitem"
+            style={itemStyle}
+            title="Claude Agent Skills (SKILL.md) published in this registry"
+          >
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontWeight: 500 }}>Skills</span>
+              <span style={subLabelStyle}>Agent Skills (SKILL.md) for Claude Code</span>
+            </div>
+          </Link>
+          <Link
+            to="/vendors"
+            role="menuitem"
+            style={itemStyle}
+            title="Vendor landing pages — components and walkthroughs per platform"
+          >
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontWeight: 500 }}>Vendors</span>
+              <span style={subLabelStyle}>Per-platform component + walkthrough pages</span>
+            </div>
+          </Link>
+          <Link
             to="/ai-assistants"
             role="menuitem"
             style={itemStyle}
@@ -284,7 +308,7 @@ export function Layout({ children }: { children: ReactNode }) {
               </span>
             </span>
           </Link>
-          <nav style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <nav style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <button
                 type="button"
@@ -293,7 +317,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 8,
-                  padding: "8px 14px",
+                  padding: "7px 11px",
                   borderRadius: 8,
                   border: "1px solid var(--border)",
                   background: "var(--bg-card)",
@@ -314,7 +338,7 @@ export function Layout({ children }: { children: ReactNode }) {
             <Link
               to="/examples"
               style={{
-                padding: "8px 14px",
+                padding: "7px 11px",
                 borderRadius: 8,
                 fontSize: 14,
                 fontWeight: 500,
@@ -329,13 +353,6 @@ export function Layout({ children }: { children: ReactNode }) {
               Examples
             </Link>
             <Link
-              to="/vendors"
-              style={navPillStyle(loc.pathname.startsWith("/vendors"))}
-              title="Vendor landing pages — components and walkthroughs per platform"
-            >
-              Vendors
-            </Link>
-            <Link
               to="/categories"
               style={navPillStyle(loc.pathname.startsWith("/categories"))}
               title="Browse by component category — ai, transformation, integration, sensor, io_manager, …"
@@ -348,13 +365,6 @@ export function Layout({ children }: { children: ReactNode }) {
               title="Components that implement or support an agent loop — agents, agentic_pipeline, MCP tool servers, approval gates, chat-platform agent wiring"
             >
               Agentic
-            </Link>
-            <Link
-              to="/skills"
-              style={navPillStyle(loc.pathname.startsWith("/skills"))}
-              title="Claude Agent Skills (SKILL.md) published in this registry"
-            >
-              Skills
             </Link>
             <Link
               to="/cli"
