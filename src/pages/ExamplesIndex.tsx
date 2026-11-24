@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search } from "lucide-react";
+import { ChevronRight, Search } from "lucide-react";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
 import {
   COMMUNITY_CLI_EXAMPLES_INDEX_README_URL,
@@ -10,6 +10,7 @@ import { UVX_REQUIRES_UV_EXPLAINER } from "../lib/registryRequirements";
 import { useCatalog } from "../context/CatalogContext";
 import { filterExamplesReadmeByQuery } from "../lib/examplesSearch";
 import { linkifyCatalogMarkdown } from "../lib/linkifyCatalogMarkdown";
+import { splitIntoH2Sections } from "../lib/markdownSections";
 import {
   fetchExamplesIndexReadmeCached,
   rewriteExamplesIndexLinks,
@@ -22,6 +23,8 @@ export function ExamplesIndex() {
   const [readme, setReadme] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openSlugs, setOpenSlugs] = useState<Set<string>>(new Set());
+  const [initializedOpen, setInitializedOpen] = useState(false);
 
   const setQParam = (next: string) => {
     const p = new URLSearchParams(params);
@@ -63,8 +66,44 @@ export function ExamplesIndex() {
     return filterExamplesReadmeByQuery(linkedReadme, t);
   }, [linkedReadme, qParam]);
 
+  const { preamble, sections } = useMemo(() => {
+    if (!displayReadme) return { preamble: null as string | null, sections: [] };
+    return splitIntoH2Sections(displayReadme);
+  }, [displayReadme]);
+
+  const searching = qParam.trim().length > 0;
+
+  // Default: only the first section open (the README's own "start here" framing), or
+  // whichever section the URL hash points at -- not "painfully long" by default, everything
+  // else is one click away. Runs once sections first become available; search mode ignores
+  // this entirely (every section it returns already matched the query).
+  useEffect(() => {
+    if (initializedOpen || searching || !sections.length) return;
+    const hashSlug = (() => {
+      try {
+        return decodeURIComponent(window.location.hash.replace(/^#/, ""));
+      } catch {
+        return window.location.hash.replace(/^#/, "");
+      }
+    })();
+    const match = sections.find((s) => s.slug === hashSlug);
+    setOpenSlugs(new Set([(match ?? sections[0]).slug]));
+    setInitializedOpen(true);
+  }, [sections, initializedOpen, searching]);
+
+  const toggleSection = (slug: string) => {
+    setOpenSlugs((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
+  };
+
+  const allOpen = sections.length > 0 && sections.every((s) => openSlugs.has(s.slug));
+
   return (
-    <div style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px 64px" }}>
+    <div className="examples-markdown-page" style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px 64px" }}>
       <p
         style={{
           fontSize: 13,
@@ -145,6 +184,25 @@ export function ExamplesIndex() {
               Clear
             </button>
           ) : null}
+          {!searching && sections.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setOpenSlugs(allOpen ? new Set() : new Set(sections.map((s) => s.slug)))}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "1px solid var(--border)",
+                background: "var(--bg-elevated)",
+                color: "var(--text-muted)",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {allOpen ? "Collapse all" : "Expand all"}
+            </button>
+          ) : null}
         </form>
       )}
 
@@ -160,10 +218,67 @@ export function ExamplesIndex() {
           </p>
         </div>
       )}
-      {readme != null && displayReadme != null && displayReadme !== "" && (
-        <ExamplesMarkdown>{displayReadme}</ExamplesMarkdown>
-      )}
-      {readme != null && linkedReadme != null && qParam.trim() && displayReadme === "" ? (
+
+      {preamble ? <ExamplesMarkdown className="doc-viewer-markdown examples-markdown">{preamble}</ExamplesMarkdown> : null}
+
+      {sections.map((s) => {
+        const open = searching || openSlugs.has(s.slug);
+        return (
+          <details
+            key={s.slug}
+            open={open}
+            onToggle={() => {
+              // `searching` forces every section open regardless of click state, so ignore
+              // native toggle events while it's active.
+              if (!searching) toggleSection(s.slug);
+            }}
+            style={{
+              marginBottom: 10,
+              borderRadius: 12,
+              border: "1px solid var(--border)",
+              background: "var(--bg-card)",
+              overflow: "hidden",
+            }}
+          >
+            <summary
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "14px 18px",
+                cursor: searching ? "default" : "pointer",
+                fontSize: 15,
+                fontWeight: 700,
+                letterSpacing: "-0.01em",
+                listStyle: "none",
+                userSelect: "none",
+              }}
+            >
+              <ChevronRight
+                size={16}
+                style={{
+                  color: "var(--text-dim)",
+                  flexShrink: 0,
+                  transition: "transform 120ms ease",
+                  transform: open ? "rotate(90deg)" : "rotate(0deg)",
+                }}
+                aria-hidden
+              />
+              <span style={{ flex: 1, minWidth: 0 }}>{s.heading}</span>
+              {s.rowCount > 0 ? (
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", fontVariantNumeric: "tabular-nums" }}>
+                  {s.rowCount}
+                </span>
+              ) : null}
+            </summary>
+            <div style={{ padding: "0 18px 18px" }}>
+              <ExamplesMarkdown className="doc-viewer-markdown examples-markdown">{s.text}</ExamplesMarkdown>
+            </div>
+          </details>
+        );
+      })}
+
+      {readme != null && linkedReadme != null && searching && sections.length === 0 ? (
         <div className="callout-help" style={{ marginTop: 8 }}>
           <p style={{ margin: 0, fontSize: 14, color: "var(--text-muted)" }}>
             No README sections contain all of those words. Try fewer keywords or{" "}

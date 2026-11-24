@@ -293,6 +293,16 @@ dd {
   min-width: 0;
 }
 
+/* Collapsible /examples sections -- a custom chevron (inline SVG) does the disclosure
+   affordance instead, so suppress the native marker in both engines. */
+.examples-markdown-page summary {
+  list-style: none;
+}
+.examples-markdown-page summary::-webkit-details-marker,
+.examples-markdown-page summary::marker {
+  display: none;
+}
+
 /* In-app README / markdown viewer */
 .doc-viewer-markdown {
   max-width: 100%;
@@ -403,6 +413,16 @@ dd {
   background: var(--bg-card);
   color: var(--text);
   font-weight: 600;
+}
+
+/* /examples' tables are consistently "name column | long prose column [| cost]" --
+   auto table-layout starves the first column relative to how much text it actually
+   carries (often a bold link + subtitle), rendering it uncomfortably narrow next to a
+   much wider second column. Give it a floor; the table already scrolls horizontally
+   (see `.doc-viewer-markdown table` above) if that plus the prose column still doesn't fit. */
+.examples-markdown table th:first-child,
+.examples-markdown table td:first-child {
+  min-width: 260px;
 }
 
 .doc-viewer-markdown img {
