@@ -285,9 +285,21 @@ button:focus-visible {
   border: 0;
 }
 
+/* ComponentDetail's field/I-O grids (<dl> with a 1fr value column) -- a grid item's default
+   min-width is `auto` (its content's intrinsic width), not 0, so a wide unwrapped value (a
+   <pre>'d JSON blob, a long path) can hold the grid column open past the page's edge even
+   though the <pre> itself has `overflow: auto`. Only <dl>/<dd> used anywhere in this app. */
+dd {
+  min-width: 0;
+}
+
 /* In-app README / markdown viewer */
 .doc-viewer-markdown {
   max-width: 100%;
+  /* Defense-in-depth against a long unbroken token (URL, identifier) in a paragraph or list
+     item busting the page's width -- tables get their own scroll-container fix below, since
+     wrapping their cell text isn't always desirable (e.g. a short code column). */
+  overflow-wrap: anywhere;
 }
 
 .doc-viewer-markdown h1,
@@ -365,8 +377,15 @@ button:focus-visible {
   font-size: inherit;
 }
 
+/* A wide table (common in component field-reference READMEs) must scroll within its own box,
+   not push the whole page wider -- `width: 100%` alone doesn't cap it under auto table-layout,
+   since browsers grow the table past its box to fit unwrapped cell content. `display: block` +
+   `overflow-x: auto` turns the table itself into a scroll container (no extra wrapper div
+   needed); confirmed live on /c/aws_batch_workspace, which was overflowing the page by ~270px. */
 .doc-viewer-markdown table {
-  width: 100%;
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
   margin: 1em 0;
   font-size: 14px;
@@ -377,6 +396,7 @@ button:focus-visible {
   border: 1px solid var(--border);
   padding: 8px 12px;
   text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .doc-viewer-markdown th {

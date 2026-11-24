@@ -1526,5 +1526,6 @@ const preStyle: CSSProperties = {
   background: "var(--code-bg)",
   fontSize: 12,
   overflow: "auto",
+  maxWidth: "100%",
 };
 
