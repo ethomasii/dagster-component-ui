@@ -1,21 +1,21 @@
 /** Claude Agent Skills (SKILL.md files, Anthropic's Agent Skills convention) published
- *  inside dagster-component-templates. Consumed by both /skills (index) and
- *  /skills/:id (detail).
+ *  across two registry repos. Consumed by both /skills (index) and /skills/:id (detail).
  *
- *  Two different things live under the "skills" umbrella in that repo, and this page
- *  covers only the first:
- *    1. Real, published SKILL.md files living alongside a specific component — e.g.
- *       `assets/ai/agentic_pipeline_authoring_tools/SKILL.md`. These are copy/symlink-able
- *       straight into `.claude/skills/<name>/SKILL.md` for Claude Code (or any Agent-Skills-
- *       aware client) to pick up.
- *    2. `resources/skill_resource` (`SkillResourceComponent`) — a Dagster component that lets
- *       a PROJECT register its OWN skills (by git_url/git_path) for its MCP-aware agent
- *       components (`litellm_agent`, `openai_agent`, …) to reference by `skill_keys`. That's
- *       a registry mechanism, not a skill itself — linked from the /skills page, not listed
- *       as an entry here.
+ *  Two source repos, two groups:
+ *    1. "component" skills live alongside a specific component in dagster-component-templates
+ *       — e.g. `assets/ai/agentic_pipeline_authoring_tools/SKILL.md`.
+ *    2. "migration" skills (migrating-airflow-to-dagster, migrating-adf-to-dagster,
+ *       migrating-runmyjobs-to-dagster) live under `skills/` in
+ *       dagster-community-components-cli — the CLI repo, not the templates repo. Each one
+ *       guides migrating an external scheduler/ETL tool's constructs to Dagster components.
  *
- *  Kept as a hardcoded const (same pattern as `clis.ts`) because there's one of these today
- *  and they'll be added deliberately, not often; adding one = append one entry here.
+ *  Separately, `resources/skill_resource` (`SkillResourceComponent`) is a Dagster component
+ *  that lets a PROJECT register its OWN skills (by git_url/git_path) for its MCP-aware agent
+ *  components to reference by `skill_keys` — a registry mechanism, not a skill itself, linked
+ *  from the /skills page but not listed as an entry here.
+ *
+ *  Kept as a hardcoded const (same pattern as `clis.ts`) because new entries are added
+ *  deliberately, not often; adding one = append one entry here.
  */
 
 export type SkillEntry = {
@@ -24,16 +24,20 @@ export type SkillEntry = {
   name: string;
   /** From the SKILL.md YAML frontmatter `description` field. */
   description: string;
-  /** The component this skill was published alongside, if any. */
+  group: "component" | "migration";
+  /** The component this skill was published alongside, if any (group: "component" only). */
   componentId?: string;
-  /** Path to the SKILL.md within the templates repo. */
+  /** Path to the SKILL.md within its source repo. */
   path: string;
   rawUrl: string;
   githubUrl: string;
 };
 
-const REPO = "https://github.com/eric-thomas-dagster/dagster-component-templates";
-const RAW = "https://raw.githubusercontent.com/eric-thomas-dagster/dagster-component-templates/main";
+const TEMPLATES_REPO = "https://github.com/eric-thomas-dagster/dagster-component-templates";
+const TEMPLATES_RAW = "https://raw.githubusercontent.com/eric-thomas-dagster/dagster-component-templates/main";
+
+const CLI_REPO = "https://github.com/eric-thomas-dagster/dagster-community-components-cli";
+const CLI_RAW = "https://raw.githubusercontent.com/eric-thomas-dagster/dagster-community-components-cli/main";
 
 export const SKILL_RESOURCE_COMPONENT_ID = "skill_resource";
 
@@ -44,10 +48,46 @@ export const SKILLS: SkillEntry[] = [
     description:
       "Author, check, and preview an AgenticPipelineComponent YAML — picking an op, wiring " +
       "step dependencies, setting partitioning, or diagnosing a load-time error.",
+    group: "component",
     componentId: "agentic_pipeline_authoring_tools",
     path: "assets/ai/agentic_pipeline_authoring_tools/SKILL.md",
-    rawUrl: `${RAW}/assets/ai/agentic_pipeline_authoring_tools/SKILL.md`,
-    githubUrl: `${REPO}/blob/main/assets/ai/agentic_pipeline_authoring_tools/SKILL.md`,
+    rawUrl: `${TEMPLATES_RAW}/assets/ai/agentic_pipeline_authoring_tools/SKILL.md`,
+    githubUrl: `${TEMPLATES_REPO}/blob/main/assets/ai/agentic_pipeline_authoring_tools/SKILL.md`,
+  },
+  {
+    id: "migrating-airflow-to-dagster",
+    name: "migrating-airflow-to-dagster",
+    description:
+      "Migrate Apache Airflow DAGs to Dagster — DAGs, schedules, TaskFlow tasks, operators, " +
+      "sensors, datasets/assets, pools, XCom, Variables/Connections, dynamic task mapping, " +
+      "dag-factory and Cosmos. Covers MWAA, Cloud Composer, and Astronomer too.",
+    group: "migration",
+    path: "skills/migrating-airflow-to-dagster/SKILL.md",
+    rawUrl: `${CLI_RAW}/skills/migrating-airflow-to-dagster/SKILL.md`,
+    githubUrl: `${CLI_REPO}/blob/main/skills/migrating-airflow-to-dagster/SKILL.md`,
+  },
+  {
+    id: "migrating-adf-to-dagster",
+    name: "migrating-adf-to-dagster",
+    description:
+      "Migrate Azure Data Factory pipelines to Dagster — Copy, ForEach, Lookup, tumbling " +
+      "window triggers, data flows, SSIS packages, linked services and datasets. Covers " +
+      "Synapse pipelines and Fabric Data Factory too.",
+    group: "migration",
+    path: "skills/migrating-adf-to-dagster/SKILL.md",
+    rawUrl: `${CLI_RAW}/skills/migrating-adf-to-dagster/SKILL.md`,
+    githubUrl: `${CLI_REPO}/blob/main/skills/migrating-adf-to-dagster/SKILL.md`,
+  },
+  {
+    id: "migrating-runmyjobs-to-dagster",
+    name: "migrating-runmyjobs-to-dagster",
+    description:
+      "Migrate Redwood RunMyJobs (formerly SAP CPS / Redwood Server) process definitions, " +
+      "chains, schedules and queues to Dagster.",
+    group: "migration",
+    path: "skills/migrating-runmyjobs-to-dagster/SKILL.md",
+    rawUrl: `${CLI_RAW}/skills/migrating-runmyjobs-to-dagster/SKILL.md`,
+    githubUrl: `${CLI_REPO}/blob/main/skills/migrating-runmyjobs-to-dagster/SKILL.md`,
   },
 ];
 
@@ -55,4 +95,5 @@ export function findSkill(id: string): SkillEntry | undefined {
   return SKILLS.find((s) => s.id === id);
 }
 
-export const SKILLS_REPO = REPO;
+export const SKILLS_REPO = TEMPLATES_REPO;
+export const SKILLS_CLI_REPO = CLI_REPO;
