@@ -91,11 +91,19 @@ export function ExamplesIndex() {
     setInitializedOpen(true);
   }, [sections, initializedOpen, searching]);
 
-  const toggleSection = (slug: string) => {
+  // Sync state TO the native element's resulting `open` state, never flip based on what we
+  // think it was. `<details open={...}>` is controlled by React (via `openSlugs`), so every
+  // re-render that changes `open` sets the DOM property itself -- which, same as a real
+  // click, fires a native `toggle` event. Reading `e.currentTarget.open` and writing that
+  // exact value back is idempotent for a React-driven change (no-op) and correct for a real
+  // click; toggling blindly here instead double-flips a React-driven change into an infinite
+  // open/close loop on mount (confirmed: the initially-open section rapidly flickered).
+  const syncSection = (slug: string, isOpen: boolean) => {
     setOpenSlugs((prev) => {
+      if (isOpen === prev.has(slug)) return prev;
       const next = new Set(prev);
-      if (next.has(slug)) next.delete(slug);
-      else next.add(slug);
+      if (isOpen) next.add(slug);
+      else next.delete(slug);
       return next;
     });
   };
@@ -227,10 +235,11 @@ export function ExamplesIndex() {
           <details
             key={s.slug}
             open={open}
-            onToggle={() => {
+            onToggle={(e) => {
               // `searching` forces every section open regardless of click state, so ignore
-              // native toggle events while it's active.
-              if (!searching) toggleSection(s.slug);
+              // native toggle events while it's active (a click would otherwise be synced to
+              // closed for a moment before `open`'s `searching ||` forces it back open).
+              if (!searching) syncSection(s.slug, e.currentTarget.open);
             }}
             style={{
               marginBottom: 10,
