@@ -557,15 +557,14 @@ export function Home() {
                 letterSpacing: "-0.03em",
                 margin: "0 0 14px",
                 lineHeight: 1.12,
-                maxWidth: 920,
                 color: "#fff",
               }}
             >
               Find the right{" "}
-              <span style={{ color: "#67e8f9" }}>component templates</span> for your Dagster project
+              <span style={{ color: "#67e8f9" }}>components</span> for your Dagster project
             </h1>
-            <p style={{ fontSize: 17, color: "rgba(255,255,255,0.82)", maxWidth: 680, margin: "0 0 24px" }}>
-              Browse community-maintained component templates — each folder includes YAML and a{" "}
+            <p style={{ fontSize: 17, color: "rgba(255,255,255,0.82)", margin: "0 0 24px" }}>
+              Browse community-maintained components — each folder includes YAML and a{" "}
               <span className="mono" style={{ background: "rgba(255,255,255,0.14)", color: "#fff" }}>schema.json</span> you
               copy straight into your Dagster project.
             </p>
