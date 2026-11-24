@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { OPEN_DCC_WIDGET_EVENT, type OpenDccWidgetDetail } from "../lib/openDccWidget";
 import {
   Sparkles,
   X,
@@ -145,6 +146,23 @@ export function DccAgentWidget() {
     setError(null);
     setProgress([]);
   }
+
+  // Lets the homepage hero (or anywhere else) open this widget programmatically, optionally
+  // with a prefilled intent that gets auto-submitted immediately.
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const detail = (e as CustomEvent<OpenDccWidgetDetail>).detail;
+      setOpen(true);
+      setExpanded(true);
+      if (detail?.intent) {
+        setIntent(detail.intent);
+        void submit(detail.intent);
+      }
+    };
+    window.addEventListener(OPEN_DCC_WIDGET_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_DCC_WIDGET_EVENT, onOpen);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Closed: FAB ──────────────────────────────────────────────────
   if (!open) {

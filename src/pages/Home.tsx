@@ -18,11 +18,14 @@ import {
 } from "../lib/verification";
 import { CategoryBrowseDropdown } from "../components/CategoryBrowseDropdown";
 import { countExampleIndexEntries } from "../lib/examplesSearch";
+import { requestOpenDccWidget } from "../lib/openDccWidget";
+import { Sparkles } from "lucide-react";
 import { fetchExamplesIndexReadmeCached } from "../lib/loadCommunityExamples";
 
 const PAGE_SIZE = 48;
-/** Spotlight shows one component from the N biggest categories, not all of them — a full
- *  one-per-category grid (23+ cards) was the single biggest source of homepage clutter. */
+/** "Featured" shows the top N of the manifest's `featured: true` flagship components (~25
+ *  today), not all of them — real maintainer curation, in place of the previous one-random-
+ *  component-per-category grid (23+ cards, which read as arbitrary filler to browse). */
 const SPOTLIGHT_COUNT = 8;
 
 /** Link to browse manifest.json on GitHub (same repo URI as manifest `repository`). */
@@ -99,6 +102,7 @@ export function Home() {
   } = useCatalog();
   const [catalogRefreshBusy, setCatalogRefreshBusy] = useState(false);
   const [localQ, setLocalQ] = useState(qParam);
+  const [dccIntent, setDccIntent] = useState("");
   const catalogResultsRef = useRef<HTMLElement | null>(null);
   const [examplesIndexCount, setExamplesIndexCount] = useState<number | null>(null);
 
@@ -159,28 +163,17 @@ export function Home() {
   }, [components]);
 
   /**
-   * One pick per manifest category, ranked by descending signal strength:
-   *   1. `featured: true` — curated flag on ~20-30 flagship components. Always wins.
-   *   2. Validation level (live > smoke > other > none).
-   *   3. Walkthrough exists (validation.evidence points at a demo URL).
-   *   4. Newer validation.last_validated wins ties.
-   *   5. Presence of agent_hints (proxy for care).
-   *   6. Raw keyword count (more keywords → more effort spent on discoverability).
-   *   7. Description word count (more prose → more effort explaining).
-   *   8. Deterministic id-hash tiebreaker — kills the "components starting with A"
-   *      bias that alphabetical tiebreaks introduce (ACORD XML Parser was winning
-   *      "transformation" over Snowpark / Polars / etc. purely because it sorts first).
-   * Category order still follows `categoryCounts` descending.
+   * Real maintainer curation (`featured: true`, ~20-30 flagship components across every
+   * category), not a random per-category pick -- a one-sample-per-category grid read as
+   * arbitrary filler to anyone browsing it (nobody's first instinct is to click a random
+   * card), so this is deliberately "the ones we'd point a new user at" instead.
+   * Tiebreak order among the featured set:
+   *   1. Validation level (live > smoke > other > none).
+   *   2. Walkthrough exists (validation.evidence points at a demo URL).
+   *   3. Newer validation.last_validated wins ties.
+   *   4. Deterministic id-hash — stable render order, uncorrelated with the alphabet.
    */
   const spotlight = useMemo(() => {
-    if (!components.length) return [];
-    const byCat = new Map<string, ManifestComponent[]>();
-    for (const c of components) {
-      const cat = c.category ?? "uncategorized";
-      const arr = byCat.get(cat) ?? [];
-      arr.push(c);
-      byCat.set(cat, arr);
-    }
     const levelWeight = (lvl?: string) =>
       lvl === "live" ? 3 : lvl === "smoke" ? 2 : lvl ? 1 : 0;
     const validatedTs = (c: ManifestComponent) => {
@@ -188,46 +181,28 @@ export function Home() {
       const p = raw ? Date.parse(raw) : NaN;
       return Number.isFinite(p) ? p : 0;
     };
-    // djb2 hash for the id-tiebreaker — same input always maps to the same
-    // bucket (stable render order across page loads), but the distribution
-    // is uncorrelated with the alphabet so no letter cohort gets an edge.
     const idHash = (c: ManifestComponent) => {
       const id = componentId(c);
       let h = 5381;
       for (let i = 0; i < id.length; i++) h = ((h << 5) + h + id.charCodeAt(i)) | 0;
       return h >>> 0;
     };
-    const scoreOf = (c: ManifestComponent): number[] => {
-      const featured = c.featured ? 1 : 0;
-      const hasWalkthrough = c.validation?.evidence ? 1 : 0;
-      const hasAgentHints = c.agent_hints && Object.keys(c.agent_hints).length > 0 ? 1 : 0;
-      const keywordCount = c.keywords?.length ?? 0;
-      const descWordCount = (c.description ?? "").split(/\s+/).filter(Boolean).length;
-      return [
-        featured,
-        levelWeight(c.validation?.level),
-        hasWalkthrough,
-        validatedTs(c),
-        hasAgentHints,
-        keywordCount,
-        descWordCount,
-      ];
-    };
-    for (const arr of byCat.values()) {
-      arr.sort((a, b) => {
+    const scoreOf = (c: ManifestComponent): number[] => [
+      levelWeight(c.validation?.level),
+      c.validation?.evidence ? 1 : 0,
+      validatedTs(c),
+    ];
+    return components
+      .filter((c) => c.featured)
+      .sort((a, b) => {
         const sa = scoreOf(a);
         const sb = scoreOf(b);
         for (let i = 0; i < sa.length; i++) {
           if (sb[i] !== sa[i]) return sb[i] - sa[i];
         }
-        // Final tiebreak: hash-of-id (deterministic, alphabet-uncorrelated).
         return idHash(a) - idHash(b);
       });
-    }
-    return categoryCounts
-      .map(([cat]) => byCat.get(cat)?.[0])
-      .filter((c): c is ManifestComponent => Boolean(c));
-  }, [components, categoryCounts]);
+  }, [components]);
 
   const filtered = useMemo(() => {
     let list = components;
@@ -458,9 +433,20 @@ export function Home() {
 
   return (
     <>
+      <div
+        style={
+          explorationActive
+            ? undefined
+            : {
+                background:
+                  "radial-gradient(ellipse 1100px 480px at 50% -15%, var(--accent-glow), transparent 70%), " +
+                  "linear-gradient(180deg, var(--accent-wash, rgba(124, 58, 237, 0.05)) 0%, transparent 65%)",
+              }
+        }
+      >
       <section
         style={{
-          padding: explorationActive ? "12px 24px 8px" : "36px 24px 28px",
+          padding: explorationActive ? "12px 24px 8px" : "48px 24px 32px",
           maxWidth: 1200,
           margin: "0 auto",
         }}
@@ -569,18 +555,18 @@ export function Home() {
             </p>
             <h1
               style={{
-                fontSize: "clamp(1.85rem, 4.5vw, 2.5rem)",
+                fontSize: "clamp(2.1rem, 5.2vw, 3.25rem)",
                 fontWeight: 700,
                 letterSpacing: "-0.03em",
-                margin: "0 0 12px",
-                lineHeight: 1.15,
-                maxWidth: 720,
+                margin: "0 0 14px",
+                lineHeight: 1.12,
+                maxWidth: 920,
               }}
             >
               Find the right{" "}
               <span style={{ color: "var(--accent-bright)" }}>component templates</span> for your pipelines
             </h1>
-            <p style={{ fontSize: 16, color: "var(--text-muted)", maxWidth: 720, margin: "0 0 20px" }}>
+            <p style={{ fontSize: 17, color: "var(--text-muted)", maxWidth: 680, margin: "0 0 24px" }}>
               Browse community-maintained component templates — each folder includes YAML and a{" "}
               <span className="mono">schema.json</span> you copy straight into your Dagster project.
             </p>
@@ -660,9 +646,78 @@ export function Home() {
                 Search
               </button>
             </form>
+
+            <div
+              style={{
+                marginTop: 28,
+                maxWidth: 780,
+                padding: "22px 24px",
+                borderRadius: 16,
+                border: "1px solid var(--accent-glow)",
+                background:
+                  "linear-gradient(135deg, rgba(124, 58, 237, 0.10) 0%, rgba(34, 211, 238, 0.05) 100%)",
+                boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <Sparkles size={18} style={{ color: "var(--accent-bright)" }} aria-hidden />
+                <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.01em" }}>
+                  Not sure where to start?
+                </span>
+              </div>
+              <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
+                Tell the DCC Agent what you want to build — it'll recommend real components, generate
+                install commands and a <span className="mono">defs.yaml</span>, even scaffold the project.
+              </p>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!dccIntent.trim()) return;
+                  requestOpenDccWidget(dccIntent.trim());
+                }}
+                style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
+              >
+                <input
+                  value={dccIntent}
+                  onChange={(e) => setDccIntent(e.target.value)}
+                  placeholder="e.g. Sync Salesforce contacts into BigQuery every 6 hours…"
+                  aria-label="Describe what you want to build"
+                  style={{
+                    flex: "1 1 320px",
+                    minWidth: 0,
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    border: "1px solid var(--border)",
+                    background: "var(--bg-card)",
+                    color: "var(--text)",
+                    fontSize: 15,
+                  }}
+                />
+                <button
+                  type="submit"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "12px 20px",
+                    borderRadius: 12,
+                    border: "none",
+                    background: "linear-gradient(135deg, var(--accent) 0%, #5b21b6 100%)",
+                    color: "#fff",
+                    fontWeight: 600,
+                    fontSize: 15,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <Sparkles size={16} aria-hidden />
+                  Ask DCC
+                </button>
+              </form>
+            </div>
           </>
         )}
       </section>
+      </div>
 
       {explorationActive ? (
         <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 4px" }}>
@@ -691,7 +746,10 @@ export function Home() {
 
       {!explorationActive ? (
         <>
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 32px" }}>
+      {/* "At a glance" + Trust signals as one visually distinct shelf -- full-bleed band so
+          the page reads as sections, not one undifferentiated scroll. */}
+      <div style={{ background: "var(--bg-elevated)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px" }}>
         <h2
           style={{
             fontSize: 13,
@@ -779,6 +837,7 @@ export function Home() {
           </p>
         )}
       </section>
+      </div>
 
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 32px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
@@ -821,7 +880,11 @@ export function Home() {
         </section>
       )}
 
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 48px" }}>
+      {/* "Browse by use case" + "Featured" as a second distinct band, with a soft purple
+          wash echoing the hero -- the featured picks are the page's other real highlight,
+          so they get a bit of the same visual treatment instead of sitting flat. */}
+      <div style={{ background: "linear-gradient(180deg, rgba(124, 58, 237, 0.04) 0%, rgba(124, 58, 237, 0.07) 100%)", borderTop: "1px solid var(--border)" }}>
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "40px 24px 0" }}>
         <h2 style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)", margin: "0 0 8px" }}>
           Browse by use case
         </h2>
@@ -856,11 +919,11 @@ export function Home() {
       {total > 0 && (
         <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 48px" }}>
           <h2 style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)", margin: "0 0 8px" }}>
-            Spotlight
+            Featured
           </h2>
           <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 20px", maxWidth: 640 }}>
-            One sample component from each of the {SPOTLIGHT_COUNT} biggest categories (of {catCount} total)—browse
-            Categories above for the rest, or search / Browse all below.
+            Maintainer picks — the components we'd point a new user at first, out of {catalogTotal} total.
+            Browse Categories above for everything else, or search / Browse all below.
           </p>
           <div
             style={{
@@ -907,6 +970,8 @@ export function Home() {
           </div>
         </section>
       )}
+      <div style={{ height: 48 }} />
+      </div>
     </>
   ) : null}
     </>
