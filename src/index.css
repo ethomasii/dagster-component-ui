@@ -303,6 +303,37 @@ dd {
   display: none;
 }
 
+/* Editorial accordion treatment (not a "form control" look): a soft row highlight on hover,
+   and the revealed body fades + slides in on each open -- `[open]` re-matching on every
+   toggle (not just mount) is what makes the animation replay every time, not only once. */
+.examples-accordion-item summary:hover {
+  background: var(--bg-elevated);
+}
+.examples-accordion-item > .examples-accordion-body {
+  opacity: 0;
+}
+.examples-accordion-item[open] > .examples-accordion-body {
+  animation: examples-accordion-reveal 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes examples-accordion-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .examples-accordion-item > .examples-accordion-body {
+    opacity: 1;
+  }
+  .examples-accordion-item[open] > .examples-accordion-body {
+    animation: none;
+  }
+}
+
 /* In-app README / markdown viewer */
 .doc-viewer-markdown {
   max-width: 100%;

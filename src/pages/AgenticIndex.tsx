@@ -7,6 +7,12 @@ import { ComponentCard } from "../components/ComponentCard";
 import { AGENTIC_GROUPS, ALL_GROUPED_IDS } from "../data/agenticGroups";
 import type { ManifestComponent } from "../types";
 
+/** One accent per group section, cycled by index -- gives each of the 7 groups a distinct,
+ *  at-a-glance identity (dot + a faint tinted card wash) instead of 7 visually identical
+ *  stacked blocks. Picked to read clearly in both themes, not tied to any one group's
+ *  "meaning" (there's no natural color taxonomy for pipelines vs. agents vs. tool servers). */
+const GROUP_ACCENTS = ["#8b5cf6", "#22d3ee", "#34d399", "#fbbf24", "#f472b6", "#60a5fa", "#fb923c"];
+
 /**
  * `/agentic` — every component tagged `agentic` in the manifest, grouped into named
  * sub-categories (Pipelines, Agents, MCP tool servers, Approval & review, Memory &
@@ -174,26 +180,39 @@ export function AgenticIndex() {
         Showing {visibleCount} of {agentic.length}
       </p>
 
-      {visibleSections.map((s) => (
-        <section key={s.id} style={{ marginBottom: 40 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", margin: 0 }}>
-              {s.label}
-            </h2>
-            <span style={{ fontSize: 13, color: "var(--text-dim)", fontVariantNumeric: "tabular-nums" }}>
-              {s.items.length}
-            </span>
-          </div>
-          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 16px", maxWidth: 760, lineHeight: 1.5 }}>
-            {s.description}
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
-            {s.items.map((c) => (
-              <ComponentCard key={componentId(c)} c={c} />
-            ))}
-          </div>
-        </section>
-      ))}
+      {visibleSections.map((s, i) => {
+        const accent = GROUP_ACCENTS[i % GROUP_ACCENTS.length];
+        return (
+          <section
+            key={s.id}
+            style={{
+              marginBottom: 28,
+              padding: "26px 28px",
+              borderRadius: 20,
+              border: "1px solid var(--border)",
+              background: `linear-gradient(165deg, ${accent}14 0%, var(--bg-card) 38%)`,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
+              <span style={{ width: 9, height: 9, borderRadius: 999, background: accent, flexShrink: 0 }} aria-hidden />
+              <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.01em", margin: 0 }}>
+                {s.label}
+              </h2>
+              <span style={{ fontSize: 13, color: "var(--text-dim)", fontVariantNumeric: "tabular-nums" }}>
+                {s.items.length}
+              </span>
+            </div>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 18px", maxWidth: 760, lineHeight: 1.5 }}>
+              {s.description}
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+              {s.items.map((c) => (
+                <ComponentCard key={componentId(c)} c={c} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
       {visibleSections.length === 0 ? (
         <p style={{ color: "var(--text-muted)", marginTop: 24 }}>
           No components match the current filter. Clear filters to see all {agentic.length}.

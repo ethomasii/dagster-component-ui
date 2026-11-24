@@ -229,63 +229,103 @@ export function ExamplesIndex() {
 
       {preamble ? <ExamplesMarkdown className="doc-viewer-markdown examples-markdown">{preamble}</ExamplesMarkdown> : null}
 
-      {sections.map((s) => {
-        const open = searching || openSlugs.has(s.slug);
-        return (
-          <details
-            key={s.slug}
-            open={open}
-            onToggle={(e) => {
-              // `searching` forces every section open regardless of click state, so ignore
-              // native toggle events while it's active (a click would otherwise be synced to
-              // closed for a moment before `open`'s `searching ||` forces it back open).
-              if (!searching) syncSection(s.slug, e.currentTarget.open);
-            }}
-            style={{
-              marginBottom: 10,
-              borderRadius: 12,
-              border: "1px solid var(--border)",
-              background: "var(--bg-card)",
-              overflow: "hidden",
-            }}
-          >
-            <summary
+      <div
+        style={{
+          borderRadius: 20,
+          border: "1px solid var(--border)",
+          background: "var(--bg-card)",
+          overflow: "hidden",
+        }}
+      >
+        {sections.map((s, i) => {
+          const open = searching || openSlugs.has(s.slug);
+          return (
+            <details
+              key={s.slug}
+              id={s.slug}
+              className="examples-accordion-item"
+              open={open}
+              onToggle={(e) => {
+                // `searching` forces every section open regardless of click state, so ignore
+                // native toggle events while it's active (a click would otherwise be synced to
+                // closed for a moment before `open`'s `searching ||` forces it back open).
+                if (!searching) syncSection(s.slug, e.currentTarget.open);
+              }}
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "14px 18px",
-                cursor: searching ? "default" : "pointer",
-                fontSize: 15,
-                fontWeight: 700,
-                letterSpacing: "-0.01em",
-                listStyle: "none",
-                userSelect: "none",
+                borderTop: i === 0 ? "none" : "1px solid var(--border)",
               }}
             >
-              <ChevronRight
-                size={16}
+              <summary
                 style={{
-                  color: "var(--text-dim)",
-                  flexShrink: 0,
-                  transition: "transform 120ms ease",
-                  transform: open ? "rotate(90deg)" : "rotate(0deg)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  padding: "20px 26px",
+                  cursor: searching ? "default" : "pointer",
+                  listStyle: "none",
+                  userSelect: "none",
                 }}
-                aria-hidden
-              />
-              <span style={{ flex: 1, minWidth: 0 }}>{s.heading}</span>
-              {s.rowCount > 0 ? (
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", fontVariantNumeric: "tabular-nums" }}>
-                  {s.rowCount}
+              >
+                <span
+                  className="examples-accordion-chevron"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    background: open ? "var(--accent-glow)" : "transparent",
+                    flexShrink: 0,
+                    transition: "background 160ms ease",
+                  }}
+                >
+                  <ChevronRight
+                    size={15}
+                    style={{
+                      color: open ? "var(--accent-bright)" : "var(--text-dim)",
+                      transition: "transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), color 160ms ease",
+                      transform: open ? "rotate(90deg)" : "rotate(0deg)",
+                    }}
+                    aria-hidden
+                  />
                 </span>
-              ) : null}
-            </summary>
-            <div style={{ padding: "0 18px 18px" }}>
-              <ExamplesMarkdown className="doc-viewer-markdown examples-markdown">{s.text}</ExamplesMarkdown>
-            </div>
-          </details>
-        );
-      })}
+                <span
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    fontSize: 17,
+                    fontWeight: 700,
+                    letterSpacing: "-0.015em",
+                    color: open ? "var(--accent-bright)" : "var(--text)",
+                    transition: "color 160ms ease",
+                  }}
+                >
+                  {s.heading}
+                </span>
+                {s.rowCount > 0 ? (
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: "var(--text-dim)",
+                      fontVariantNumeric: "tabular-nums",
+                      padding: "3px 10px",
+                      borderRadius: 999,
+                      background: "var(--bg-elevated)",
+                    }}
+                  >
+                    {s.rowCount}
+                  </span>
+                ) : null}
+              </summary>
+              <div className="examples-accordion-body" style={{ padding: "0 26px 28px 68px" }}>
+                <ExamplesMarkdown className="doc-viewer-markdown examples-markdown">{s.body}</ExamplesMarkdown>
+              </div>
+            </details>
+          );
+        })}
+      </div>
 
       {readme != null && linkedReadme != null && searching && sections.length === 0 ? (
         <div className="callout-help" style={{ marginTop: 8 }}>

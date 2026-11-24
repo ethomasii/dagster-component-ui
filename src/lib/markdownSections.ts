@@ -10,6 +10,9 @@ export type MarkdownSection = {
   slug: string;
   /** Full section text including the `## heading` line — fed straight into ReactMarkdown. */
   text: string;
+  /** `text` with the `## heading` line itself removed — for callers that render the heading
+   *  separately (e.g. as a styled `<summary>`) and would otherwise show it twice. */
+  body: string;
   /** Rough count of markdown table data rows in this section (for the summary badge). */
   rowCount: number;
 };
@@ -69,7 +72,8 @@ export function splitIntoH2Sections(markdown: string): { preamble: string; secti
       const n = seen.get(slug) ?? 0;
       seen.set(slug, n + 1);
       if (n > 0) slug = `${slug}-${n}`;
-      return { heading, slug, text, rowCount: countTableRows(text) };
+      const body = text.split("\n").slice(1).join("\n").replace(/^\n+/, "");
+      return { heading, slug, text, body, rowCount: countTableRows(text) };
     });
 
   return { preamble, sections };

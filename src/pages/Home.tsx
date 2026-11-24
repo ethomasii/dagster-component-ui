@@ -19,7 +19,7 @@ import {
 import { CategoryBrowseDropdown } from "../components/CategoryBrowseDropdown";
 import { countExampleIndexEntries } from "../lib/examplesSearch";
 import { requestOpenDccWidget } from "../lib/openDccWidget";
-import { Sparkles } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
 import { fetchExamplesIndexReadmeCached } from "../lib/loadCommunityExamples";
 
 const PAGE_SIZE = 48;
@@ -605,50 +605,27 @@ export function Home() {
                   {label}
                 </button>
               ))}
-            </div>
-
-            <form onSubmit={onSearchSubmit} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <div className="hero-search-field">
-                <span style={{ color: "var(--text-dim)", fontSize: 18 }} aria-hidden>
-                  ⌕
-                </span>
-                <input
-                  value={localQ}
-                  onChange={(e) => setLocalQ(e.target.value)}
-                  placeholder="Search by name, tag, or integration…"
-                  style={{
-                    flex: 1,
-                    border: "none",
-                    background: "transparent",
-                    color: "var(--text)",
-                    fontSize: 15,
-                  }}
-                  aria-label="Search components"
-                />
-                <button
-                  type="button"
-                  onClick={() => openSearchPalette()}
-                  className="kbd"
-                  title="Open quick search"
-                >
-                  ⌘K
-                </button>
-              </div>
               <button
-                type="submit"
+                type="button"
+                onClick={() => openSearchPalette()}
                 style={{
-                  padding: "12px 22px",
-                  borderRadius: 12,
-                  border: "none",
-                  background: "#fff",
-                  color: "#5b21b6",
-                  fontWeight: 700,
-                  fontSize: 15,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 12px",
+                  borderRadius: 999,
+                  border: "1px solid rgba(255,255,255,0.3)",
+                  background: "transparent",
+                  color: "rgba(255,255,255,0.85)",
+                  fontSize: 13,
+                  fontWeight: 500,
                 }}
               >
-                Search
+                <Search size={13} aria-hidden />
+                Search the catalog
+                <span className="kbd">⌘K</span>
               </button>
-            </form>
+            </div>
 
             <div
               style={{
