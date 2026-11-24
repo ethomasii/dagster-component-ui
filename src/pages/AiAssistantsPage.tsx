@@ -103,12 +103,7 @@ Generate a minimal \`example.yaml\` for dev only. Use only attribute keys from t
   return (
     <>
       <PageHeroBand>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 24px 32px" }}>
-          <p style={{ margin: "0 0 16px" }}>
-            <Link to="/" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
-              ← Registry
-            </Link>
-          </p>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 32px" }}>
           <PageEyebrow light>AI assistants</PageEyebrow>
           <h1
             style={{

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { Rocket } from "lucide-react";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
 import {
@@ -49,13 +48,7 @@ export function DeployDagsterPlusPage() {
   return (
     <>
       <PageHeroBand>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 24px 36px" }}>
-          <p style={{ margin: "0 0 16px" }}>
-            <Link to="/" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
-              ← Registry
-            </Link>
-          </p>
-
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 36px" }}>
           <PageEyebrow light>Dagster+</PageEyebrow>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>

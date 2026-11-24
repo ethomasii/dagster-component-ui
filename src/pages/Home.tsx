@@ -434,16 +434,12 @@ export function Home() {
   return (
     <>
       <div
-        style={
-          explorationActive
-            ? undefined
-            : {
-                background:
-                  "radial-gradient(ellipse 1400px 700px at 15% -20%, rgba(139, 92, 246, 0.55), transparent 60%), " +
-                  "linear-gradient(135deg, var(--accent) 0%, #5b21b6 45%, #3b0764 100%)",
-                color: "#fff",
-              }
-        }
+        style={{
+          background:
+            "radial-gradient(ellipse 1400px 700px at 15% -20%, rgba(139, 92, 246, 0.55), transparent 60%), " +
+            "linear-gradient(135deg, var(--accent) 0%, #5b21b6 45%, #3b0764 100%)",
+          color: "#fff",
+        }}
       >
       <section
         style={{
@@ -472,14 +468,14 @@ export function Home() {
                     fontWeight: 700,
                     letterSpacing: "0.12em",
                     textTransform: "uppercase",
-                    color: "var(--cyan)",
+                    color: "#67e8f9",
                   }}
                 >
                   Template catalog
                 </p>
-                <p style={{ margin: "4px 0 0", fontSize: 14, fontWeight: 650, color: "var(--text)", lineHeight: 1.3 }}>
+                <p style={{ margin: "4px 0 0", fontSize: 14, fontWeight: 650, color: "#fff", lineHeight: 1.3 }}>
                   <strong>{catalogTotal || "—"}</strong> templates
-                  <span style={{ color: "var(--text-dim)", fontWeight: 500 }}>
+                  <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: 500 }}>
                     {" "}
                     · {catCount} categories · {integrationBrands ?? "—"} brands
                   </span>
@@ -487,7 +483,7 @@ export function Home() {
               </div>
               <Link
                 to="/get-started"
-                style={{ color: "var(--cyan)", fontWeight: 600, fontSize: 12, textDecoration: "none", flexShrink: 0 }}
+                style={{ color: "#67e8f9", fontWeight: 600, fontSize: 12, textDecoration: "none", flexShrink: 0 }}
               >
                 Get started →
               </Link>
@@ -566,7 +562,7 @@ export function Home() {
               }}
             >
               Find the right{" "}
-              <span style={{ color: "#67e8f9" }}>component templates</span> for your pipelines
+              <span style={{ color: "#67e8f9" }}>component templates</span> for your Dagster project
             </h1>
             <p style={{ fontSize: 17, color: "rgba(255,255,255,0.82)", maxWidth: 680, margin: "0 0 24px" }}>
               Browse community-maintained component templates — each folder includes YAML and a{" "}
@@ -1061,7 +1057,7 @@ function TrustSignalsStrip({
           </span>
         </div>
       ) : (
-        <p style={{ margin: "0 0 6px", fontSize: 10, color: "var(--text-dim)", lineHeight: 1.35 }} className="mono">
+        <p style={{ margin: "0 0 6px", fontSize: 10, color: "rgba(255,255,255,0.65)", lineHeight: 1.35 }} className="mono">
           Trust (manifest): {formatTrustHistogramSummary(total, h)}
         </p>
       )}
