@@ -232,9 +232,8 @@ export function SearchPalette({
           width: "100%",
           maxWidth: 560,
           borderRadius: 14,
-          border: "1px solid var(--border-strong)",
           background: "var(--bg-elevated)",
-          boxShadow: "0 24px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(139, 92, 246, 0.25)",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
           overflow: "hidden",
         }}
       >
@@ -253,6 +252,7 @@ export function SearchPalette({
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Search templates, vendors (Snowflake, Db2, …), examples…"
+                  className="search-palette-input"
                   style={{
                     width: "100%",
                     border: "none",

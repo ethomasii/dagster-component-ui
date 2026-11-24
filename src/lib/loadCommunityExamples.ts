@@ -63,7 +63,7 @@ export function markdownFirstH1(text: string): string | null {
 
 /** Remove leading `# Title` block so detail page can render our own headline. */
 export function stripMarkdownFirstH1(text: string): string {
-  return text.replace(/^#\s+.+\r?\n+/, "").trimStart();
+  return text.replace(/^\s*#\s+.+\r?\n+/, "").trimStart();
 }
 
 // ─────────────────────────── H1 title cache ────────────────────────────

@@ -303,6 +303,12 @@ dd {
   display: none;
 }
 
+/* Search palette input sits on the purple hero band; the default browser
+   placeholder gray is unreadable there. */
+.search-palette-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
 /* Editorial accordion treatment (not a "form control" look): a soft row highlight on hover,
    and the revealed body fades + slides in on each open -- `[open]` re-matching on every
    toggle (not just mount) is what makes the animation replay every time, not only once. */

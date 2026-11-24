@@ -255,12 +255,15 @@ export function ComponentDetail() {
   }
 
   return (
-    <article style={{ maxWidth: 900, margin: "0 auto", padding: "24px 24px 80px" }}>
+    <>
       {loading && !manifest ? (
-        <p style={{ color: "var(--text-muted)" }}>Loading…</p>
+        <article style={{ maxWidth: 900, margin: "0 auto", padding: "24px 24px 80px" }}>
+          <p style={{ color: "var(--text-muted)" }}>Loading…</p>
+        </article>
       ) : (
         <>
-          <PageHeroBand style={{ borderRadius: 20, padding: "24px 24px 28px", marginBottom: 28 }}>
+          <PageHeroBand>
+          <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 24px 32px" }}>
           <nav
             style={{
               fontSize: 13,
@@ -433,8 +436,10 @@ export function ComponentDetail() {
               </div>
             </div>
           </header>
+          </div>
           </PageHeroBand>
 
+          <article style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 0" }}>
           <div
             style={{
               display: "grid",
@@ -1275,8 +1280,6 @@ export function ComponentDetail() {
           {!schema && !schemaError && !loading && templateUrls.schema_url && (
             <p style={{ color: "var(--text-muted)" }}>Loading template metadata…</p>
           )}
-        </>
-      )}
 
       <section
         style={{
@@ -1360,7 +1363,10 @@ export function ComponentDetail() {
           kind={docViewer.kind}
         />
       )}
-    </article>
+          </article>
+        </>
+      )}
+    </>
   );
 }
 

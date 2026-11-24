@@ -5,6 +5,8 @@ import { useCatalog } from "../context/CatalogContext";
 import { categoryLabel, categoryDescription } from "../lib/format";
 import { componentId } from "../lib/componentId";
 import { ComponentCard } from "../components/ComponentCard";
+import { PageHeroBand } from "../components/PageHeroBand";
+import { PageEyebrow } from "../components/PageEyebrow";
 import type { ManifestComponent } from "../types";
 
 /**
@@ -110,44 +112,57 @@ export function CategoryDetail() {
 
   if (inCategory.length === 0) {
     return (
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 24px 64px" }}>
-        <p style={{ margin: "0 0 8px" }}>
-          <Link to="/categories" style={{ fontSize: 14, color: "var(--cyan)", textDecoration: "none" }}>
-            ← Categories
-          </Link>
-        </p>
-        <h1 style={{ fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, margin: "12px 0 8px" }}>
-          {categoryLabel(slug)}
-        </h1>
-        <p style={{ color: "var(--text-muted)" }}>
-          No components in this category — either the slug isn't a real category, or nothing has been tagged with it yet.
-        </p>
-      </div>
+      <>
+        <PageHeroBand>
+          <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
+            <p style={{ margin: "0 0 16px" }}>
+              <Link to="/categories" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
+                ← Categories
+              </Link>
+            </p>
+            <PageEyebrow light>Category</PageEyebrow>
+            <h1 style={{ fontSize: "clamp(1.75rem, 4vw, 2.25rem)", fontWeight: 700, margin: 0, color: "#fff" }}>
+              {categoryLabel(slug)}
+            </h1>
+          </div>
+        </PageHeroBand>
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 64px" }}>
+          <p style={{ color: "var(--text-muted)" }}>
+            No components in this category — either the slug isn't a real category, or nothing has been tagged with it yet.
+          </p>
+        </div>
+      </>
     );
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <p style={{ margin: "0 0 8px" }}>
-        <Link to="/categories" style={{ fontSize: 14, color: "var(--cyan)", textDecoration: "none" }}>
-          ← Categories
-        </Link>
-      </p>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", margin: "12px 0 8px" }}>
-        <h1 style={{ fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, letterSpacing: "-0.02em", margin: 0, lineHeight: 1.2 }}>
-          {categoryLabel(slug)}
-        </h1>
-        <span style={{ fontSize: 14, color: "var(--text-dim)", fontVariantNumeric: "tabular-nums" }}>
-          {inCategory.length} component{inCategory.length === 1 ? "" : "s"}
-        </span>
-      </div>
-      <p style={{ fontSize: 15, color: "var(--text-muted)", margin: "0 0 12px", lineHeight: 1.55 }}>
-        {categoryDescription(slug)}
-      </p>
-      <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 24px", lineHeight: 1.5 }}>
-        Filter below by vendor, validation tier, or free text — or open a specific component for its full schema and walkthrough. Manifest key: <code className="mono" style={{ fontSize: 12 }}>category: {slug}</code>.
-      </p>
+    <>
+      <PageHeroBand>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 24px 32px" }}>
+          <p style={{ margin: "0 0 16px" }}>
+            <Link to="/categories" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
+              ← Categories
+            </Link>
+          </p>
+          <PageEyebrow light>Category</PageEyebrow>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", margin: "0 0 12px" }}>
+            <h1 style={{ fontSize: "clamp(1.75rem, 4vw, 2.25rem)", fontWeight: 700, letterSpacing: "-0.02em", margin: 0, lineHeight: 1.2, color: "#fff" }}>
+              {categoryLabel(slug)}
+            </h1>
+            <span style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", fontVariantNumeric: "tabular-nums" }}>
+              {inCategory.length} component{inCategory.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "0 0 12px", lineHeight: 1.55 }}>
+            {categoryDescription(slug)}
+          </p>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", margin: 0, lineHeight: 1.5 }}>
+            Filter below by vendor, validation tier, or free text — or open a specific component for its full schema and walkthrough. Manifest key: <code className="mono" style={{ fontSize: 12, background: "rgba(255,255,255,0.14)", color: "#fff" }}>category: {slug}</code>.
+          </p>
+        </div>
+      </PageHeroBand>
 
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
       <form
         onSubmit={(e) => e.preventDefault()}
         style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 20 }}
@@ -222,7 +237,8 @@ export function CategoryDetail() {
           No components match the current filter. Clear filters to see all {inCategory.length}.
         </p>
       ) : null}
-    </div>
+      </div>
+    </>
   );
 }
 

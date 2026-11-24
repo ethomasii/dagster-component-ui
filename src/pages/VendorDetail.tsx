@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
+import { PageHeroBand } from "../components/PageHeroBand";
 import { useCatalog } from "../context/CatalogContext";
 import {
   fetchVendorMarkdown,
@@ -64,36 +65,42 @@ export function VendorDetail() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <p style={{ margin: "0 0 8px" }}>
-        <Link to="/vendors" style={{ fontSize: 14, color: "var(--cyan)", textDecoration: "none" }}>
-          ← Vendors index
-        </Link>
-      </p>
+    <>
+      <PageHeroBand>
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
+          <p style={{ margin: "0 0 16px" }}>
+            <Link to="/vendors" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
+              ← Vendors index
+            </Link>
+          </p>
 
-      <h1
-        style={{
-          fontSize: "clamp(1.5rem, 3.5vw, 2rem)",
-          fontWeight: 700,
-          letterSpacing: "-0.02em",
-          margin: "12px 0 8px",
-          lineHeight: 1.2,
-        }}
-      >
-        {loading ? slug : displayTitle}
-      </h1>
-      <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px", lineHeight: 1.45 }}>
-        Loads&nbsp;
-        <code className="mono" style={{ fontSize: 12 }}>
-          vendors/{slug}.md
-        </code>
-        &nbsp;first, then&nbsp;
-        <code className="mono" style={{ fontSize: 12 }}>
-          vendors/{slug}/README.md
-        </code>
-        &nbsp;from the templates repo.
-      </p>
+          <h1
+            style={{
+              fontSize: "clamp(1.5rem, 3.5vw, 2rem)",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              margin: "0 0 8px",
+              lineHeight: 1.2,
+              color: "#fff",
+            }}
+          >
+            {loading ? slug : displayTitle}
+          </h1>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", margin: 0, lineHeight: 1.45 }}>
+            Loads&nbsp;
+            <code className="mono" style={{ fontSize: 12, background: "rgba(255,255,255,0.14)", color: "#fff" }}>
+              vendors/{slug}.md
+            </code>
+            &nbsp;first, then&nbsp;
+            <code className="mono" style={{ fontSize: 12, background: "rgba(255,255,255,0.14)", color: "#fff" }}>
+              vendors/{slug}/README.md
+            </code>
+            &nbsp;from the templates repo.
+          </p>
+        </div>
+      </PageHeroBand>
 
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 64px" }}>
       {resolvedUrl ? (
         <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 16px" }}>
           <a href={resolvedUrl} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
@@ -115,6 +122,7 @@ export function VendorDetail() {
         </div>
       )}
       {linkedMd && linkedMd.length > 0 && !err && <ExamplesMarkdown>{linkedMd}</ExamplesMarkdown>}
-    </div>
+      </div>
+    </>
   );
 }

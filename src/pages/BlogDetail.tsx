@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
+import { PageHeroBand } from "../components/PageHeroBand";
 import {
   COMMUNITY_BLOG_RAW_BASE,
   COMMUNITY_BLOG_TREE_WEB,
@@ -11,6 +12,7 @@ import {
   stripFrontmatter,
   type BlogPost,
 } from "../lib/loadBlogPosts";
+import { markdownFirstH1, stripMarkdownFirstH1 } from "../lib/loadCommunityExamples";
 
 export function BlogDetail() {
   const { slug: rawSlug } = useParams<{ slug: string }>();
@@ -42,33 +44,73 @@ export function BlogDetail() {
     };
   }, [slug]);
 
-  const body = useMemo(() => (md ? stripFrontmatter(md) : ""), [md]);
+  const strippedFrontmatter = useMemo(() => (md ? stripFrontmatter(md) : ""), [md]);
+  const titleFromDoc = useMemo(
+    () => (strippedFrontmatter ? markdownFirstH1(strippedFrontmatter) : null),
+    [strippedFrontmatter],
+  );
+  const displayTitle = titleFromDoc ?? meta?.title ?? slug;
+  const body = useMemo(
+    () => (titleFromDoc ? stripMarkdownFirstH1(strippedFrontmatter) : strippedFrontmatter),
+    [strippedFrontmatter, titleFromDoc],
+  );
 
   return (
-    <main
-      style={{
-        maxWidth: 780,
-        margin: "0 auto",
-        padding: "32px 24px 96px",
-      }}
-    >
-      <div style={{ marginBottom: 20 }}>
-        <Link
-          to="/blog"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            color: "var(--text-muted)",
-            textDecoration: "none",
-            fontSize: 14,
-          }}
-        >
-          <ArrowLeft size={14} strokeWidth={2} />
-          All posts
-        </Link>
-      </div>
+    <>
+      <PageHeroBand>
+        <div style={{ maxWidth: 780, margin: "0 auto", padding: "28px 24px 32px" }}>
+          <div style={{ marginBottom: 16 }}>
+            <Link
+              to="/blog"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                color: "#67e8f9",
+                textDecoration: "none",
+                fontSize: 14,
+              }}
+            >
+              <ArrowLeft size={14} strokeWidth={2} />
+              All posts
+            </Link>
+          </div>
+          {md !== null && (
+            <>
+              <h1
+                style={{
+                  fontSize: "clamp(1.75rem, 4vw, 2.25rem)",
+                  fontWeight: 700,
+                  letterSpacing: "-0.03em",
+                  margin: "0 0 10px",
+                  lineHeight: 1.2,
+                  color: "#fff",
+                }}
+              >
+                {displayTitle}
+              </h1>
+              {meta && (
+                <p style={{ color: "rgba(255,255,255,0.75)", margin: 0, fontSize: 14 }}>
+                  {formatBlogDate(meta.date)} · {meta.author}
+                </p>
+              )}
+            </>
+          )}
+          {md === null && !err && (
+            <h1 style={{ fontSize: "clamp(1.75rem, 4vw, 2.25rem)", fontWeight: 700, margin: 0, color: "#fff" }}>
+              Loading…
+            </h1>
+          )}
+        </div>
+      </PageHeroBand>
 
+      <main
+        style={{
+          maxWidth: 780,
+          margin: "0 auto",
+          padding: "28px 24px 96px",
+        }}
+      >
       {err && (
         <div
           style={{
@@ -110,23 +152,8 @@ export function BlogDetail() {
         </div>
       )}
 
-      {!err && md === null && (
-        <div style={{ color: "var(--text-muted)" }}>Loading…</div>
-      )}
-
       {md !== null && (
         <>
-          {meta && (
-            <div
-              style={{
-                color: "var(--text-muted)",
-                fontSize: 14,
-                marginBottom: 24,
-              }}
-            >
-              {formatBlogDate(meta.date)} · {meta.author}
-            </div>
-          )}
           <article className="doc-viewer-markdown" style={{ fontSize: 16 }}>
             <ExamplesMarkdown className="doc-viewer-markdown">
               {body}
@@ -152,6 +179,7 @@ export function BlogDetail() {
           </div>
         </>
       )}
-    </main>
+      </main>
+    </>
   );
 }

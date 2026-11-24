@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
-import { CLIS, findCli, CLI_CATEGORY_COLORS } from "../data/clis";
+import { PageHeroBand } from "../components/PageHeroBand";
+import { CLIS, findCli } from "../data/clis";
 
 /**
  * `/cli/:id` — per-CLI detail page. Fetches the dedicated README from
@@ -46,63 +47,74 @@ export function CliDetail() {
 
   if (!cli) {
     return (
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 24px 64px" }}>
-        <p style={{ margin: "0 0 8px" }}>
-          <Link to="/cli" style={{ fontSize: 14, color: "var(--cyan)", textDecoration: "none" }}>
-            ← CLIs
-          </Link>
-        </p>
-        <h1 style={{ fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, margin: "12px 0 8px" }}>
-          Not found: {id}
-        </h1>
-        <p style={{ color: "var(--text-muted)" }}>
-          Available: {CLIS.map((c) => c.id).join(", ")}
-        </p>
-      </div>
+      <>
+        <PageHeroBand>
+          <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
+            <p style={{ margin: "0 0 16px" }}>
+              <Link to="/cli" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
+                ← CLIs
+              </Link>
+            </p>
+            <h1 style={{ fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, margin: 0, color: "#fff" }}>
+              Not found: {id}
+            </h1>
+          </div>
+        </PageHeroBand>
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 64px" }}>
+          <p style={{ color: "var(--text-muted)" }}>
+            Available: {CLIS.map((c) => c.id).join(", ")}
+          </p>
+        </div>
+      </>
     );
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <p style={{ margin: "0 0 8px" }}>
-        <Link to="/cli" style={{ fontSize: 14, color: "var(--cyan)", textDecoration: "none" }}>
-          ← CLIs
-        </Link>
-      </p>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", margin: "12px 0 8px" }}>
-        <h1 style={{
-          fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, letterSpacing: "-0.02em",
-          margin: 0, lineHeight: 1.2, fontFamily: "var(--font-mono, monospace)",
-        }}>
-          {cli.title}
-        </h1>
-        <span style={{
-          fontSize: 11, padding: "3px 8px", borderRadius: 999,
-          background: CLI_CATEGORY_COLORS[cli.category].bg,
-          color: CLI_CATEGORY_COLORS[cli.category].fg,
-          fontWeight: 600, letterSpacing: 0.2, textTransform: "uppercase",
-        }}>
-          {cli.category}
-        </span>
-      </div>
-      <p style={{ fontSize: 15, color: "var(--text-muted)", margin: "0 0 12px", lineHeight: 1.55 }}>
-        {cli.oneLiner}
-      </p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginBottom: 24, fontSize: 13 }}>
-        <a href={cli.githubUrl} target="_blank" rel="noreferrer" style={linkStyle}>
-          Source on GitHub <ExternalLink size={12} />
-        </a>
-        <a href={cli.rawUrl} target="_blank" rel="noreferrer" style={linkStyle}>
-          Raw .py <ExternalLink size={12} />
-        </a>
-        <a href={cli.readmeUrl} target="_blank" rel="noreferrer" style={linkStyle}>
-          Raw README.md <ExternalLink size={12} />
-        </a>
-        <a href={cli.sharedReadmeUrl} target="_blank" rel="noreferrer" style={linkStyle}>
-          Shared overview README <ExternalLink size={12} />
-        </a>
-      </div>
+    <>
+      <PageHeroBand>
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
+          <p style={{ margin: "0 0 16px" }}>
+            <Link to="/cli" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
+              ← CLIs
+            </Link>
+          </p>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", margin: "0 0 8px" }}>
+            <h1 style={{
+              fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, letterSpacing: "-0.02em",
+              margin: 0, lineHeight: 1.2, fontFamily: "var(--font-mono, monospace)", color: "#fff",
+            }}>
+              {cli.title}
+            </h1>
+            <span style={{
+              fontSize: 11, padding: "3px 8px", borderRadius: 999,
+              background: "rgba(255,255,255,0.16)",
+              color: "#fff",
+              fontWeight: 600, letterSpacing: 0.2, textTransform: "uppercase",
+            }}>
+              {cli.category}
+            </span>
+          </div>
+          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "0 0 12px", lineHeight: 1.55 }}>
+            {cli.oneLiner}
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16, margin: 0, fontSize: 13 }}>
+            <a href={cli.githubUrl} target="_blank" rel="noreferrer" style={linkStyleLight}>
+              Source on GitHub <ExternalLink size={12} />
+            </a>
+            <a href={cli.rawUrl} target="_blank" rel="noreferrer" style={linkStyleLight}>
+              Raw .py <ExternalLink size={12} />
+            </a>
+            <a href={cli.readmeUrl} target="_blank" rel="noreferrer" style={linkStyleLight}>
+              Raw README.md <ExternalLink size={12} />
+            </a>
+            <a href={cli.sharedReadmeUrl} target="_blank" rel="noreferrer" style={linkStyleLight}>
+              Shared overview README <ExternalLink size={12} />
+            </a>
+          </div>
+        </div>
+      </PageHeroBand>
 
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 64px" }}>
       {loading && <p style={{ color: "var(--text-muted)" }}>Loading README …</p>}
       {error && (
         <div className="callout-help" style={{ borderLeftColor: "var(--error)" }}>
@@ -117,14 +129,15 @@ export function CliDetail() {
         </div>
       )}
       {md != null && md !== "" && <ExamplesMarkdown>{md}</ExamplesMarkdown>}
-    </div>
+      </div>
+    </>
   );
 }
 
-const linkStyle: React.CSSProperties = {
+const linkStyleLight: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 4,
-  color: "var(--cyan)",
+  color: "#67e8f9",
   textDecoration: "none",
 };

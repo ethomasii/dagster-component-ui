@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Rss } from "lucide-react";
+import { PageHeroBand } from "../components/PageHeroBand";
+import { PageEyebrow } from "../components/PageEyebrow";
 import {
   COMMUNITY_BLOG_FEED_URL,
   COMMUNITY_BLOG_TREE_WEB,
@@ -28,62 +30,68 @@ export function BlogIndex() {
   }, []);
 
   return (
-    <main
-      style={{
-        maxWidth: 780,
-        margin: "0 auto",
-        padding: "48px 24px 96px",
-      }}
-    >
-      <header style={{ marginBottom: 40 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-            marginBottom: 8,
-            flexWrap: "wrap",
-          }}
-        >
-          <h1
+    <>
+      <PageHeroBand>
+        <div style={{ maxWidth: 780, margin: "0 auto", padding: "32px 24px 36px" }}>
+          <PageEyebrow light>Blog</PageEyebrow>
+          <div
             style={{
-              fontSize: 34,
-              fontWeight: 700,
-              letterSpacing: "-0.02em",
-              margin: 0,
-            }}
-          >
-            Blog
-          </h1>
-          <a
-            href={COMMUNITY_BLOG_FEED_URL}
-            target="_blank"
-            rel="noreferrer"
-            title="Subscribe via RSS"
-            style={{
-              display: "inline-flex",
+              display: "flex",
               alignItems: "center",
-              gap: 6,
-              padding: "8px 12px",
-              borderRadius: 8,
-              border: "1px solid var(--border)",
-              color: "var(--text-muted)",
-              textDecoration: "none",
-              fontSize: 13,
-              fontWeight: 500,
+              justifyContent: "space-between",
+              gap: 16,
+              marginBottom: 12,
+              flexWrap: "wrap",
             }}
           >
-            <Rss size={14} strokeWidth={2} />
-            RSS
-          </a>
+            <h1
+              style={{
+                fontSize: 34,
+                fontWeight: 700,
+                letterSpacing: "-0.02em",
+                margin: 0,
+                color: "#fff",
+              }}
+            >
+              Blog
+            </h1>
+            <a
+              href={COMMUNITY_BLOG_FEED_URL}
+              target="_blank"
+              rel="noreferrer"
+              title="Subscribe via RSS"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 12px",
+                borderRadius: 8,
+                border: "1px solid rgba(255,255,255,0.3)",
+                background: "rgba(255,255,255,0.12)",
+                color: "#fff",
+                textDecoration: "none",
+                fontSize: 13,
+                fontWeight: 500,
+              }}
+            >
+              <Rss size={14} strokeWidth={2} />
+              RSS
+            </a>
+          </div>
+          <p style={{ color: "rgba(255,255,255,0.85)", margin: 0, fontSize: 16 }}>
+            Long-form posts from Eric Thomas on the Dagster community components
+            registry — design essays, component tours, honest retrospectives.
+          </p>
         </div>
-        <p style={{ color: "var(--text-muted)", margin: 0, fontSize: 16 }}>
-          Long-form posts from Eric Thomas on the Dagster community components
-          registry — design essays, component tours, honest retrospectives.
-        </p>
-      </header>
+      </PageHeroBand>
 
+      <main
+        style={{
+          maxWidth: 780,
+          margin: "0 auto",
+          padding: "28px 24px 96px",
+        }}
+      >
       {err && (
         <div
           style={{
@@ -184,6 +192,7 @@ export function BlogIndex() {
           ))}
         </div>
       )}
-    </main>
+      </main>
+    </>
   );
 }
