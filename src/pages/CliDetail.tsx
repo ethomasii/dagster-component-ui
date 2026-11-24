@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
-import { CLIS, findCli } from "../data/clis";
+import { CLIS, findCli, CLI_CATEGORY_COLORS } from "../data/clis";
 
 /**
  * `/cli/:id` — per-CLI detail page. Fetches the dedicated README from
@@ -78,8 +78,8 @@ export function CliDetail() {
         </h1>
         <span style={{
           fontSize: 11, padding: "3px 8px", borderRadius: 999,
-          background: cli.category === "sync" ? "rgba(59, 130, 246, 0.12)" : "rgba(20, 184, 166, 0.12)",
-          color: cli.category === "sync" ? "#3b82f6" : "var(--teal, #14b8a6)",
+          background: CLI_CATEGORY_COLORS[cli.category].bg,
+          color: CLI_CATEGORY_COLORS[cli.category].fg,
           fontWeight: 600, letterSpacing: 0.2, textTransform: "uppercase",
         }}>
           {cli.category}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Copy, Check, ExternalLink, ArrowRight } from "lucide-react";
-import { CLIS, CLI_REPO } from "../data/clis";
+import { CLIS, CLI_REPO, CLI_CATEGORY_COLORS } from "../data/clis";
 
 /**
  * `/cli` — standalone Dagster+ CLI scripts (not components, not installed
@@ -79,9 +79,12 @@ export function CliIndex() {
         gets installed into your Dagster project.
       </p>
       <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 32px", lineHeight: 1.5 }}>
-        All three scripts have been verified end-to-end against a live Dagster+ deployment. Safe to
-        hand a customer directly — no dependency on any registry component or internal tooling.
-        Click any card for the full per-script docs (fetched from the script's module docstring).
+        The four sync/pull scripts have been verified end-to-end against a live Dagster+
+        deployment; <code className="mono" style={{ fontSize: 12 }}>migrate_asset_metadata.py</code>'s
+        GraphQL and REST request shapes are confirmed against Dagster's own docs and reference
+        example, not yet run end-to-end here. Every script is safe to hand a customer directly —
+        no dependency on any registry component or internal tooling. Click any card for the full
+        per-script docs (fetched from the script's module docstring).
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -115,8 +118,8 @@ export function CliIndex() {
                   fontSize: 11,
                   padding: "3px 8px",
                   borderRadius: 999,
-                  background: cli.category === "sync" ? "rgba(59, 130, 246, 0.12)" : "rgba(20, 184, 166, 0.12)",
-                  color: cli.category === "sync" ? "#3b82f6" : "var(--teal, #14b8a6)",
+                  background: CLI_CATEGORY_COLORS[cli.category].bg,
+                  color: CLI_CATEGORY_COLORS[cli.category].fg,
                   fontWeight: 600,
                   letterSpacing: 0.2,
                   textTransform: "uppercase",

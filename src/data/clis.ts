@@ -4,14 +4,14 @@
  *  These are NOT components — no manifest entry, no `dagster-component add`
  *  path, no install into a Dagster project. Customers curl the .py, chmod,
  *  and run standalone against a Dagster+ user API token. Kept as a hardcoded
- *  const because there are three of them and they change rarely; adding a
- *  fourth = append one entry here.
+ *  const because there are five of them and they change rarely; adding
+ *  another = append one entry here.
  */
 
 export type CliScript = {
   id: string;
   title: string;
-  category: "sync" | "pull";
+  category: "sync" | "pull" | "migrate";
   oneLiner: string;
   description: string;
   usage: string;
@@ -165,7 +165,45 @@ chmod +x pull_audit_logs.py
     sharedReadmeUrl: SHARED_OVERVIEW_README,
     requires: ["Python 3.8+ (stdlib only — no external deps)", "Dagster+ user API token (org-admin scope)", "Dagster+ Pro plan"],
   },
+  {
+    id: "migrate_asset_metadata",
+    title: "migrate_asset_metadata.py",
+    category: "migrate",
+    oneLiner: "Carry an asset's materialization history/metadata over to a new key after a rename.",
+    description:
+      "Dagster has no 'rename' operation — an asset renamed in code shows up as brand new, with " +
+      "none of the old key's history. This CLI reads the SOURCE key's materialization history via " +
+      "GraphQL and reports new events under the DESTINATION key via Dagster+'s real " +
+      "`report_asset_materialization/` REST endpoint, carrying metadata, `data_version`, and " +
+      "`description` forward. Does NOT preserve original timestamps (new events land at 'now') " +
+      "and is NOT reversible — the event log is append-only. `--dry-run` (default) never writes; " +
+      "`--yes` is required to actually report events. Requires an **agent** API token, not a " +
+      "regular user/service token.",
+    usage:
+`export DAGSTER_CLOUD_API_TOKEN=agent:xxxxxx   # must be an AGENT token
+
+curl -fsSL ${RAW}/cli/migrate_asset_metadata/migrate_asset_metadata.py -o migrate_asset_metadata.py
+chmod +x migrate_asset_metadata.py
+
+# Preview (default, never writes anything):
+./migrate_asset_metadata.py migrate \\
+    --deployment-url https://acme.dagster.cloud/prod \\
+    --source-asset-key "old/asset/key" \\
+    --dest-asset-key "new/asset/key"`,
+    rawUrl: `${RAW}/cli/migrate_asset_metadata/migrate_asset_metadata.py`,
+    githubUrl: `${REPO}/blob/main/cli/migrate_asset_metadata/migrate_asset_metadata.py`,
+    readmeUrl: `${RAW}/cli/migrate_asset_metadata/README.md`,
+    sharedReadmeUrl: SHARED_OVERVIEW_README,
+    requires: ["Python 3.8+", "PyYAML (only for the manifest form of `migrate`)", "Dagster+ AGENT API token"],
+  },
 ];
+
+/** Badge colors per category — used by both /cli (index) and /cli/:id (detail). */
+export const CLI_CATEGORY_COLORS: Record<CliScript["category"], { bg: string; fg: string }> = {
+  sync: { bg: "rgba(59, 130, 246, 0.12)", fg: "#3b82f6" },
+  pull: { bg: "rgba(20, 184, 166, 0.12)", fg: "var(--teal, #14b8a6)" },
+  migrate: { bg: "rgba(168, 85, 247, 0.12)", fg: "#a855f7" },
+};
 
 export function findCli(id: string): CliScript | undefined {
   return CLIS.find((c) => c.id === id);

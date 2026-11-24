@@ -343,6 +343,20 @@ export function Layout({ children }: { children: ReactNode }) {
               Categories
             </Link>
             <Link
+              to="/agentic"
+              style={navPillStyle(loc.pathname.startsWith("/agentic"))}
+              title="Components that implement or support an agent loop — agents, agentic_pipeline, MCP tool servers, approval gates, chat-platform agent wiring"
+            >
+              Agentic
+            </Link>
+            <Link
+              to="/skills"
+              style={navPillStyle(loc.pathname.startsWith("/skills"))}
+              title="Claude Agent Skills (SKILL.md) published in this registry"
+            >
+              Skills
+            </Link>
+            <Link
               to="/cli"
               style={navPillStyle(loc.pathname.startsWith("/cli"))}
               title="Standalone Dagster+ CLI scripts — sync catalog views, sync custom metrics, pull credit usage"

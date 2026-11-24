@@ -8,6 +8,9 @@ import { VendorsIndex } from "./pages/VendorsIndex";
 import { VendorDetail } from "./pages/VendorDetail";
 import { CategoriesIndex } from "./pages/CategoriesIndex";
 import { CategoryDetail } from "./pages/CategoryDetail";
+import { AgenticIndex } from "./pages/AgenticIndex";
+import { SkillsIndex } from "./pages/SkillsIndex";
+import { SkillDetail } from "./pages/SkillDetail";
 import { CliIndex } from "./pages/CliIndex";
 import { CliDetail } from "./pages/CliDetail";
 import { ComponentDetail } from "./pages/ComponentDetail";
@@ -35,6 +38,9 @@ export default function App() {
           <Route path="/vendors/:slug" element={<VendorDetail />} />
           <Route path="/categories" element={<CategoriesIndex />} />
           <Route path="/categories/:slug" element={<CategoryDetail />} />
+          <Route path="/agentic" element={<AgenticIndex />} />
+          <Route path="/skills" element={<SkillsIndex />} />
+          <Route path="/skills/:id" element={<SkillDetail />} />
           <Route path="/cli" element={<CliIndex />} />
           <Route path="/cli/:id" element={<CliDetail />} />
           <Route path="/c/:id" element={<ComponentDetail />} />
