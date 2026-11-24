@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Copy, Check, ExternalLink, ArrowRight } from "lucide-react";
 import { CLIS, CLI_REPO, CLI_CATEGORY_COLORS } from "../data/clis";
+import { PageEyebrow } from "../components/PageEyebrow";
 
 /**
  * `/cli` — standalone Dagster+ CLI scripts (not components, not installed
@@ -48,18 +49,7 @@ function CopyBtn({ text, label = "Copy" }: { text: string; label?: string }) {
 export function CliIndex() {
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <p
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-dim)",
-          margin: "0 0 12px",
-        }}
-      >
-        CLIs
-      </p>
+      <PageEyebrow>CLIs</PageEyebrow>
       <h1
         style={{
           fontSize: "clamp(1.5rem, 3.5vw, 2rem)",

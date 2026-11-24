@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, ExternalLink } from "lucide-react";
 import { SKILLS, SKILLS_REPO, SKILL_RESOURCE_COMPONENT_ID, type SkillEntry } from "../data/skills";
+import { PageEyebrow } from "../components/PageEyebrow";
 
 /**
  * `/skills` — Claude Agent Skills (SKILL.md files) published across this registry's repos,
@@ -95,18 +96,7 @@ export function SkillsIndex() {
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <p
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-dim)",
-          margin: "0 0 12px",
-        }}
-      >
-        Skills
-      </p>
+      <PageEyebrow>Skills</PageEyebrow>
       <h1
         style={{
           fontSize: "clamp(1.5rem, 3.5vw, 2rem)",

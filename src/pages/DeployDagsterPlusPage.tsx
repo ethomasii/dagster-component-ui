@@ -10,6 +10,7 @@ import {
   COMMUNITY_CLI_REPO_WEB,
 } from "../lib/registryRequirements";
 import { markdownFirstH1, stripMarkdownFirstH1 } from "../lib/loadCommunityExamples";
+import { PageEyebrow } from "../components/PageEyebrow";
 
 export function DeployDagsterPlusPage() {
   const [md, setMd] = useState<string | null>(null);
@@ -52,18 +53,7 @@ export function DeployDagsterPlusPage() {
         </Link>
       </p>
 
-      <p
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-dim)",
-          margin: "16px 0 10px",
-        }}
-      >
-        Dagster+
-      </p>
+      <PageEyebrow style={{ margin: "16px 0 10px" }}>Dagster+</PageEyebrow>
 
       <div
         style={{

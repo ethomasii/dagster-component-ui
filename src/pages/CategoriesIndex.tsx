@@ -4,6 +4,7 @@ import { useCatalog } from "../context/CatalogContext";
 import { categoryLabel } from "../lib/format";
 import { componentId } from "../lib/componentId";
 import { ComponentIcon } from "../components/ComponentIcon";
+import { PageEyebrow } from "../components/PageEyebrow";
 import type { ManifestComponent } from "../types";
 
 /**
@@ -68,18 +69,7 @@ export function CategoriesIndex() {
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <p
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-dim)",
-          margin: "0 0 12px",
-        }}
-      >
-        Categories
-      </p>
+      <PageEyebrow>Categories</PageEyebrow>
       <h1
         style={{
           fontSize: "clamp(1.5rem, 3.5vw, 2rem)",

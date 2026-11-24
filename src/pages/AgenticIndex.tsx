@@ -5,6 +5,7 @@ import { useCatalog } from "../context/CatalogContext";
 import { componentId } from "../lib/componentId";
 import { ComponentCard } from "../components/ComponentCard";
 import { AGENTIC_GROUPS, ALL_GROUPED_IDS } from "../data/agenticGroups";
+import { PageEyebrow } from "../components/PageEyebrow";
 import type { ManifestComponent } from "../types";
 
 /** One accent per group section, cycled by index -- gives each of the 7 groups a distinct,
@@ -81,18 +82,7 @@ export function AgenticIndex() {
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <p
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-dim)",
-          margin: "0 0 12px",
-        }}
-      >
-        Agentic
-      </p>
+      <PageEyebrow>Agentic</PageEyebrow>
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", margin: "0 0 8px" }}>
         <h1 style={{ fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 700, letterSpacing: "-0.02em", margin: 0, lineHeight: 1.2 }}>
           Agentic components

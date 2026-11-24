@@ -14,6 +14,7 @@ import {
   fetchVendorsIndexReadmeCached,
   rewriteVendorsIndexLinks,
 } from "../lib/loadVendors";
+import { PageEyebrow } from "../components/PageEyebrow";
 
 export function VendorsIndex() {
   const { components } = useCatalog();
@@ -66,18 +67,7 @@ export function VendorsIndex() {
 
   return (
     <div style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <p
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-dim)",
-          margin: "0 0 12px",
-        }}
-      >
-        Vendors
-      </p>
+      <PageEyebrow>Vendors</PageEyebrow>
 
       <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 16px", lineHeight: 1.5 }}>
         One-stop pages for each vendor or vendor family—components, validation, walkthroughs, and connection notes.

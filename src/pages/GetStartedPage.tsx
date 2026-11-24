@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { CopyButton } from "../components/CopyButton";
+import { PageEyebrow } from "../components/PageEyebrow";
 import {
   INSTALL_PYPI_NOTE,
   INSTALL_VERSION_NOTE,
@@ -23,18 +24,7 @@ export function GetStartedPage() {
           ← Registry
         </Link>
       </p>
-      <p
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-dim)",
-          margin: "16px 0 12px",
-        }}
-      >
-        Install &amp; CLI
-      </p>
+      <PageEyebrow style={{ margin: "16px 0 12px" }}>Install &amp; CLI</PageEyebrow>
       <h1
         style={{
           fontSize: "clamp(1.75rem, 4vw, 2.25rem)",

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ChevronRight, Search } from "lucide-react";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
+import { PageEyebrow } from "../components/PageEyebrow";
 import {
   COMMUNITY_CLI_EXAMPLES_INDEX_README_URL,
   COMMUNITY_CLI_EXAMPLES_TREE_WEB,
@@ -249,18 +250,7 @@ export function ExamplesIndex() {
 
   return (
     <div className="examples-markdown-page" style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <p
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-dim)",
-          margin: "0 0 12px",
-        }}
-      >
-        Examples
-      </p>
+      <PageEyebrow>Examples</PageEyebrow>
 
       <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 16px", lineHeight: 1.5 }}>
         This page mirrors the demos folder README from the CLI repo—it updates whenever that file changes (no duplicated
@@ -386,7 +376,12 @@ export function ExamplesIndex() {
           {quickStart.map((s) => (
             <div key={s.slug} id={s.slug} style={{ marginBottom: 28 }}>
               <h2 style={{ fontSize: 19, fontWeight: 700, letterSpacing: "-0.015em", margin: "0 0 2px" }}>
-                {s.heading}
+                {/* The source heading is "Curated tours (start here)" -- redundant once it's
+                    sitting right above a section literally titled "Start here", and now
+                    additionally grouped under this page's own "Quick start" label. Dropping
+                    just the parenthetical here is display-only (doesn't touch the anchor
+                    slug or the source content). */}
+                {s.heading === "Curated tours (start here)" ? "Curated tours" : s.heading}
               </h2>
               <ExamplesMarkdown className="doc-viewer-markdown examples-markdown">{s.body}</ExamplesMarkdown>
             </div>

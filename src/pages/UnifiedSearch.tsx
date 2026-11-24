@@ -16,6 +16,7 @@ import { fetchExamplesIndexReadmeCached } from "../lib/loadCommunityExamples";
 import { fetchVendorsIndexReadmeCached } from "../lib/loadVendors";
 import { findExampleLinkHits, queryAlternatives } from "../lib/examplesSearch";
 import { findVendorLinkHits } from "../lib/vendorsSearch";
+import { PageEyebrow } from "../components/PageEyebrow";
 
 const PANEL_LIMIT = 24;
 
@@ -80,18 +81,7 @@ export function UnifiedSearch() {
 
   return (
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <p
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "var(--text-dim)",
-          margin: "0 0 12px",
-        }}
-      >
-        Search
-      </p>
+      <PageEyebrow>Search</PageEyebrow>
 
       <h1 style={{ margin: "0 0 8px", fontSize: 28, fontWeight: 700 }}>
         Unified search
