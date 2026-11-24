@@ -220,6 +220,27 @@ type Playbook = {
 
 const PLAYBOOKS: Playbook[] = [
   {
+    name: "migrating-airflow-to-dagster",
+    match: /\bairflow\b|\bmwaa\b|cloud composer|astronomer|\bdags?\b.{0,20}(migrat|port|convert|move)|(migrat|port|convert|move).{0,20}\bdags?\b/i,
+    hint:
+      "This is a MIGRATION ask (an existing Airflow/MWAA/Cloud Composer/Astronomer project moving to Dagster), not a \"build something new from the component catalog\" ask. Do NOT try to answer this with a DCC component list alone. Your summary MUST name and link the published `migrating-airflow-to-dagster` skill (https://github.com/eric-thomas-dagster/dagster-community-components-cli/blob/main/skills/migrating-airflow-to-dagster/SKILL.md) as the primary answer, and say to load `dagster-expert` alongside it. You may ALSO mention specific DCC components that help during migration (e.g. a bridge/orchestrator or script-wrapping component) as a secondary note, but the skill citation is the answer, not optional color.",
+    boost_components: [],
+  },
+  {
+    name: "migrating-adf-to-dagster",
+    match: /azure data factory|\badf\b.{0,20}(migrat|port|convert|move)|(migrat|port|convert|move).{0,20}\badf\b|synapse pipeline|fabric data factory/i,
+    hint:
+      "This is a MIGRATION ask (an existing Azure Data Factory / Synapse pipelines / Fabric Data Factory project moving to Dagster), not a \"build something new\" ask. Your summary MUST name and link the published `migrating-adf-to-dagster` skill (https://github.com/eric-thomas-dagster/dagster-community-components-cli/blob/main/skills/migrating-adf-to-dagster/SKILL.md) as the primary answer, and say to load `dagster-expert` alongside it.",
+    boost_components: [],
+  },
+  {
+    name: "migrating-runmyjobs-to-dagster",
+    match: /runmyjobs|run my jobs|redwood (server|cps)|\bsap cps\b/i,
+    hint:
+      "This is a MIGRATION ask (an existing Redwood RunMyJobs / SAP CPS project moving to Dagster), not a \"build something new\" ask. Your summary MUST name and link the published `migrating-runmyjobs-to-dagster` skill (https://github.com/eric-thomas-dagster/dagster-community-components-cli/blob/main/skills/migrating-runmyjobs-to-dagster/SKILL.md) as the primary answer, and say to load `dagster-expert` alongside it.",
+    boost_components: [],
+  },
+  {
     name: "salesforce-to-warehouse",
     match: /salesforce|sfdc|\bcrm\b/i,
     hint:
@@ -472,15 +493,21 @@ function scoreCatalog(
 // ── Prompt ────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are the DCC Agent — you recommend Dagster Community Components (DCC) for a user's data-engineering intent.
 
-## Scope — community components are the default; official integrations are the fallback
+## Scope — community components are the default; official integrations are the fallback; migration asks are a different thing entirely
 
-You have TWO layers of Dagster building blocks:
+You have THREE layers to choose from:
 
 1. **Community components (DCC)** — a large, growing catalog of higher-level, opinionated components (the full catalog is in the candidate list below). These are typically the *right* recommendation because they're purpose-built for common patterns (ingestion with baked-in schedules + destinations, agentic pipelines, sensor patterns, sinks with schema handling, etc.). Many are built ON TOP OF the official integrations to give a better ergonomic surface.
 
 2. **Official Dagster integrations** — \`dagster-<vendor>\` PyPI packages maintained by Dagster (see OFFICIAL INTEGRATIONS block in the user message). These are LOWER-LEVEL building blocks — resources, IO managers, and primitive assets. Useful as a fallback when no community component fits, or when the user explicitly asks about them.
 
-**Recommendation policy:**
+3. **Migration skills** — published guides for moving an EXISTING project off a different scheduler/ETL tool onto Dagster, not for building something new. When the ask is "migrate/port/convert my X to Dagster" (X = Airflow/MWAA/Cloud Composer/Astronomer, Azure Data Factory/Synapse pipelines/Fabric Data Factory, or Redwood RunMyJobs/SAP CPS), recommending a handful of components is the WRONG answer — a migration is a structured, multi-phase project (inventory the existing DAGs/pipelines/jobs, classify, translate, validate, cut over), and each of these has a dedicated published skill for exactly that. Name the matching skill explicitly in your \`summary\` with its GitHub URL, and say to load \`dagster-expert\` alongside it:
+   - Airflow / MWAA / Cloud Composer / Astronomer → \`migrating-airflow-to-dagster\` — https://github.com/eric-thomas-dagster/dagster-community-components-cli/blob/main/skills/migrating-airflow-to-dagster/SKILL.md
+   - Azure Data Factory / Synapse pipelines / Fabric Data Factory → \`migrating-adf-to-dagster\` — https://github.com/eric-thomas-dagster/dagster-community-components-cli/blob/main/skills/migrating-adf-to-dagster/SKILL.md
+   - Redwood RunMyJobs / SAP CPS → \`migrating-runmyjobs-to-dagster\` — https://github.com/eric-thomas-dagster/dagster-community-components-cli/blob/main/skills/migrating-runmyjobs-to-dagster/SKILL.md
+   You may still mention specific DCC components relevant to the migration (e.g. a bridge/orchestrator component for a phased cutover) in \`recommendations\`, but the skill citation belongs in \`summary\` and is the primary answer, not optional color — a bare component list with no skill mention is an incomplete answer to a migration ask.
+
+**Recommendation policy (layers 1 and 2 — not migration asks, which are answered per #3 above):**
 
 - **Prefer community components when they exist.** Even for vendors with an official integration (Salesforce, Snowflake, dbt, etc.), the community catalog often has a more useful, higher-level component that WRAPS the official one. Recommend the community component; it's fine to note in \`assumptions\` that it builds on the official \`dagster-<vendor>\` package.
 - **Fall back to official** when the candidate catalog genuinely has nothing that fits the intent — the vendor is covered ONLY by an official integration. Then cite the official package + link its docs URL in your \`summary\`.
