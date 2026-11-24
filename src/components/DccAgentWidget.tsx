@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { OPEN_DCC_WIDGET_EVENT, type OpenDccWidgetDetail } from "../lib/openDccWidget";
 import {
   Sparkles,
@@ -47,6 +47,9 @@ type AgentResponse = {
   walkthroughs?: Walkthrough[];
   assumptions: string[];
   shell_script?: string;
+  /** Opaque — the client never reads this, just stores it and resends it
+   *  verbatim on the next question so the agent remembers this exchange. */
+  conversation?: unknown[];
   meta?: {
     model: string;
     input_tokens: number;
@@ -74,6 +77,8 @@ const STARTER_PROMPTS = [
   "Score customer churn nightly with XGBoost, write predictions to Postgres",
 ];
 
+type ThreadItem = { question: string; answer: AgentResponse };
+
 export function DccAgentWidget() {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -81,16 +86,25 @@ export function DccAgentWidget() {
   const [includeShell, setIncludeShell] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [answer, setAnswer] = useState<AgentResponse | null>(null);
+  const [thread, setThread] = useState<ThreadItem[]>([]);
   const [progress, setProgress] = useState<string[]>([]);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: "smooth" });
+  }, [thread.length, loading]);
 
   async function submit(text?: string) {
     const q = (text ?? intent).trim();
     if (!q || loading) return;
     setLoading(true);
     setError(null);
-    setAnswer(null);
     setProgress([]);
+    // Follow-up support: resend the prior conversation (opaque to this
+    // widget — it just stores and replays what the server last returned)
+    // so a question like "how do I schedule these" has context instead of
+    // being answered cold every time.
+    const priorConversation = thread.length > 0 ? thread[thread.length - 1].answer.conversation : undefined;
     try {
       const r = await fetch("/api/dcc-agent", {
         method: "POST",
@@ -98,6 +112,7 @@ export function DccAgentWidget() {
         body: JSON.stringify({
           intent: q,
           options: { include_shell_script: includeShell },
+          ...(priorConversation ? { conversation: priorConversation } : {}),
         }),
       });
       if (!r.ok || !r.body) {
@@ -129,7 +144,9 @@ export function DccAgentWidget() {
             const msg = evt.message;
             setProgress((prev) => [...prev, msg]);
           } else if (evt.type === "answer") {
-            setAnswer(evt as unknown as AgentResponse);
+            const ans = evt as unknown as AgentResponse;
+            setThread((prev) => [...prev, { question: q, answer: ans }]);
+            setIntent("");
           } else if (evt.type === "error" && typeof evt.message === "string") {
             setError(evt.message);
           }
@@ -144,7 +161,7 @@ export function DccAgentWidget() {
 
   function reset() {
     setIntent("");
-    setAnswer(null);
+    setThread([]);
     setError(null);
     setProgress([]);
   }
@@ -238,7 +255,7 @@ export function DccAgentWidget() {
       >
         <Sparkles size={16} color="var(--cyan)" aria-hidden />
         <div style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>DCC Agent</div>
-        {answer && (
+        {thread.length > 0 && (
           <button
             type="button"
             onClick={reset}
@@ -268,6 +285,7 @@ export function DccAgentWidget() {
 
       {/* Body */}
       <div
+        ref={bodyRef}
         style={{
           flex: 1,
           overflowY: "auto",
@@ -277,7 +295,7 @@ export function DccAgentWidget() {
           gap: 12,
         }}
       >
-        {!answer && !loading && !error && (
+        {thread.length === 0 && !loading && !error && (
           <>
             <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.55 }}>
               Ask a question <em>or</em> describe what you want to build. The agent can:
@@ -311,6 +329,10 @@ export function DccAgentWidget() {
             </div>
           </>
         )}
+
+        {thread.map((item, i) => (
+          <AnswerBlock key={i} item={item} isFirst={i === 0} />
+        ))}
 
         {loading && (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -351,91 +373,6 @@ export function DccAgentWidget() {
             <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--text-muted)" }}>{error}</p>
           </div>
         )}
-
-        {answer && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {answer.summary && (
-              <section className="dcc-fade-in">
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 13,
-                    lineHeight: 1.6,
-                    color: "var(--text)",
-                  }}
-                >
-                  {answer.summary}
-                </p>
-              </section>
-            )}
-
-            {answer.walkthroughs && answer.walkthroughs.length > 0 && (
-              <section className="dcc-fade-in">
-                <div style={sectionTitleStyle}>
-                  Walkthroughs ({answer.walkthroughs.length})
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
-                  {answer.walkthroughs.map((w) => (
-                    <WalkthroughCard key={w.slug} wt={w} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {answer.assumptions?.length > 0 && (
-              <section className="dcc-fade-in">
-                <div style={sectionTitleStyle}>Assumptions</div>
-                <ul style={{ margin: "6px 0 0 18px", padding: 0, lineHeight: 1.55, fontSize: 12 }}>
-                  {answer.assumptions.map((a, i) => (
-                    <li key={i}>{a}</li>
-                  ))}
-                </ul>
-              </section>
-            )}
-
-            {answer.recommendations && answer.recommendations.length > 0 && (
-              <section className="dcc-fade-in">
-                <div style={sectionTitleStyle}>
-                  Recommended ({answer.recommendations.length})
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6 }}>
-                  {answer.recommendations.map((r) => (
-                    <RecommendationCard key={r.component_name} rec={r} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {answer.shell_script && (
-              <section>
-                <div style={sectionTitleStyle}>Project scaffold script</div>
-                <CodeBlock code={answer.shell_script} lang="bash" />
-              </section>
-            )}
-
-            {answer.meta && (
-              <p style={{ fontSize: 10, color: "var(--text-dim, var(--text-muted))", margin: 0 }}>
-                {answer.meta.model} · in {answer.meta.input_tokens} tok · out{" "}
-                {answer.meta.output_tokens} tok
-                {(answer.meta.cache_read_tokens ?? 0) > 0 &&
-                  ` · ${answer.meta.cache_read_tokens} cached`}
-                {" "}· catalog {answer.meta.manifest_total} (full)
-                {(answer.meta.schemas_fetched ?? 0) > 0 &&
-                  ` · ${answer.meta.schemas_fetched} schema${answer.meta.schemas_fetched === 1 ? "" : "s"}`}
-                {(answer.meta.readmes_fetched ?? 0) > 0 &&
-                  ` · ${answer.meta.readmes_fetched} README${answer.meta.readmes_fetched === 1 ? "" : "s"}`}
-                {(answer.meta.walkthroughs_fetched ?? 0) > 0 &&
-                  ` · ${answer.meta.walkthroughs_fetched} walkthrough${answer.meta.walkthroughs_fetched === 1 ? "" : "s"}`}
-                {(answer.meta.readme_searches ?? 0) > 0 &&
-                  ` · ${answer.meta.readme_searches} README search${answer.meta.readme_searches === 1 ? "" : "es"}`}
-                {(answer.meta.skill_refs_fetched ?? 0) > 0 &&
-                  ` · ${answer.meta.skill_refs_fetched} skill ref${answer.meta.skill_refs_fetched === 1 ? "" : "s"}`}
-                {answer.meta.playbooks_matched && answer.meta.playbooks_matched.length > 0 &&
-                  ` · playbook: ${answer.meta.playbooks_matched.join(", ")}`}
-              </p>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Footer input */}
@@ -461,7 +398,7 @@ export function DccAgentWidget() {
               void submit();
             }
           }}
-          placeholder="e.g. Sync Salesforce contacts into BigQuery every 6 hours"
+          placeholder={thread.length > 0 ? "Ask a follow-up…" : "e.g. Sync Salesforce contacts into BigQuery every 6 hours"}
           rows={2}
           maxLength={2000}
           disabled={loading}
@@ -528,6 +465,111 @@ export function DccAgentWidget() {
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+/** One Q&A exchange in the thread — the user's question (skipped for the
+ *  first exchange, since it's already visible in the input history above)
+ *  plus the full rendered answer. */
+function AnswerBlock({ item, isFirst }: { item: ThreadItem; isFirst: boolean }) {
+  const { question, answer } = item;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {!isFirst && (
+        <p
+          style={{
+            margin: 0,
+            fontSize: 12,
+            fontWeight: 600,
+            color: "var(--text-dim, var(--text-muted))",
+            paddingTop: 8,
+            borderTop: "1px solid var(--border)",
+          }}
+        >
+          {question}
+        </p>
+      )}
+      {answer.summary && (
+        <section className="dcc-fade-in">
+          <p
+            style={{
+              margin: 0,
+              fontSize: 13,
+              lineHeight: 1.6,
+              color: "var(--text)",
+            }}
+          >
+            {answer.summary}
+          </p>
+        </section>
+      )}
+
+      {answer.walkthroughs && answer.walkthroughs.length > 0 && (
+        <section className="dcc-fade-in">
+          <div style={sectionTitleStyle}>
+            Walkthroughs ({answer.walkthroughs.length})
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
+            {answer.walkthroughs.map((w) => (
+              <WalkthroughCard key={w.slug} wt={w} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {answer.assumptions?.length > 0 && (
+        <section className="dcc-fade-in">
+          <div style={sectionTitleStyle}>Assumptions</div>
+          <ul style={{ margin: "6px 0 0 18px", padding: 0, lineHeight: 1.55, fontSize: 12 }}>
+            {answer.assumptions.map((a, i) => (
+              <li key={i}>{a}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {answer.recommendations && answer.recommendations.length > 0 && (
+        <section className="dcc-fade-in">
+          <div style={sectionTitleStyle}>
+            Recommended ({answer.recommendations.length})
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6 }}>
+            {answer.recommendations.map((r) => (
+              <RecommendationCard key={r.component_name} rec={r} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {answer.shell_script && (
+        <section>
+          <div style={sectionTitleStyle}>Project scaffold script</div>
+          <CodeBlock code={answer.shell_script} lang="bash" />
+        </section>
+      )}
+
+      {answer.meta && (
+        <p style={{ fontSize: 10, color: "var(--text-dim, var(--text-muted))", margin: 0 }}>
+          {answer.meta.model} · in {answer.meta.input_tokens} tok · out{" "}
+          {answer.meta.output_tokens} tok
+          {(answer.meta.cache_read_tokens ?? 0) > 0 &&
+            ` · ${answer.meta.cache_read_tokens} cached`}
+          {" "}· catalog {answer.meta.manifest_total} (full)
+          {(answer.meta.schemas_fetched ?? 0) > 0 &&
+            ` · ${answer.meta.schemas_fetched} schema${answer.meta.schemas_fetched === 1 ? "" : "s"}`}
+          {(answer.meta.readmes_fetched ?? 0) > 0 &&
+            ` · ${answer.meta.readmes_fetched} README${answer.meta.readmes_fetched === 1 ? "" : "s"}`}
+          {(answer.meta.walkthroughs_fetched ?? 0) > 0 &&
+            ` · ${answer.meta.walkthroughs_fetched} walkthrough${answer.meta.walkthroughs_fetched === 1 ? "" : "s"}`}
+          {(answer.meta.readme_searches ?? 0) > 0 &&
+            ` · ${answer.meta.readme_searches} README search${answer.meta.readme_searches === 1 ? "" : "es"}`}
+          {(answer.meta.skill_refs_fetched ?? 0) > 0 &&
+            ` · ${answer.meta.skill_refs_fetched} skill ref${answer.meta.skill_refs_fetched === 1 ? "" : "s"}`}
+          {answer.meta.playbooks_matched && answer.meta.playbooks_matched.length > 0 &&
+            ` · playbook: ${answer.meta.playbooks_matched.join(", ")}`}
+        </p>
+      )}
     </div>
   );
 }

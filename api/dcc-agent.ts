@@ -804,6 +804,14 @@ export default async function handler(req: any, res: any) {
   }
   const intent = (body?.intent || "").toString().trim();
   const includeShell = Boolean(body?.options?.include_shell_script);
+  // Follow-up support: the client stores the full prior conversation
+  // (opaque to it) and resends it verbatim on the next question, per the
+  // standard "API is stateless, resend full history" pattern — there's no
+  // server-side session store. See the branch below for how this is used.
+  const priorConversation: Anthropic.MessageParam[] | null =
+    Array.isArray(body?.conversation) && body.conversation.length > 0
+      ? (body.conversation as Anthropic.MessageParam[])
+      : null;
   if (!intent) {
     res.status(400).json({ error: "missing `intent` in body" });
     return;
@@ -833,27 +841,16 @@ export default async function handler(req: any, res: any) {
     }
 
     const playbooks = matchPlaybooks(intent);
-    // Fixed, intent-INDEPENDENT order (manifest order, every component) —
-    // not scoreCatalog's intent-sorted ranking. The whole point of the
-    // cache_control breakpoint below is that this block is byte-identical
-    // across every request regardless of who's asking what; sorting it by
-    // relevance to one specific intent would make every distinct query
-    // write its own cache entry and defeat cross-request cache hits. (A
-    // relevance SORT only ever mattered for deciding what got cut under
-    // the old top-150 truncation — now that nothing is cut, the model sees
-    // every component regardless of order.) scoreCatalog is still used
-    // below for search_component_readmes's shortlist, which isn't part of
-    // this cached block.
-    const catalogComponents = manifest.components.filter((c) => c.name);
-    const catalog = catalogComponents.map(compactLine).join("\n");
+    const playbookBlock = playbooks.length
+      ? `\nPLAYBOOK HINTS (matched patterns — weight these heavily):\n${playbooks
+          .map((p) => `  [${p.name}] ${p.hint}`)
+          .join("\n")}\n`
+      : "";
     if (playbooks.length) {
       emit("progress", {
         message: `Matched playbook: ${playbooks.map((p) => p.name).join(", ")}`,
       });
     }
-    emit("progress", {
-      message: `Sending the full catalog (${catalogComponents.length} components, nothing filtered out)`,
-    });
 
     const anthropic = new Anthropic({ apiKey });
     // Sonnet: catches multi-stage intents + reasons about which stages
@@ -863,49 +860,7 @@ export default async function handler(req: any, res: any) {
     // the full catalog + walkthroughs index can run well past 100k tokens.
     const model = process.env.DCC_AGENT_MODEL || "claude-sonnet-5-5";
 
-    const playbookBlock = playbooks.length
-      ? `\nPLAYBOOK HINTS (matched patterns — weight these heavily):\n${playbooks
-          .map((p) => `  [${p.name}] ${p.hint}`)
-          .join("\n")}\n`
-      : "";
-
-    emit("progress", { message: "Loading walkthroughs index…" });
-    // Inline the walkthroughs index (~30k tokens). Non-fatal if it fails
-    // to fetch — agent still works without it, just can't recommend
-    // specific end-to-end demos.
-    const walkthroughsIndex = await loadWalkthroughsIndex();
-    const walkthroughsBlock = walkthroughsIndex
-      ? `\nWALKTHROUGHS INDEX (live-validated end-to-end demos — cite by slug in fetch_walkthrough):\n\n${walkthroughsIndex}\n`
-      : "";
-
-    // Inline the dagster-community-components skill's SKILL.md (short —
-    // hard rules + CLI quick reference + decision table). Its deeper
-    // reference/*.md pages are fetched on demand via fetch_skill_reference
-    // instead of inlined here, so this stays cheap.
-    const skillMd = await loadSkillMd();
-    const skillBlock = skillMd
-      ? `\nDAGSTER-COMMUNITY-COMPONENTS SKILL (published reference for this exact registry — deeper topics available via fetch_skill_reference):\n\n${skillMd}\n`
-      : "";
-
-    // Everything below is identical across every request within the
-    // manifest/walkthroughs cache window (5-30 min) — it doesn't depend on
-    // `intent`. Gets its own cache_control breakpoint so the ~full-catalog
-    // + walkthroughs text (the expensive part of this prompt) is read from
-    // cache, not reprocessed, on every request that lands in that window —
-    // not just repeat turns within one conversation.
-    const staticCatalogBlock = [
-      `Candidate DCC community catalog (${catalogComponents.length} community components — the FULL catalog; PREFER these when any of them fit):`,
-      catalog,
-      "",
-      `OFFICIAL INTEGRATIONS (Dagster-maintained \`dagster-<vendor>\` packages — the fallback layer when no community component in the candidate list fits. Also useful as building blocks that some community components wrap):`,
-      formatOfficialIntegrations(),
-      walkthroughsBlock,
-      skillBlock,
-      "Remember: fetch_component_schema for every community component you're about to include in defs_snippet. Use fetch_component_readme when the user asks HOW something works. Use fetch_walkthrough when they want an end-to-end example. Use fetch_skill_reference for CLI-usage questions, YAML-writing conventions, or registry-wide questions (categories, validation tiers). Only cite the official `dagster-<vendor>` package when no community component in the candidate list fits — the community layer is the default.",
-    ].join("\n");
-
-    // Only this part varies per request — kept after the cache breakpoint.
-    const dynamicIntentBlock = [
+    const followUpBlock = [
       `Intent: ${intent}`,
       "",
       includeShell
@@ -914,19 +869,84 @@ export default async function handler(req: any, res: any) {
       playbookBlock,
     ].join("\n");
 
-    const messages: Anthropic.MessageParam[] = [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: staticCatalogBlock,
-            cache_control: { type: "ephemeral" },
-          },
-          { type: "text", text: dynamicIntentBlock },
-        ],
-      },
-    ];
+    let messages: Anthropic.MessageParam[];
+
+    if (priorConversation) {
+      // Continuing a conversation — the client replayed the full prior
+      // history verbatim (including the first turn's cache_control
+      // breakpoint on the static catalog block), so it's still
+      // cache-eligible. Just append the follow-up; no need to rebuild or
+      // re-fetch the catalog/walkthroughs/skill content, which is already
+      // baked into the replayed history.
+      emit("progress", { message: "Continuing the conversation…" });
+      messages = [...priorConversation, { role: "user", content: followUpBlock }];
+    } else {
+      // Fixed, intent-INDEPENDENT order (manifest order, every component) —
+      // not scoreCatalog's intent-sorted ranking. The whole point of the
+      // cache_control breakpoint below is that this block is byte-identical
+      // across every request regardless of who's asking what; sorting it by
+      // relevance to one specific intent would make every distinct query
+      // write its own cache entry and defeat cross-request cache hits. (A
+      // relevance SORT only ever mattered for deciding what got cut under
+      // the old top-150 truncation — now that nothing is cut, the model sees
+      // every component regardless of order.) scoreCatalog is still used
+      // below for search_component_readmes's shortlist, which isn't part of
+      // this cached block.
+      const catalogComponents = manifest.components.filter((c) => c.name);
+      const catalog = catalogComponents.map(compactLine).join("\n");
+      emit("progress", {
+        message: `Sending the full catalog (${catalogComponents.length} components, nothing filtered out)`,
+      });
+
+      emit("progress", { message: "Loading walkthroughs index…" });
+      // Inline the walkthroughs index (~30k tokens). Non-fatal if it fails
+      // to fetch — agent still works without it, just can't recommend
+      // specific end-to-end demos.
+      const walkthroughsIndex = await loadWalkthroughsIndex();
+      const walkthroughsBlock = walkthroughsIndex
+        ? `\nWALKTHROUGHS INDEX (live-validated end-to-end demos — cite by slug in fetch_walkthrough):\n\n${walkthroughsIndex}\n`
+        : "";
+
+      // Inline the dagster-community-components skill's SKILL.md (short —
+      // hard rules + CLI quick reference + decision table). Its deeper
+      // reference/*.md pages are fetched on demand via fetch_skill_reference
+      // instead of inlined here, so this stays cheap.
+      const skillMd = await loadSkillMd();
+      const skillBlock = skillMd
+        ? `\nDAGSTER-COMMUNITY-COMPONENTS SKILL (published reference for this exact registry — deeper topics available via fetch_skill_reference):\n\n${skillMd}\n`
+        : "";
+
+      // Everything below is identical across every request within the
+      // manifest/walkthroughs cache window (5-30 min) — it doesn't depend on
+      // `intent`. Gets its own cache_control breakpoint so the ~full-catalog
+      // + walkthroughs text (the expensive part of this prompt) is read from
+      // cache, not reprocessed, on every request that lands in that window —
+      // not just repeat turns within one conversation.
+      const staticCatalogBlock = [
+        `Candidate DCC community catalog (${catalogComponents.length} community components — the FULL catalog; PREFER these when any of them fit):`,
+        catalog,
+        "",
+        `OFFICIAL INTEGRATIONS (Dagster-maintained \`dagster-<vendor>\` packages — the fallback layer when no community component in the candidate list fits. Also useful as building blocks that some community components wrap):`,
+        formatOfficialIntegrations(),
+        walkthroughsBlock,
+        skillBlock,
+        "Remember: fetch_component_schema for every community component you're about to include in defs_snippet. Use fetch_component_readme when the user asks HOW something works. Use fetch_walkthrough when they want an end-to-end example. Use fetch_skill_reference for CLI-usage questions, YAML-writing conventions, or registry-wide questions (categories, validation tiers). Only cite the official `dagster-<vendor>` package when no community component in the candidate list fits — the community layer is the default.",
+      ].join("\n");
+
+      messages = [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: staticCatalogBlock,
+              cache_control: { type: "ephemeral" },
+            },
+            { type: "text", text: followUpBlock },
+          ],
+        },
+      ];
+    }
 
     // Multi-turn tool-use loop. Cap at 12 iterations — with 5 tools
     // now, agent may do several fetches + a search + an answer.
@@ -1103,8 +1123,31 @@ export default async function handler(req: any, res: any) {
       }
     }
 
+    // Build the replayable history for a follow-up question. `messages`
+    // currently ends with the assistant turn that called `answer(...)` —
+    // a dangling tool_use with no tool_result, which the API will reject
+    // if a plain user turn follows it directly. Swap that last turn for a
+    // clean text-only recap (summary + what got recommended) instead of
+    // replaying the raw tool_use block; every earlier tool call in this
+    // turn already has its matching tool_result, so only the last entry
+    // needs this treatment.
+    const recapParts = [
+      finalAnswer.summary,
+      finalAnswer.recommendations?.length
+        ? `Recommended: ${finalAnswer.recommendations.map((r) => r.component_name).join(", ")}.`
+        : null,
+      finalAnswer.walkthroughs?.length
+        ? `Walkthroughs cited: ${finalAnswer.walkthroughs.map((w) => w.slug).join(", ")}.`
+        : null,
+    ].filter(Boolean);
+    const conversationForClient: Anthropic.MessageParam[] = [
+      ...messages.slice(0, -1),
+      { role: "assistant", content: recapParts.join(" ") || "(recommendation provided)" },
+    ];
+
     emit("answer", {
       ...finalAnswer,
+      conversation: conversationForClient,
       meta: {
         model,
         input_tokens: inputTokens,
