@@ -48,6 +48,18 @@ const WALKTHROUGHS_RAW_BASE =
   "https://raw.githubusercontent.com/eric-thomas-dagster/dagster-community-components-cli/main/examples";
 const WALKTHROUGHS_INDEX_URL = `${WALKTHROUGHS_RAW_BASE}/README.md`;
 
+// The dagster-community-components Claude Code skill (same repo, published
+// for Claude Code / Claude.ai use) is plain markdown — no scripts — so it's
+// just as fetchable here. SKILL.md itself (short: hard rules + CLI quick
+// reference + decision table) is inlined in the static prompt; its deeper
+// reference/*.md topic files are fetched on demand via fetch_skill_reference,
+// mirroring fetch_walkthrough.
+const SKILL_RAW_BASE =
+  "https://raw.githubusercontent.com/eric-thomas-dagster/dagster-community-components-cli/main/skills/dagster-community-components";
+const SKILL_MD_URL = `${SKILL_RAW_BASE}/SKILL.md`;
+const SKILL_REFERENCE_TOPICS = ["catalog", "cli", "writing-yaml", "demo-workflow"] as const;
+type SkillReferenceTopic = (typeof SKILL_REFERENCE_TOPICS)[number];
+
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const SCHEMA_CACHE_TTL_MS = 30 * 60 * 1000;
 const READMES_CACHE_TTL_MS = 30 * 60 * 1000;
@@ -72,9 +84,11 @@ type Manifest = { version: string; total?: number; components: ManifestComponent
 
 let cachedManifest: { at: number; data: Manifest } | null = null;
 let cachedWalkthroughsIndex: { at: number; data: string } | null = null;
+let cachedSkillMd: { at: number; data: string } | null = null;
 const schemaCache: Map<string, { at: number; data: unknown }> = new Map();
 const readmeCache: Map<string, { at: number; data: string }> = new Map();
 const walkthroughCache: Map<string, { at: number; data: string }> = new Map();
+const skillReferenceCache: Map<string, { at: number; data: string }> = new Map();
 
 async function loadManifest(): Promise<Manifest> {
   const now = Date.now();
@@ -163,12 +177,40 @@ async function loadWalkthrough(slug: string): Promise<string> {
   return `[error: walkthrough '${cleaned}' not found; last HTTP status ${lastStatus}]`;
 }
 
+async function loadSkillMd(): Promise<string> {
+  const now = Date.now();
+  if (cachedSkillMd && now - cachedSkillMd.at < CACHE_TTL_MS) return cachedSkillMd.data;
+  const r = await fetch(SKILL_MD_URL);
+  if (!r.ok) {
+    // Non-fatal — agent still works without it, just loses the hard-rules
+    // recap and CLI quick reference in its static prompt.
+    return "";
+  }
+  const data = await r.text();
+  cachedSkillMd = { at: now, data };
+  return data;
+}
+
+async function loadSkillReference(topic: SkillReferenceTopic): Promise<string> {
+  const now = Date.now();
+  const hit = skillReferenceCache.get(topic);
+  if (hit && now - hit.at < READMES_CACHE_TTL_MS) return hit.data;
+  const url = `${SKILL_RAW_BASE}/reference/${topic}.md`;
+  const r = await fetch(url);
+  if (!r.ok) return `[error: skill reference '${topic}' fetch failed: HTTP ${r.status}]`;
+  const text = await r.text();
+  skillReferenceCache.set(topic, { at: now, data: text });
+  return text;
+}
+
 // ── Playbooks — canned patterns for the most-common asks ──────────────
 //
 // When the intent regex-matches a playbook, we inject a "playbook hint"
-// into the system prompt AND boost the named components in the pre-filter
-// so they always make the top-150 candidate list. Keeps the agent fast +
-// accurate on the ~80% happy path without paying for full LLM reasoning.
+// into the dynamic (uncached) part of the prompt — the full catalog is
+// always sent regardless (see header comment), so playbooks no longer
+// need to boost anything into a candidate list. Keeps the agent accurate
+// on the ~80% happy path by pointing it straight at the right components
+// instead of relying purely on the model finding them unaided.
 type Playbook = {
   name: string;
   match: RegExp;
@@ -360,7 +402,12 @@ function compactLine(c: ManifestComponent): string {
   (c.tags || []).forEach((t) => tagSet.add(t));
   (c.keywords || []).forEach((t) => tagSet.add(t));
   const tags = Array.from(tagSet).slice(0, 10).join(",");
-  return `${c.name} (${c.category})${vendor}${io} — ${c.description}${tags ? ` #${tags}` : ""}`;
+  // id is the real slug `dagster-component add <id>` needs — don't make
+  // the model guess a snake_case transform of the display name, which
+  // isn't always right (e.g. display name casing/words that don't map
+  // 1:1 to the id).
+  const id = c.id ? ` id:${c.id}` : "";
+  return `${c.name}${id} (${c.category})${vendor}${io} — ${c.description}${tags ? ` #${tags}` : ""}`;
 }
 
 // ── Relevance ranking (no longer a lossy pre-filter — sorts the FULL
@@ -453,17 +500,19 @@ Your final \`answer(...)\` call has three main fields:
 
 ## Tools
 
-You have five tools available:
+You have six tools available:
 
 1. **fetch_component_schema(component_name)** — fetch the real schema.json for a candidate component. USE THIS before writing a defs.yaml snippet for any component you haven't previously fetched. The schema has the actual field names, types, required/optional flags, and defaults. Guessing field names from the compact catalog gives wrong YAML — always fetch first.
 
-2. **fetch_component_readme(component_name)** — fetch the full README (~12KB trimmed). Use when the user asks HOW a component works (auth modes, incremental loading semantics, gotchas, examples) or when the schema alone doesn't give enough context to write a defs.yaml. Complements fetch_component_schema.
+2. **fetch_component_readme(component_name)** — fetch the full README (~12KB trimmed). Use when the user asks HOW a component works (auth modes, incremental loading semantics, gotchas, examples) or when the schema alone doesn't give enough context to write a defs.yaml. Complements fetch_component_schema. Note: a README's hand-written \`## Configuration\` section (if present) can be stale — the auto-generated \`## Fields\` block between \`FIELDS:START\`/\`FIELDS:END\` markers (and schema.json itself) is the ground truth when they disagree.
 
 3. **search_component_readmes(query)** — keyword-search across README bodies. Use when the intent needs a capability that isn't obviously in any component name/tag — e.g. "rate-limit handling", "incremental cursor", "schema evolution". Returns component names + relevant snippets.
 
 4. **fetch_walkthrough(slug)** — fetch a full end-to-end demo walkthrough by slug. The walkthroughs index is inlined in the user message below — pick a slug from there. Best source for "do you have an example of X" questions.
 
-5. **answer(...)** — return the final ranked recommendations. Only call once you have enough context to write real defs.yaml snippets.
+5. **fetch_skill_reference(topic)** — fetch a deep-dive page (\`catalog\` | \`cli\` | \`writing-yaml\` | \`demo-workflow\`) from the published dagster-community-components skill for this exact registry. Use \`cli\` for CLI-usage questions, \`writing-yaml\` before generating a defs_snippet you're unsure about, \`catalog\` for registry-wide questions (categories, validation tiers, manifest schema), \`demo-workflow\` when composing a multi-stage demo from several components.
+
+6. **answer(...)** — return the final ranked recommendations. Only call once you have enough context to write real defs.yaml snippets.
 
 ## How to work
 
@@ -611,6 +660,23 @@ const SEARCH_READMES_TOOL = {
   },
 };
 
+const FETCH_SKILL_REFERENCE_TOOL = {
+  name: "fetch_skill_reference",
+  description:
+    "Fetch a deep-dive reference page from the dagster-community-components Claude Code skill (the same registry you already have the candidate catalog for, with more context). Use 'cli' when the user asks about the dagster-component CLI itself (exact flags, install modes, `id@ref` pinning) rather than wanting a YAML recommendation. Use 'writing-yaml' before writing a defs_snippet for a component you're unsure about — it explains which part of a README is ground truth vs. stale, and the shared catalog-metadata/partition/source config conventions that repeat across most components. Use 'catalog' for questions about the registry itself (categories, validation tiers, manifest fields) rather than a specific component. Use 'demo-workflow' when asked to build a multi-stage end-to-end demo from the catalog.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      topic: {
+        type: "string",
+        enum: SKILL_REFERENCE_TOPICS as unknown as string[],
+        description: "Which reference page to fetch.",
+      },
+    },
+    required: ["topic"],
+  },
+};
+
 type ToolInput = {
   summary?: string;
   recommendations: Array<{
@@ -654,7 +720,8 @@ const ANSWER_TOOL = {
             category: { type: "string" },
             install_command: {
               type: "string",
-              description: "Full `dg add defs <name>/<name>.yaml` command.",
+              description:
+                "Full `dagster-component add <id>` command, using the real `id:` slug shown in the catalog line for this component — not the display name, not `dg add defs`, which is a different (official-package) install path this site doesn't lead with.",
             },
             defs_snippet: {
               type: "string",
@@ -811,6 +878,15 @@ export default async function handler(req: any, res: any) {
       ? `\nWALKTHROUGHS INDEX (live-validated end-to-end demos — cite by slug in fetch_walkthrough):\n\n${walkthroughsIndex}\n`
       : "";
 
+    // Inline the dagster-community-components skill's SKILL.md (short —
+    // hard rules + CLI quick reference + decision table). Its deeper
+    // reference/*.md pages are fetched on demand via fetch_skill_reference
+    // instead of inlined here, so this stays cheap.
+    const skillMd = await loadSkillMd();
+    const skillBlock = skillMd
+      ? `\nDAGSTER-COMMUNITY-COMPONENTS SKILL (published reference for this exact registry — deeper topics available via fetch_skill_reference):\n\n${skillMd}\n`
+      : "";
+
     // Everything below is identical across every request within the
     // manifest/walkthroughs cache window (5-30 min) — it doesn't depend on
     // `intent`. Gets its own cache_control breakpoint so the ~full-catalog
@@ -824,7 +900,8 @@ export default async function handler(req: any, res: any) {
       `OFFICIAL INTEGRATIONS (Dagster-maintained \`dagster-<vendor>\` packages — the fallback layer when no community component in the candidate list fits. Also useful as building blocks that some community components wrap):`,
       formatOfficialIntegrations(),
       walkthroughsBlock,
-      "Remember: fetch_component_schema for every community component you're about to include in defs_snippet. Use fetch_component_readme when the user asks HOW something works. Use fetch_walkthrough when they want an end-to-end example. Only cite the official `dagster-<vendor>` package when no community component in the candidate list fits — the community layer is the default.",
+      skillBlock,
+      "Remember: fetch_component_schema for every community component you're about to include in defs_snippet. Use fetch_component_readme when the user asks HOW something works. Use fetch_walkthrough when they want an end-to-end example. Use fetch_skill_reference for CLI-usage questions, YAML-writing conventions, or registry-wide questions (categories, validation tiers). Only cite the official `dagster-<vendor>` package when no community component in the candidate list fits — the community layer is the default.",
     ].join("\n");
 
     // Only this part varies per request — kept after the cache breakpoint.
@@ -862,6 +939,7 @@ export default async function handler(req: any, res: any) {
     let readmesFetched = 0;
     let walkthroughsFetched = 0;
     let readmeSearches = 0;
+    let skillRefsFetched = 0;
     let finalAnswer: ToolInput | null = null;
 
     for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
@@ -882,6 +960,7 @@ export default async function handler(req: any, res: any) {
           FETCH_README_TOOL as any,
           FETCH_WALKTHROUGH_TOOL as any,
           SEARCH_READMES_TOOL as any,
+          FETCH_SKILL_REFERENCE_TOOL as any,
           ANSWER_TOOL as any,
         ],
         messages,
@@ -972,6 +1051,18 @@ export default async function handler(req: any, res: any) {
             tool_use_id: b.id,
             content: JSON.stringify(content),
           });
+        } else if (b.name === FETCH_SKILL_REFERENCE_TOOL.name) {
+          const topic = (b.input?.topic || "").toString() as SkillReferenceTopic;
+          emit("progress", { message: `Reading skill reference: ${topic}` });
+          const content = SKILL_REFERENCE_TOPICS.includes(topic)
+            ? await loadSkillReference(topic)
+            : `[error: unknown topic '${topic}'. Valid topics: ${SKILL_REFERENCE_TOPICS.join(", ")}]`;
+          skillRefsFetched += 1;
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: b.id,
+            content,
+          });
         } else {
           toolResults.push({
             type: "tool_result",
@@ -1026,6 +1117,7 @@ export default async function handler(req: any, res: any) {
         readmes_fetched: readmesFetched,
         walkthroughs_fetched: walkthroughsFetched,
         readme_searches: readmeSearches,
+        skill_refs_fetched: skillRefsFetched,
       },
     });
     res.end();

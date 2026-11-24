@@ -59,6 +59,7 @@ type AgentResponse = {
     readmes_fetched?: number;
     walkthroughs_fetched?: number;
     readme_searches?: number;
+    skill_refs_fetched?: number;
   };
 };
 
@@ -427,6 +428,8 @@ export function DccAgentWidget() {
                   ` · ${answer.meta.walkthroughs_fetched} walkthrough${answer.meta.walkthroughs_fetched === 1 ? "" : "s"}`}
                 {(answer.meta.readme_searches ?? 0) > 0 &&
                   ` · ${answer.meta.readme_searches} README search${answer.meta.readme_searches === 1 ? "" : "es"}`}
+                {(answer.meta.skill_refs_fetched ?? 0) > 0 &&
+                  ` · ${answer.meta.skill_refs_fetched} skill ref${answer.meta.skill_refs_fetched === 1 ? "" : "s"}`}
                 {answer.meta.playbooks_matched && answer.meta.playbooks_matched.length > 0 &&
                   ` · playbook: ${answer.meta.playbooks_matched.join(", ")}`}
               </p>
