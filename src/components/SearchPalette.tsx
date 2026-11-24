@@ -19,6 +19,7 @@ import {
   vendorsReadmeBodyMatches,
 } from "../lib/vendorsSearch";
 import { sortPaletteRows, type PaletteSearchRow } from "../lib/paletteSearchRanking";
+import { PageHeroBand } from "./PageHeroBand";
 
 const MAX_COMPONENT_RESULTS = 50;
 const MAX_EXAMPLE_LINK_RESULTS = 24;
@@ -233,51 +234,53 @@ export function SearchPalette({
           borderRadius: 14,
           border: "1px solid var(--border-strong)",
           background: "var(--bg-elevated)",
-          boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(139, 92, 246, 0.25)",
           overflow: "hidden",
         }}
       >
-        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
-            <Search
-              size={22}
-              strokeWidth={2}
-              style={{ color: "var(--text-dim)", flexShrink: 0, marginTop: 2 }}
-              aria-hidden
-            />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <input
-                ref={inputRef}
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search templates, vendors (Snowflake, Db2, …), examples…"
-                style={{
-                  width: "100%",
-                  border: "none",
-                  background: "transparent",
-                  color: "var(--text)",
-                  fontSize: 16,
-                  outline: "none",
-                  padding: "2px 0 4px",
-                }}
+        <PageHeroBand>
+          <div style={{ padding: "14px 16px" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
+              <Search
+                size={22}
+                strokeWidth={2}
+                style={{ color: "rgba(255,255,255,0.75)", flexShrink: 0, marginTop: 2 }}
+                aria-hidden
               />
-              <p style={{ margin: 0, fontSize: 12, color: "var(--text-dim)", lineHeight: 1.4 }}>
-                Catalog components, vendor landing pages, and the CLI examples index.
-              </p>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <input
+                  ref={inputRef}
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search templates, vendors (Snowflake, Db2, …), examples…"
+                  style={{
+                    width: "100%",
+                    border: "none",
+                    background: "transparent",
+                    color: "#fff",
+                    fontSize: 16,
+                    outline: "none",
+                    padding: "2px 0 4px",
+                  }}
+                />
+                <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.4 }}>
+                  Catalog components, vendor landing pages, and the CLI examples index.
+                </p>
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <span>
+                <span className="kbd">↑</span> <span className="kbd">↓</span> navigate
+              </span>
+              <span>
+                <span className="kbd">↵</span> open
+              </span>
+              <span>
+                <span className="kbd">esc</span> close
+              </span>
             </div>
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-dim)", display: "flex", flexWrap: "wrap", gap: 8 }}>
-            <span>
-              <span className="kbd">↑</span> <span className="kbd">↓</span> navigate
-            </span>
-            <span>
-              <span className="kbd">↵</span> open
-            </span>
-            <span>
-              <span className="kbd">esc</span> close
-            </span>
-          </div>
-        </div>
+        </PageHeroBand>
         <div
           style={{
             padding: "10px 16px 12px",
