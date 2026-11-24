@@ -252,7 +252,7 @@ export function ExamplesIndex() {
   return (
     <>
       <PageHeroBand>
-        <div style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px 36px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 36px" }}>
           <PageEyebrow light>Examples</PageEyebrow>
           <h1
             style={{
@@ -357,7 +357,7 @@ export function ExamplesIndex() {
         </div>
       </PageHeroBand>
 
-      <div className="examples-markdown-page" style={{ maxWidth: 920, margin: "0 auto", padding: "28px 24px 64px" }}>
+      <div className="examples-markdown-page" style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
       {loading && <p style={{ color: "var(--text-muted)" }}>Loading examples index…</p>}
       {error && (
         <div className="callout-help" style={{ marginBottom: 24, borderLeftColor: "var(--error)" }}>

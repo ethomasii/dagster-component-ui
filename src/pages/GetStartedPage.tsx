@@ -21,7 +21,7 @@ export function GetStartedPage() {
   return (
     <>
       <PageHeroBand>
-        <div style={{ maxWidth: 920, margin: "0 auto", padding: "20px 24px 36px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 24px 36px" }}>
           <p style={{ margin: "0 0 16px" }}>
             <Link to="/" style={{ fontSize: 14, color: "#67e8f9", textDecoration: "none" }}>
               ← Registry
@@ -69,7 +69,7 @@ export function GetStartedPage() {
         </div>
       </PageHeroBand>
 
-      <div style={{ maxWidth: 920, margin: "0 auto", padding: "28px 24px 64px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
       <h2
         style={{
           fontSize: 12,

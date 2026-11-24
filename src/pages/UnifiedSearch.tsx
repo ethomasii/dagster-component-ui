@@ -80,7 +80,7 @@ export function UnifiedSearch() {
   }, [examplesReadme, qParam, hasQuery]);
 
   return (
-    <div style={{ maxWidth: 1120, margin: "0 auto", padding: "32px 24px 64px" }}>
+    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 64px" }}>
       <PageEyebrow>Search</PageEyebrow>
 
       <h1 style={{ margin: "0 0 8px", fontSize: 28, fontWeight: 700 }}>

@@ -258,13 +258,13 @@ export function ComponentDetail() {
   return (
     <>
       {loading && !manifest ? (
-        <article style={{ maxWidth: 900, margin: "0 auto", padding: "24px 24px 80px" }}>
+        <article style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 24px 80px" }}>
           <p style={{ color: "var(--text-muted)" }}>Loading…</p>
         </article>
       ) : (
         <>
           <PageHeroBand>
-          <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 24px 32px" }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 24px 32px" }}>
           <Breadcrumb
             crumbs={[
               { label: "Registry", to: "/" },
@@ -416,7 +416,7 @@ export function ComponentDetail() {
           </div>
           </PageHeroBand>
 
-          <article style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 0" }}>
+          <article style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 0" }}>
           <div
             style={{
               display: "grid",

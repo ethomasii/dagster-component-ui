@@ -32,7 +32,7 @@ export function BlogIndex() {
   return (
     <>
       <PageHeroBand>
-        <div style={{ maxWidth: 780, margin: "0 auto", padding: "32px 24px 36px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 36px" }}>
           <PageEyebrow light>Blog</PageEyebrow>
           <div
             style={{
@@ -87,7 +87,7 @@ export function BlogIndex() {
 
       <main
         style={{
-          maxWidth: 780,
+          maxWidth: 1200,
           margin: "0 auto",
           padding: "28px 24px 96px",
         }}

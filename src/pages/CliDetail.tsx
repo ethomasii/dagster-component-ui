@@ -50,7 +50,7 @@ export function CliDetail() {
     return (
       <>
         <PageHeroBand>
-          <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 24px 32px" }}>
             <Breadcrumb
               crumbs={[
                 { label: "Registry", to: "/" },
@@ -63,7 +63,7 @@ export function CliDetail() {
             </h1>
           </div>
         </PageHeroBand>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 64px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
           <p style={{ color: "var(--text-muted)" }}>
             Available: {CLIS.map((c) => c.id).join(", ")}
           </p>
@@ -75,7 +75,7 @@ export function CliDetail() {
   return (
     <>
       <PageHeroBand>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 24px 32px" }}>
           <Breadcrumb
             crumbs={[
               { label: "Registry", to: "/" },
@@ -119,7 +119,7 @@ export function CliDetail() {
         </div>
       </PageHeroBand>
 
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 64px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
       {loading && <p style={{ color: "var(--text-muted)" }}>Loading README …</p>}
       {error && (
         <div className="callout-help" style={{ borderLeftColor: "var(--error)" }}>

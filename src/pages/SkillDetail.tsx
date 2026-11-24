@@ -47,7 +47,7 @@ export function SkillDetail() {
     return (
       <>
         <PageHeroBand>
-          <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 24px 32px" }}>
             <Breadcrumb
               crumbs={[
                 { label: "Registry", to: "/" },
@@ -60,7 +60,7 @@ export function SkillDetail() {
             </h1>
           </div>
         </PageHeroBand>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 64px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
           <p style={{ color: "var(--text-muted)" }}>
             Available: {SKILLS.map((s) => s.id).join(", ")}
           </p>
@@ -72,7 +72,7 @@ export function SkillDetail() {
   return (
     <>
       <PageHeroBand>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 24px 32px" }}>
           <Breadcrumb
             crumbs={[
               { label: "Registry", to: "/" },
@@ -105,7 +105,7 @@ export function SkillDetail() {
         </div>
       </PageHeroBand>
 
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 64px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
       <div className="callout-help" style={{ marginBottom: 24 }}>
         <p style={{ margin: 0, fontWeight: 600 }}>Install this skill</p>
         <pre style={{

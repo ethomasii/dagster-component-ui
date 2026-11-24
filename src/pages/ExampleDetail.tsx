@@ -119,7 +119,7 @@ export function ExampleDetail() {
   return (
     <>
       <PageHeroBand>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 24px 32px" }}>
           <Breadcrumb
             crumbs={[
               { label: "Registry", to: "/" },
@@ -150,7 +150,7 @@ export function ExampleDetail() {
         </div>
       </PageHeroBand>
 
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 64px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
       <div
         style={{
           marginBottom: 28,

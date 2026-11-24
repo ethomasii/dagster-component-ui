@@ -68,7 +68,7 @@ export function VendorDetail() {
   return (
     <>
       <PageHeroBand>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px 32px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 24px 32px" }}>
           <Breadcrumb
             crumbs={[
               { label: "Registry", to: "/" },
@@ -103,7 +103,7 @@ export function VendorDetail() {
         </div>
       </PageHeroBand>
 
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 64px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
       {resolvedUrl ? (
         <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 16px" }}>
           <a href={resolvedUrl} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
