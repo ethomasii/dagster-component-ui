@@ -15,6 +15,7 @@ import {
   rewriteVendorsIndexLinks,
 } from "../lib/loadVendors";
 import { PageEyebrow } from "../components/PageEyebrow";
+import { PageHeroBand } from "../components/PageHeroBand";
 
 export function VendorsIndex() {
   const { components } = useCatalog();
@@ -66,75 +67,80 @@ export function VendorsIndex() {
   }, [linkedReadme, qParam]);
 
   return (
-    <div style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <PageEyebrow>Vendors</PageEyebrow>
+    <>
+      <PageHeroBand>
+        <div style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px 36px" }}>
+          <PageEyebrow light>Vendors</PageEyebrow>
 
-      <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 16px", lineHeight: 1.5 }}>
-        One-stop pages for each vendor or vendor family—components, validation, walkthroughs, and connection notes.
-        This index mirrors{" "}
-        <a href={VENDORS_TREE_WEB} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
-          vendors/
-        </a>{" "}
-        in the templates repo (updates when that folder changes).
-      </p>
+          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "0 0 20px", lineHeight: 1.55, maxWidth: 760 }}>
+            One-stop pages for each vendor or vendor family—components, validation, walkthroughs, and connection notes.
+            This index mirrors{" "}
+            <a href={VENDORS_TREE_WEB} target="_blank" rel="noreferrer" style={{ color: "#67e8f9" }}>
+              vendors/
+            </a>{" "}
+            in the templates repo (updates when that folder changes).
+          </p>
 
-      {!loading && !error && linkedReadme != null && (
-        <form
-          onSubmit={(e) => e.preventDefault()}
-          style={{ marginBottom: 20, display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              flex: "1 1 220px",
-              minWidth: 0,
-              padding: "10px 14px",
-              borderRadius: 10,
-              border: "1px solid var(--border)",
-              background: "var(--bg-card)",
-            }}
-          >
-            <Search size={18} strokeWidth={2} style={{ color: "var(--text-dim)", flexShrink: 0 }} aria-hidden />
-            <input
-              type="search"
-              value={qParam}
-              onChange={(e) => setQParam(e.target.value)}
-              placeholder="Filter by vendor name, Db2, Snowflake, …"
-              aria-label="Filter vendors README"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                border: "none",
-                background: "transparent",
-                color: "var(--text)",
-                fontSize: 14,
-                outline: "none",
-              }}
-            />
-          </div>
-          {qParam.trim() ? (
-            <button
-              type="button"
-              onClick={() => setQParam("")}
-              style={{
-                padding: "10px 14px",
-                borderRadius: 10,
-                border: "1px solid var(--border)",
-                background: "var(--bg-elevated)",
-                color: "var(--text-muted)",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
+          {!loading && !error && linkedReadme != null && (
+            <form
+              onSubmit={(e) => e.preventDefault()}
+              style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}
             >
-              Clear
-            </button>
-          ) : null}
-        </form>
-      )}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  flex: "1 1 220px",
+                  minWidth: 0,
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  border: "1px solid var(--border)",
+                  background: "var(--bg-card)",
+                }}
+              >
+                <Search size={18} strokeWidth={2} style={{ color: "var(--text-dim)", flexShrink: 0 }} aria-hidden />
+                <input
+                  type="search"
+                  value={qParam}
+                  onChange={(e) => setQParam(e.target.value)}
+                  placeholder="Filter by vendor name, Db2, Snowflake, …"
+                  aria-label="Filter vendors README"
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    border: "none",
+                    background: "transparent",
+                    color: "var(--text)",
+                    fontSize: 14,
+                    outline: "none",
+                  }}
+                />
+              </div>
+              {qParam.trim() ? (
+                <button
+                  type="button"
+                  onClick={() => setQParam("")}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(255,255,255,0.3)",
+                    background: "rgba(255,255,255,0.12)",
+                    color: "#fff",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Clear
+                </button>
+              ) : null}
+            </form>
+          )}
+        </div>
+      </PageHeroBand>
 
+      <div style={{ maxWidth: 920, margin: "0 auto", padding: "28px 24px 64px" }}>
       {loading && <p style={{ color: "var(--text-muted)" }}>Loading vendors index…</p>}
       {error && (
         <div className="callout-help" style={{ marginBottom: 24, borderLeftColor: "var(--error)" }}>
@@ -173,6 +179,7 @@ export function VendorsIndex() {
           </p>
         </div>
       ) : null}
-    </div>
+      </div>
+    </>
   );
 }

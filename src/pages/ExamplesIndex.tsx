@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ChevronRight, Search } from "lucide-react";
 import { ExamplesMarkdown } from "../components/ExamplesMarkdown";
 import { PageEyebrow } from "../components/PageEyebrow";
+import { PageHeroBand } from "../components/PageHeroBand";
 import {
   COMMUNITY_CLI_EXAMPLES_INDEX_README_URL,
   COMMUNITY_CLI_EXAMPLES_TREE_WEB,
@@ -249,98 +250,103 @@ export function ExamplesIndex() {
   const allOpen = allSlugs.length > 0 && allSlugs.every((slug) => openSlugs.has(slug));
 
   return (
-    <div className="examples-markdown-page" style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <PageEyebrow>Examples</PageEyebrow>
+    <>
+      <PageHeroBand>
+        <div style={{ maxWidth: 920, margin: "0 auto", padding: "32px 24px 36px" }}>
+          <PageEyebrow light>Examples</PageEyebrow>
 
-      <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 16px", lineHeight: 1.5 }}>
-        This page mirrors the demos folder README from the CLI repo—it updates whenever that file changes (no duplicated
-        list in this codebase). Browse the folder on GitHub:{" "}
-        <a href={COMMUNITY_CLI_EXAMPLES_TREE_WEB} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
-          examples/
-        </a>
-        . Demo setup scripts often use <span className="mono">uvx</span>; {UVX_REQUIRES_UV_EXPLAINER}{" "}
-        <Link to="/get-started" style={{ color: "var(--cyan)" }}>
-          Get started
-        </Link>{" "}
-        has install steps and a pip-only path.
-      </p>
+          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "0 0 20px", lineHeight: 1.55 }}>
+            This page mirrors the demos folder README from the CLI repo—it updates whenever that file changes (no duplicated
+            list in this codebase). Browse the folder on GitHub:{" "}
+            <a href={COMMUNITY_CLI_EXAMPLES_TREE_WEB} target="_blank" rel="noreferrer" style={{ color: "#67e8f9" }}>
+              examples/
+            </a>
+            . Demo setup scripts often use <span className="mono" style={{ background: "rgba(255,255,255,0.14)", color: "#fff" }}>uvx</span>; {UVX_REQUIRES_UV_EXPLAINER}{" "}
+            <Link to="/get-started" style={{ color: "#67e8f9" }}>
+              Get started
+            </Link>{" "}
+            has install steps and a pip-only path.
+          </p>
 
-      {!loading && !error && linkedReadme != null && (
-        <form
-          onSubmit={(e) => e.preventDefault()}
-          style={{ marginBottom: 28, display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              flex: "1 1 220px",
-              minWidth: 0,
-              padding: "10px 14px",
-              borderRadius: 10,
-              border: "1px solid var(--border)",
-              background: "var(--bg-card)",
-            }}
-          >
-            <Search size={18} strokeWidth={2} style={{ color: "var(--text-dim)", flexShrink: 0 }} aria-hidden />
-            <input
-              type="search"
-              value={qParam}
-              onChange={(e) => setQParam(e.target.value)}
-              placeholder="Filter sections (matches all words)…"
-              aria-label="Filter examples README"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                border: "none",
-                background: "transparent",
-                color: "var(--text)",
-                fontSize: 14,
-                outline: "none",
-              }}
-            />
-          </div>
-          {qParam.trim() ? (
-            <button
-              type="button"
-              onClick={() => setQParam("")}
-              style={{
-                padding: "10px 14px",
-                borderRadius: 10,
-                border: "1px solid var(--border)",
-                background: "var(--bg-elevated)",
-                color: "var(--text-muted)",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
+          {!loading && !error && linkedReadme != null && (
+            <form
+              onSubmit={(e) => e.preventDefault()}
+              style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}
             >
-              Clear
-            </button>
-          ) : null}
-          {!searching && allSlugs.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => setOpenSlugs(allOpen ? new Set() : new Set(allSlugs))}
-              style={{
-                padding: "10px 14px",
-                borderRadius: 10,
-                border: "1px solid var(--border)",
-                background: "var(--bg-elevated)",
-                color: "var(--text-muted)",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {allOpen ? "Collapse all" : "Expand all"}
-            </button>
-          ) : null}
-        </form>
-      )}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  flex: "1 1 220px",
+                  minWidth: 0,
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  border: "1px solid var(--border)",
+                  background: "var(--bg-card)",
+                }}
+              >
+                <Search size={18} strokeWidth={2} style={{ color: "var(--text-dim)", flexShrink: 0 }} aria-hidden />
+                <input
+                  type="search"
+                  value={qParam}
+                  onChange={(e) => setQParam(e.target.value)}
+                  placeholder="Filter sections (matches all words)…"
+                  aria-label="Filter examples README"
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    border: "none",
+                    background: "transparent",
+                    color: "var(--text)",
+                    fontSize: 14,
+                    outline: "none",
+                  }}
+                />
+              </div>
+              {qParam.trim() ? (
+                <button
+                  type="button"
+                  onClick={() => setQParam("")}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(255,255,255,0.3)",
+                    background: "rgba(255,255,255,0.12)",
+                    color: "#fff",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Clear
+                </button>
+              ) : null}
+              {!searching && allSlugs.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setOpenSlugs(allOpen ? new Set() : new Set(allSlugs))}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(255,255,255,0.3)",
+                    background: "rgba(255,255,255,0.12)",
+                    color: "#fff",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {allOpen ? "Collapse all" : "Expand all"}
+                </button>
+              ) : null}
+            </form>
+          )}
+        </div>
+      </PageHeroBand>
 
+      <div className="examples-markdown-page" style={{ maxWidth: 920, margin: "0 auto", padding: "28px 24px 64px" }}>
       {loading && <p style={{ color: "var(--text-muted)" }}>Loading examples index…</p>}
       {error && (
         <div className="callout-help" style={{ marginBottom: 24, borderLeftColor: "var(--error)" }}>
@@ -493,6 +499,7 @@ export function ExamplesIndex() {
           </p>
         </div>
       ) : null}
-    </div>
+      </div>
+    </>
   );
 }

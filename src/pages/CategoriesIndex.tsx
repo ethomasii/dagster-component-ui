@@ -5,6 +5,7 @@ import { categoryLabel } from "../lib/format";
 import { componentId } from "../lib/componentId";
 import { ComponentIcon } from "../components/ComponentIcon";
 import { PageEyebrow } from "../components/PageEyebrow";
+import { PageHeroBand } from "../components/PageHeroBand";
 import type { ManifestComponent } from "../types";
 
 /**
@@ -68,23 +69,29 @@ export function CategoriesIndex() {
   }, [components]);
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <PageEyebrow>Categories</PageEyebrow>
-      <h1
-        style={{
-          fontSize: "clamp(1.5rem, 3.5vw, 2rem)",
-          fontWeight: 700,
-          letterSpacing: "-0.02em",
-          margin: "0 0 12px",
-          lineHeight: 1.2,
-        }}
-      >
-        Browse by category
-      </h1>
-      <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "0 0 28px", lineHeight: 1.5 }}>
-        Every component in the registry maps to one category. Pick one to see the full list with per-vendor and validation filters, or use search across all categories from the header.
-      </p>
+    <>
+      <PageHeroBand>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 36px" }}>
+          <PageEyebrow light>Categories</PageEyebrow>
+          <h1
+            style={{
+              fontSize: "clamp(1.75rem, 3.5vw, 2.25rem)",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              margin: "0 0 12px",
+              lineHeight: 1.2,
+              color: "#fff",
+            }}
+          >
+            Browse by category
+          </h1>
+          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: 0, lineHeight: 1.55, maxWidth: 760 }}>
+            Every component in the registry maps to one category. Pick one to see the full list with per-vendor and validation filters, or use search across all categories from the header.
+          </p>
+        </div>
+      </PageHeroBand>
 
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
       <div
         style={{
           display: "grid",
@@ -173,6 +180,7 @@ export function CategoriesIndex() {
           </Link>
         ))}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Copy, Check, ExternalLink, ArrowRight } from "lucide-react";
 import { CLIS, CLI_REPO, CLI_CATEGORY_COLORS } from "../data/clis";
 import { PageEyebrow } from "../components/PageEyebrow";
+import { PageHeroBand } from "../components/PageHeroBand";
 
 /**
  * `/cli` — standalone Dagster+ CLI scripts (not components, not installed
@@ -48,35 +49,41 @@ function CopyBtn({ text, label = "Copy" }: { text: string; label?: string }) {
 
 export function CliIndex() {
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <PageEyebrow>CLIs</PageEyebrow>
-      <h1
-        style={{
-          fontSize: "clamp(1.5rem, 3.5vw, 2rem)",
-          fontWeight: 700,
-          letterSpacing: "-0.02em",
-          margin: "0 0 12px",
-          lineHeight: 1.2,
-        }}
-      >
-        Standalone Dagster+ CLI scripts
-      </h1>
-      <p style={{ fontSize: 15, color: "var(--text-muted)", margin: "0 0 12px", lineHeight: 1.55 }}>
-        Python 3.8+ stdlib-only scripts for GitOps-managing your Dagster+ deployment and pulling
-        Insights data the web UI doesn't expose. Different install model than components — <code
-        className="mono" style={{ fontSize: 13 }}>curl</code> the file, <code className="mono"
-        style={{ fontSize: 13 }}>chmod +x</code>, run against a Dagster+ user API token. Nothing
-        gets installed into your Dagster project.
-      </p>
-      <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 32px", lineHeight: 1.5 }}>
-        The four sync/pull scripts have been verified end-to-end against a live Dagster+
-        deployment; <code className="mono" style={{ fontSize: 12 }}>migrate_asset_metadata.py</code>'s
-        GraphQL and REST request shapes are confirmed against Dagster's own docs and reference
-        example, not yet run end-to-end here. Every script is safe to hand a customer directly —
-        no dependency on any registry component or internal tooling. Click any card for the full
-        per-script docs (fetched from the script's module docstring).
-      </p>
+    <>
+      <PageHeroBand>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 36px" }}>
+          <PageEyebrow light>CLIs</PageEyebrow>
+          <h1
+            style={{
+              fontSize: "clamp(1.75rem, 3.5vw, 2.25rem)",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              margin: "0 0 12px",
+              lineHeight: 1.2,
+              color: "#fff",
+            }}
+          >
+            Standalone Dagster+ CLI scripts
+          </h1>
+          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "0 0 12px", lineHeight: 1.55, maxWidth: 780 }}>
+            Python 3.8+ stdlib-only scripts for GitOps-managing your Dagster+ deployment and pulling
+            Insights data the web UI doesn't expose. Different install model than components — <code
+            className="mono" style={{ fontSize: 13, background: "rgba(255,255,255,0.14)", color: "#fff" }}>curl</code> the file, <code className="mono"
+            style={{ fontSize: 13, background: "rgba(255,255,255,0.14)", color: "#fff" }}>chmod +x</code>, run against a Dagster+ user API token. Nothing
+            gets installed into your Dagster project.
+          </p>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", margin: 0, lineHeight: 1.5 }}>
+            The four sync/pull scripts have been verified end-to-end against a live Dagster+
+            deployment; <code className="mono" style={{ fontSize: 12, background: "rgba(255,255,255,0.14)", color: "#fff" }}>migrate_asset_metadata.py</code>'s
+            GraphQL and REST request shapes are confirmed against Dagster's own docs and reference
+            example, not yet run end-to-end here. Every script is safe to hand a customer directly —
+            no dependency on any registry component or internal tooling. Click any card for the full
+            per-script docs (fetched from the script's module docstring).
+          </p>
+        </div>
+      </PageHeroBand>
 
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {CLIS.map((cli) => (
           <div
@@ -206,6 +213,7 @@ export function CliIndex() {
         {" "}or hand-roll the shape from the three above — they're all stdlib-only and follow the same
         `subcommand + arg` pattern.
       </p>
-    </div>
+      </div>
+    </>
   );
 }

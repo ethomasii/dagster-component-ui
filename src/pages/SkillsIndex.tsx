@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, ExternalLink } from "lucide-react";
 import { SKILLS, SKILLS_REPO, SKILL_RESOURCE_COMPONENT_ID, type SkillEntry } from "../data/skills";
 import { PageEyebrow } from "../components/PageEyebrow";
+import { PageHeroBand } from "../components/PageHeroBand";
 
 /**
  * `/skills` — Claude Agent Skills (SKILL.md files) published across this registry's repos,
@@ -95,36 +96,42 @@ export function SkillsIndex() {
   const groups: SkillEntry["group"][] = ["migration", "component"];
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <PageEyebrow>Skills</PageEyebrow>
-      <h1
-        style={{
-          fontSize: "clamp(1.5rem, 3.5vw, 2rem)",
-          fontWeight: 700,
-          letterSpacing: "-0.02em",
-          margin: "0 0 12px",
-          lineHeight: 1.2,
-        }}
-      >
-        Agent Skills
-      </h1>
-      <p style={{ fontSize: 15, color: "var(--text-muted)", margin: "0 0 12px", lineHeight: 1.55 }}>
-        <code className="mono" style={{ fontSize: 13 }}>SKILL.md</code> files published across this
-        registry's repos — Anthropic's Agent Skills convention (YAML frontmatter + a markdown body
-        of instructions). Copy or symlink one into{" "}
-        <code className="mono" style={{ fontSize: 13 }}>.claude/skills/&lt;name&gt;/SKILL.md</code>{" "}
-        so Claude Code (or any Agent-Skills-aware client) picks it up automatically.
-      </p>
-      <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 32px", lineHeight: 1.5 }}>
-        Looking to register your OWN skill for your project's agents to use at runtime (via{" "}
-        <code className="mono" style={{ fontSize: 12 }}>skill_keys</code>), rather than a skill
-        for your coding assistant? See{" "}
-        <Link to={`/c/${SKILL_RESOURCE_COMPONENT_ID}`} style={{ color: "var(--cyan)" }}>
-          SkillResourceComponent
-        </Link>{" "}
-        — a different mechanism, not listed here.
-      </p>
+    <>
+      <PageHeroBand>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 36px" }}>
+          <PageEyebrow light>Skills</PageEyebrow>
+          <h1
+            style={{
+              fontSize: "clamp(1.75rem, 3.5vw, 2.25rem)",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              margin: "0 0 12px",
+              lineHeight: 1.2,
+              color: "#fff",
+            }}
+          >
+            Agent Skills
+          </h1>
+          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "0 0 12px", lineHeight: 1.55, maxWidth: 780 }}>
+            <code className="mono" style={{ fontSize: 13, background: "rgba(255,255,255,0.14)", color: "#fff" }}>SKILL.md</code> files published across this
+            registry's repos — Anthropic's Agent Skills convention (YAML frontmatter + a markdown body
+            of instructions). Copy or symlink one into{" "}
+            <code className="mono" style={{ fontSize: 13, background: "rgba(255,255,255,0.14)", color: "#fff" }}>.claude/skills/&lt;name&gt;/SKILL.md</code>{" "}
+            so Claude Code (or any Agent-Skills-aware client) picks it up automatically.
+          </p>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", margin: 0, lineHeight: 1.5 }}>
+            Looking to register your OWN skill for your project's agents to use at runtime (via{" "}
+            <code className="mono" style={{ fontSize: 12, background: "rgba(255,255,255,0.14)", color: "#fff" }}>skill_keys</code>), rather than a skill
+            for your coding assistant? See{" "}
+            <Link to={`/c/${SKILL_RESOURCE_COMPONENT_ID}`} style={{ color: "#67e8f9" }}>
+              SkillResourceComponent
+            </Link>{" "}
+            — a different mechanism, not listed here.
+          </p>
+        </div>
+      </PageHeroBand>
 
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
       {groups.map((group) => {
         const items = SKILLS.filter((s) => s.group === group);
         if (!items.length) return null;
@@ -158,6 +165,7 @@ export function SkillsIndex() {
           {SKILLS_REPO.replace("https://github.com/", "")}/issues
         </a>.
       </p>
-    </div>
+      </div>
+    </>
   );
 }
