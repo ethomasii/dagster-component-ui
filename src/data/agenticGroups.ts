@@ -6,6 +6,13 @@
  *  named buckets for display purposes only. Purely a UI concern: it does not read or write
  *  manifest.json, and a component's membership here has no bearing on its `tags` array.
  *
+ *  One exception: the "Context & knowledge" group intentionally lists a few close siblings
+ *  that are NOT manifest-tagged `agentic` (context_engineering_pipeline, knowledge_graph_builder,
+ *  knowledge_search_server, hybrid_knowledge_search_server, rag_pipeline) — they build/serve the
+ *  knowledge base an agent reads from, not an agent loop itself, so tagging them `agentic` would
+ *  misclassify them everywhere else that tag is read. AgenticIndex.tsx resolves every group's
+ *  componentIds against the full catalog (not just the `agentic`-tagged subset) for this reason.
+ *
  *  Kept as a hardcoded const (same pattern as `clis.ts`/`skills.ts`) because group membership
  *  is a curation judgment call, not something derivable from manifest fields alone — an
  *  `other` catch-all below covers any `agentic`-tagged component not yet triaged into a named
@@ -21,6 +28,16 @@ export type AgenticGroup = {
 };
 
 export const AGENTIC_GROUPS: AgenticGroup[] = [
+  {
+    id: "context-knowledge",
+    label: "Context & knowledge",
+    description:
+      "The retrieval layer most agents here read from before they answer — build a governed knowledge base or graph from raw text, then expose it to an agent over MCP. Not agent loops themselves (so not manifest-tagged `agentic`), but the precursor the Agents and MCP tool servers below are built to call.",
+    componentIds: [
+      "context_engineering_pipeline", "knowledge_graph_builder",
+      "knowledge_search_server", "hybrid_knowledge_search_server", "rag_pipeline",
+    ],
+  },
   {
     id: "pipelines",
     label: "Pipelines",

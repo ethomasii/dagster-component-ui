@@ -17,13 +17,17 @@ const GROUP_ACCENTS = ["#8b5cf6", "#22d3ee", "#34d399", "#fbbf24", "#f472b6", "#
 
 /**
  * `/agentic` — every component tagged `agentic` in the manifest, grouped into named
- * sub-categories (Pipelines, Agents, MCP tool servers, Approval & review, Memory &
- * registry, Chat platform wiring, Skills & resources) rather than one flat 57-card grid.
+ * sub-categories (Context & knowledge, Pipelines, Agents, MCP tool servers, Approval &
+ * review, Memory & registry, Chat platform wiring, Skills & resources) rather than one
+ * flat card grid.
  *
  * Grouping is a UI-only curation (`src/data/agenticGroups.ts`) layered on top of the
  * manifest's flat `agentic` tag — the tag says "this supports an agent loop," the groups
- * say what kind. An "Other agentic" catch-all covers anything tagged but not yet triaged
- * into a named group, so nothing is silently dropped as new components get tagged.
+ * say what kind. One group ("Context & knowledge") also pulls in a few close siblings that
+ * aren't tagged `agentic` themselves (they build/serve what an agent reads from, not an
+ * agent loop) — `byId` below resolves against the full catalog for this reason. An "Other
+ * agentic" catch-all covers anything tagged but not yet triaged into a named group, so
+ * nothing is silently dropped as new components get tagged.
  */
 export function AgenticIndex() {
   const { components } = useCatalog();
@@ -45,9 +49,12 @@ export function AgenticIndex() {
 
   const byId = useMemo(() => {
     const m = new Map<string, ManifestComponent>();
-    for (const c of agentic) m.set(componentId(c), c);
+    // Resolved against the FULL catalog, not just the `agentic`-tagged subset — a couple of
+    // named groups (see agenticGroups.ts) intentionally include close siblings that aren't
+    // manifest-tagged `agentic` themselves.
+    for (const c of components) m.set(componentId(c), c);
     return m;
-  }, [agentic]);
+  }, [components]);
 
   const sections = useMemo(() => {
     const named = AGENTIC_GROUPS.map((g) => ({
@@ -62,6 +69,8 @@ export function AgenticIndex() {
     }
     return named;
   }, [byId, agentic]);
+
+  const totalItems = useMemo(() => sections.reduce((n, s) => n + s.items.length, 0), [sections]);
 
   const matchesQuery = (c: ManifestComponent, q: string): boolean => {
     if (!q) return true;
@@ -91,19 +100,20 @@ export function AgenticIndex() {
               Agentic components
             </h1>
             <span style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", fontVariantNumeric: "tabular-nums" }}>
-              {agentic.length} component{agentic.length === 1 ? "" : "s"}
+              {totalItems} component{totalItems === 1 ? "" : "s"}
             </span>
           </div>
           <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "0 0 12px", lineHeight: 1.55, maxWidth: 820 }}>
             Everything that implements or directly supports an autonomous or semi-autonomous agent
-            loop, grouped by what kind — pipelines, agents, MCP tool servers an agent calls,
-            human-in-the-loop approval, memory/registry, and the chat-platform wiring that triggers
-            a run and posts its reply.
+            loop, grouped by what kind — the context & knowledge layer most agents read from,
+            pipelines, agents, MCP tool servers an agent calls, human-in-the-loop approval,
+            memory/registry, and the chat-platform wiring that triggers a run and posts its reply.
           </p>
           <p style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", margin: "0 0 24px", lineHeight: 1.5 }}>
             Narrower than browsing <Link to="/categories/ai" style={{ color: "#67e8f9" }}>category: ai</Link> directly —
             that category also holds single-shot LLM utilities that don't run an agent loop.
-            Manifest key: <code className="mono" style={{ fontSize: 12, background: "rgba(255,255,255,0.14)", color: "#fff" }}>tags: ["agentic", …]</code>.
+            Most sections are manifest-tagged <code className="mono" style={{ fontSize: 12, background: "rgba(255,255,255,0.14)", color: "#fff" }}>tags: ["agentic", …]</code>;
+            "Context & knowledge" also includes close siblings that build or serve what those agents read from, without being agent loops themselves.
           </p>
 
           <form
@@ -121,7 +131,7 @@ export function AgenticIndex() {
                 type="search"
                 value={qParam}
                 onChange={(e) => setParam("q", e.target.value)}
-                placeholder={`Filter ${agentic.length} agentic components`}
+                placeholder={`Filter ${totalItems} agentic components`}
                 aria-label="Filter agentic components"
                 style={{
                   flex: 1, minWidth: 0,
@@ -173,7 +183,7 @@ export function AgenticIndex() {
 
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
       <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 20px" }}>
-        Showing {visibleCount} of {agentic.length}
+        Showing {visibleCount} of {totalItems}
       </p>
 
       {visibleSections.map((s, i) => {
