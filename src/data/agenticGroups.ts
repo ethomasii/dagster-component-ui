@@ -6,12 +6,14 @@
  *  named buckets for display purposes only. Purely a UI concern: it does not read or write
  *  manifest.json, and a component's membership here has no bearing on its `tags` array.
  *
- *  One exception: the "Context & knowledge" and "Context receipts & provenance" groups
- *  intentionally list close siblings that are NOT manifest-tagged `agentic` — they build/serve
- *  the knowledge base an agent reads from, or log/audit what it retrieved, not an agent loop
- *  itself, so tagging them `agentic` would misclassify them everywhere else that tag is read.
- *  AgenticIndex.tsx resolves every group's componentIds against the full catalog (not just the
- *  `agentic`-tagged subset) for this reason.
+ *  One exception: "Context & knowledge", "Context receipts & provenance", "LLM inference &
+ *  evaluation", and "AI-powered extraction & transforms" intentionally list close siblings that
+ *  are NOT manifest-tagged `agentic` — they build/serve the knowledge base an agent reads from,
+ *  log/audit what it retrieved, provide the single-shot LLM calls agent/pipeline components are
+ *  built from, or apply one LLM call to a row/document without a multi-step loop — not an agent
+ *  loop itself, so tagging them `agentic` would misclassify them everywhere else that tag is
+ *  read. AgenticIndex.tsx resolves every group's componentIds against the full catalog (not just
+ *  the `agentic`-tagged subset) for this reason.
  *
  *  Kept as a hardcoded const (same pattern as `clis.ts`/`skills.ts`) because group membership
  *  is a curation judgment call, not something derivable from manifest fields alone — an
@@ -53,6 +55,24 @@ export const AGENTIC_GROUPS: AgenticGroup[] = [
     componentIds: ["context_receipt_store", "context_receipt_bigquery_sync"],
   },
   {
+    id: "llm-inference",
+    label: "LLM inference & evaluation",
+    description:
+      "Single-shot and batch LLM calls, provider wrappers, structured-output/function-calling primitives, and LLM-as-judge evaluation — the foundational calls the Agents and Pipelines below are built from. Not agent loops themselves (so not manifest-tagged `agentic`).",
+    componentIds: [
+      "anthropic_llm", "anthropic_llm_batch", "bedrock_converse_asset", "gemini_llm",
+      "gemini_image_generation", "groq_llm", "huggingface_chat_completion",
+      "inference_cost_report", "inference_provider_ab_test", "instructor_extractor",
+      "litellm_audio_transcription", "litellm_batch_completion", "litellm_embedding_batch",
+      "litellm_function_calling", "litellm_image_generation", "litellm_inference_asset",
+      "litellm_structured_output", "litellm_text_to_speech", "llm_chain_executor",
+      "llm_evaluator", "llm_judge", "llm_output_parser", "llm_prompt_executor",
+      "mammouth_llm", "mistral_llm", "model_provider", "openai_llm", "openai_llm_batch",
+      "openrouter_llm", "perplexity_llm", "provider_ab_evaluator", "snowflake_cortex_asset",
+      "dspy_program",
+    ],
+  },
+  {
     id: "pipelines",
     label: "Pipelines",
     description: "Multi-step agentic workflows declared in one YAML — steps, routing, and tool-use loops as a Dagster asset graph.",
@@ -67,6 +87,25 @@ export const AGENTIC_GROUPS: AgenticGroup[] = [
       "vercel_ai_gateway_agent", "snowflake_cortex_agent", "supervisor_agent",
       "iterative_supervisor_agent", "langgraph_agent", "catalog_agent",
       "planned_catalog_agent", "vanta_evidence_response_agent", "adaptive_research_brief",
+      "llm_multi_path_router",
+    ],
+  },
+  {
+    id: "ai-extraction-transforms",
+    label: "AI-powered extraction & transforms",
+    description:
+      "One LLM call wired into ETL — document/field extraction, classification, enrichment, and generation over a row or file, not a multi-step agent loop. Not manifest-tagged `agentic` for the same reason as LLM inference & evaluation above.",
+    componentIds: [
+      "bank_statement_extractor", "contract_extractor", "data_enricher",
+      "data_remediation_asset", "document_section_splitter", "document_summarizer",
+      "expense_report_extractor", "footnote_reference_linker", "gong_call_summary_asset",
+      "image_captioner", "image_llm_extractor", "insurance_claim_extractor",
+      "invoice_extractor", "job_posting_extractor", "legal_document_extractor",
+      "medical_record_extractor", "notion_brief_page", "precision_match",
+      "purchase_order_extractor", "receipt_extractor", "resume_extractor", "schema_fit",
+      "scientific_paper_extractor", "shipping_label_extractor", "sql_generator",
+      "structured_document_extractor", "synthetic_data", "synthetic_prompt_generator",
+      "text_classifier", "vanta_evidence_upload", "video_scene_summarizer", "vision_model",
     ],
   },
   {
