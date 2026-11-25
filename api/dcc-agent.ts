@@ -1002,6 +1002,14 @@ export default async function handler(req: any, res: any) {
         // explicit breakpoints above and on the static catalog block —
         // the combination recommended for multi-turn agent loops.
         cache_control: { type: "ephemeral" },
+        // Force a tool call every turn. With the default "auto", Claude is
+        // free to respond in plain text instead — rare, but when it
+        // happens the loop below has nothing to act on and has to bail
+        // with a hard error ("Claude returned no tool_use"). "any" makes
+        // that failure mode structurally impossible: every turn ends in
+        // either a fetch tool or `answer(...)`, both of which the loop
+        // already knows how to handle.
+        tool_choice: { type: "any" },
         tools: [
           FETCH_SCHEMA_TOOL as any,
           FETCH_README_TOOL as any,
