@@ -6,12 +6,12 @@
  *  named buckets for display purposes only. Purely a UI concern: it does not read or write
  *  manifest.json, and a component's membership here has no bearing on its `tags` array.
  *
- *  One exception: the "Context & knowledge" group intentionally lists a few close siblings
- *  that are NOT manifest-tagged `agentic` (context_engineering_pipeline, knowledge_graph_builder,
- *  knowledge_search_server, hybrid_knowledge_search_server, rag_pipeline) — they build/serve the
- *  knowledge base an agent reads from, not an agent loop itself, so tagging them `agentic` would
- *  misclassify them everywhere else that tag is read. AgenticIndex.tsx resolves every group's
- *  componentIds against the full catalog (not just the `agentic`-tagged subset) for this reason.
+ *  One exception: the "Context & knowledge" and "Context receipts & provenance" groups
+ *  intentionally list close siblings that are NOT manifest-tagged `agentic` — they build/serve
+ *  the knowledge base an agent reads from, or log/audit what it retrieved, not an agent loop
+ *  itself, so tagging them `agentic` would misclassify them everywhere else that tag is read.
+ *  AgenticIndex.tsx resolves every group's componentIds against the full catalog (not just the
+ *  `agentic`-tagged subset) for this reason.
  *
  *  Kept as a hardcoded const (same pattern as `clis.ts`/`skills.ts`) because group membership
  *  is a curation judgment call, not something derivable from manifest fields alone — an
@@ -36,7 +36,16 @@ export const AGENTIC_GROUPS: AgenticGroup[] = [
     componentIds: [
       "context_engineering_pipeline", "knowledge_graph_builder",
       "knowledge_search_server", "hybrid_knowledge_search_server", "rag_pipeline",
+      "hybrid_knowledge_search_query", "knowledge_graph_search_query",
+      "knowledge_graph_search_server", "knowledge_base_eval",
     ],
+  },
+  {
+    id: "context-receipts",
+    label: "Context receipts & provenance",
+    description:
+      "What gets logged when an agent retrieves or answers — a closed feedback loop auditing retrievals, outcomes, and item priors, with an optional warehouse sync. Also not agent loops themselves (so not manifest-tagged `agentic`); the outcomes side of this loop, receipt_outcome_ingestion, lives under Approval & review below since it's where feedback re-enters a run.",
+    componentIds: ["context_receipt_store", "context_receipt_bigquery_sync"],
   },
   {
     id: "pipelines",
