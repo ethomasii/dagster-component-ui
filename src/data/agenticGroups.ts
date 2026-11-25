@@ -39,6 +39,10 @@ export const AGENTIC_GROUPS: AgenticGroup[] = [
       "rag_eval", "rag_grounding_check",
       "hybrid_knowledge_search_query", "knowledge_graph_search_query",
       "knowledge_graph_search_server", "knowledge_base_eval",
+      "document_chunker", "text_chunker", "embeddings_generator", "text_embedding_asset",
+      "vertex_ai_text_embeddings_asset", "voyage_embedding_batch", "reranker",
+      "vector_store_writer", "vector_store_query", "vector_index_snapshot",
+      "supabase_vector_search_asset",
     ],
   },
   {
