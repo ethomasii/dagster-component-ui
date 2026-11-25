@@ -111,11 +111,12 @@ export const AGENTIC_GROUPS: AgenticGroup[] = [
   {
     id: "mcp-tool-servers",
     label: "MCP tool servers",
-    description: "Tool servers built for an agent to call over MCP — Dagster introspection, GitHub/Linear/Notion, OpenAPI, Slack/Teams chat tools.",
+    description: "Tool servers built for an agent to call over MCP — Dagster introspection, GitHub/Linear/Notion/Stripe/Cloudflare/Atlassian, OpenAPI, Slack/Teams chat tools.",
     componentIds: [
       "dagster_api_check_tools", "dagster_discovery_tools", "dagster_evidence_tools",
       "dagster_instance_tools", "dagster_workflow_tools", "document_intelligence_tools",
       "github_pr_tools", "linear_ticket_tools", "hosted_mcp_server", "notion_mcp_server",
+      "stripe_mcp_server", "cloudflare_mcp_server", "atlassian_mcp_server",
       "openapi_tool_server", "report_tools_server", "slack_chat_tools", "teams_chat_tools",
       "mcp_tool_picker", "mcp_tool_call",
     ],
