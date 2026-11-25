@@ -36,6 +36,7 @@ export const AGENTIC_GROUPS: AgenticGroup[] = [
     componentIds: [
       "context_engineering_pipeline", "knowledge_graph_builder",
       "knowledge_search_server", "hybrid_knowledge_search_server", "rag_pipeline",
+      "rag_eval", "rag_grounding_check",
       "hybrid_knowledge_search_query", "knowledge_graph_search_query",
       "knowledge_graph_search_server", "knowledge_base_eval",
     ],
