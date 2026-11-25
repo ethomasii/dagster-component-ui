@@ -79,7 +79,7 @@ export function BlogIndex() {
             </a>
           </div>
           <p style={{ color: "rgba(255,255,255,0.85)", margin: 0, fontSize: 16 }}>
-            Long-form posts from Eric Thomas on the Dagster community components
+            Long-form posts from Eric Thomas on this Dagster component
             registry — design essays, component tours, honest retrospectives.
           </p>
         </div>

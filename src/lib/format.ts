@@ -68,7 +68,7 @@ const CATEGORY_DESCRIPTION: Record<string, string> = {
 export function categoryDescription(cat: string): string {
   return (
     CATEGORY_DESCRIPTION[cat] ??
-    `All community-registry components with category: ${cat}.`
+    `All registry components with category: ${cat}.`
   );
 }
 

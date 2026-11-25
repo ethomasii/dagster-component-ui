@@ -304,7 +304,7 @@ export function DccAgentWidget() {
               <li>Answer how-does-X-work questions (dips into READMEs + schemas)</li>
               <li>Point at live-validated walkthroughs when you want an example</li>
               <li>Recommend components + generate <code>defs.yaml</code> for a pipeline</li>
-              <li>Fall back to the official <code>dagster-&lt;vendor&gt;</code> package when no community component fits</li>
+              <li>Fall back to the official <code>dagster-&lt;vendor&gt;</code> package when no registry component fits</li>
               <li>Produce a full project-scaffold shell script (opt-in below)</li>
             </ul>
             <div>

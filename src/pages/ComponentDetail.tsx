@@ -912,7 +912,7 @@ export function ComponentDetail() {
                       >
                         <ThumbsUp size={15} strokeWidth={2} aria-hidden />
                         <span>
-                          {helpfulCount} community “helpful”
+                          {helpfulCount} “helpful”
                           {helpfulCount === 1 ? "" : "s"}
                         </span>
                       </span>
@@ -1267,7 +1267,7 @@ export function ComponentDetail() {
       >
         <h2 style={{ ...sectionTitleSmall, fontSize: 16, marginBottom: 10 }}>CLI demos using this template</h2>
         <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "0 0 14px", lineHeight: 1.5 }}>
-          From the community CLI{" "}
+          From the CLI{" "}
           <a href={COMMUNITY_CLI_EXAMPLES_INDEX_README_URL} rel="noreferrer" target="_blank">
             examples index
           </a>

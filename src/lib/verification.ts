@@ -111,8 +111,8 @@ export function resolveVerification(c: ManifestComponent): ResolvedVerification 
       case "community_reported_working":
         return {
           status: "community_reported_working",
-          label: "Community feedback indicates this template worked in at least one real setup.",
-          shortLabel: "Community OK",
+          label: "Feedback indicates this template worked in at least one real setup.",
+          shortLabel: "Reported working",
           tone: "positive",
           checkedAt,
           checkedAtKind: checkedAt ? "verification" : undefined,
@@ -159,7 +159,7 @@ export function resolveVerification(c: ManifestComponent): ResolvedVerification 
   return {
     status: "not_recorded",
     label:
-      "This template is not marked as tested by the catalog. Treat it as community-maintained: validate in your project before production.",
+      "This template is not marked as tested by the catalog. Validate it in your project before production.",
     shortLabel: "Unverified",
     tone: "neutral",
     checkedAt: checkedAtLegacy,
@@ -350,7 +350,7 @@ export function trustFilterHeading(filter: TrustUrlFilter): string {
     case "manual":
       return "Manual check";
     case "community":
-      return "Community OK";
+      return "Reported working";
     case "unverified":
       return "Unverified";
     default:
@@ -368,7 +368,7 @@ export const TRUST_FILTER_CHIPS: { trust: Exclude<TrustUrlFilter, "">; label: st
   { trust: "live", label: "Live OK", hint: "manifest validation.level live" },
   { trust: "ci", label: "CI", hint: "verification.status ci_smoke" },
   { trust: "manual", label: "Manual", hint: "verification.status manual_spot_check" },
-  { trust: "community", label: "Community", hint: "verification.status community_reported_working" },
+  { trust: "community", label: "Reported working", hint: "verification.status community_reported_working" },
   { trust: "issue", label: "Known issues", hint: "Manifest known_issue" },
   { trust: "unverified", label: "Unverified", hint: "No positive validation or verification row in manifest" },
 ];

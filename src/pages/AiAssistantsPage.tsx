@@ -88,7 +88,7 @@ export function AiAssistantsPage() {
       : "about 470 components";
 
   const discoveryPrompt = `
-You are helping in a Dagster repo that uses the community component catalog at ${registryRoot}.
+You are helping in a Dagster repo that uses the component catalog at ${registryRoot}.
 
 Rules:
 - Do not invent component folder names or ids. Use only ids from that registry or from \`dagster-component search\` / \`info\` (via \`uvx --from dagster-community-components-cli dagster-component …\`, or plain \`dagster-component\` if installed globally).
@@ -188,7 +188,7 @@ Generate a minimal \`example.yaml\` for dev only. Use only attribute keys from t
         <p style={{ ...mutedP, fontSize: 16, margin: 0 }}>
           <strong style={{ color: "var(--text)" }}>What it teaches them:</strong> {countPhrase}, the{" "}
           <span className="mono">search</span> / <span className="mono">info</span> / <span className="mono">schema</span> /{" "}
-          <span className="mono">add</span> workflow, when to suggest a community component versus writing custom code, and how to
+          <span className="mono">add</span> workflow, when to suggest an existing registry component versus writing custom code, and how to
           generate YAML using the schema-aware autocomplete the CLI sets up.
         </p>
         <p style={{ fontSize: 12, color: "var(--text-dim)", margin: "18px 0 0", lineHeight: 1.5 }}>

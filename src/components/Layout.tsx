@@ -153,7 +153,7 @@ function LearnDropdown() {
             to="/blog"
             role="menuitem"
             style={itemStyle}
-            title="Long-form posts on the community components registry"
+            title="Long-form posts on this component registry"
           >
             <div style={{ display: "flex", flexDirection: "column" }}>
               <span style={{ fontWeight: 500 }}>Blog</span>

@@ -308,11 +308,11 @@ function matchPlaybooks(intent: string): Playbook[] {
 
 // ── Official Dagster integrations (docs.dagster.io/integrations/libraries) ─
 //
-// Sourced 2026-09 from docs.dagster.io. The community components repo
+// Sourced 2026-09 from docs.dagster.io. The registry repo
 // intentionally does NOT duplicate any official `dagster-<vendor>`
 // integration — when a user asks about one of these vendors, the agent
 // should recommend the official package + link to its docs rather than
-// try to shoehorn a community component in.
+// try to shoehorn a registry component in.
 //
 // One line per integration: `vendor | pip-package | docs-slug`.
 // Docs URL = https://docs.dagster.io/integrations/libraries/<slug>.
@@ -493,13 +493,13 @@ function scoreCatalog(
 // ── Prompt ────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are the DCC Agent — you recommend Dagster Community Components (DCC) for a user's data-engineering intent.
 
-## Scope — community components are the default; official integrations are the fallback; migration asks are a different thing entirely
+## Scope — registry components are the default; official integrations are the fallback; migration asks are a different thing entirely
 
 You have THREE layers to choose from:
 
-1. **Community components (DCC)** — a large, growing catalog of higher-level, opinionated components (the full catalog is in the candidate list below). These are typically the *right* recommendation because they're purpose-built for common patterns (ingestion with baked-in schedules + destinations, agentic pipelines, sensor patterns, sinks with schema handling, etc.). Many are built ON TOP OF the official integrations to give a better ergonomic surface.
+1. **Registry components (DCC)** — a large, growing catalog of higher-level, opinionated components (the full catalog is in the candidate list below). These are typically the *right* recommendation because they're purpose-built for common patterns (ingestion with baked-in schedules + destinations, agentic pipelines, sensor patterns, sinks with schema handling, etc.). Many are built ON TOP OF the official integrations to give a better ergonomic surface.
 
-2. **Official Dagster integrations** — \`dagster-<vendor>\` PyPI packages maintained by Dagster (see OFFICIAL INTEGRATIONS block in the user message). These are LOWER-LEVEL building blocks — resources, IO managers, and primitive assets. Useful as a fallback when no community component fits, or when the user explicitly asks about them.
+2. **Official Dagster integrations** — \`dagster-<vendor>\` PyPI packages maintained by Dagster (see OFFICIAL INTEGRATIONS block in the user message). These are LOWER-LEVEL building blocks — resources, IO managers, and primitive assets. Useful as a fallback when no registry component fits, or when the user explicitly asks about them.
 
 3. **Migration skills** — published guides for moving an EXISTING project off a different scheduler/ETL tool onto Dagster, not for building something new. When the ask is "migrate/port/convert my X to Dagster" (X = Airflow/MWAA/Cloud Composer/Astronomer, Azure Data Factory/Synapse pipelines/Fabric Data Factory, or Redwood RunMyJobs/SAP CPS), recommending a handful of components is the WRONG answer — a migration is a structured, multi-phase project (inventory the existing DAGs/pipelines/jobs, classify, translate, validate, cut over), and each of these has a dedicated published skill for exactly that. Name the matching skill explicitly in your \`summary\` with its GitHub URL, and say to load \`dagster-expert\` alongside it:
    - Airflow / MWAA / Cloud Composer / Astronomer → \`migrating-airflow-to-dagster\` — https://github.com/eric-thomas-dagster/dagster-community-components-cli/blob/main/skills/migrating-airflow-to-dagster/SKILL.md
@@ -509,10 +509,10 @@ You have THREE layers to choose from:
 
 **Recommendation policy (layers 1 and 2 — not migration asks, which are answered per #3 above):**
 
-- **Prefer community components when they exist.** Even for vendors with an official integration (Salesforce, Snowflake, dbt, etc.), the community catalog often has a more useful, higher-level component that WRAPS the official one. Recommend the community component; it's fine to note in \`assumptions\` that it builds on the official \`dagster-<vendor>\` package.
+- **Prefer registry components when they exist.** Even for vendors with an official integration (Salesforce, Snowflake, dbt, etc.), the registry catalog often has a more useful, higher-level component that WRAPS the official one. Recommend the registry component; it's fine to note in \`assumptions\` that it builds on the official \`dagster-<vendor>\` package.
 - **Fall back to official** when the candidate catalog genuinely has nothing that fits the intent — the vendor is covered ONLY by an official integration. Then cite the official package + link its docs URL in your \`summary\`.
-- **Cite both** when the intent is ambiguous or the user might want to know both exist (e.g. "I need a Salesforce resource" → community \`Salesforce Resource\` component OR the official \`dagster-salesforce\` package; different shapes, mention both briefly).
-- **Never invent a community component name.** Only recommend from the candidate catalog. If the candidate catalog doesn't have what's needed, use the official integration.
+- **Cite both** when the intent is ambiguous or the user might want to know both exist (e.g. "I need a Salesforce resource" → the registry's \`Salesforce Resource\` component OR the official \`dagster-salesforce\` package; different shapes, mention both briefly).
+- **Never invent a registry component name.** Only recommend from the candidate catalog. If the candidate catalog doesn't have what's needed, use the official integration.
 
 ## Answer shape
 
@@ -950,14 +950,14 @@ export default async function handler(req: any, res: any) {
       // cache, not reprocessed, on every request that lands in that window —
       // not just repeat turns within one conversation.
       const staticCatalogBlock = [
-        `Candidate DCC community catalog (${catalogComponents.length} community components — the FULL catalog; PREFER these when any of them fit):`,
+        `Candidate DCC registry catalog (${catalogComponents.length} components — the FULL catalog; PREFER these when any of them fit):`,
         catalog,
         "",
-        `OFFICIAL INTEGRATIONS (Dagster-maintained \`dagster-<vendor>\` packages — the fallback layer when no community component in the candidate list fits. Also useful as building blocks that some community components wrap):`,
+        `OFFICIAL INTEGRATIONS (Dagster-maintained \`dagster-<vendor>\` packages — the fallback layer when no registry component in the candidate list fits. Also useful as building blocks that some registry components wrap):`,
         formatOfficialIntegrations(),
         walkthroughsBlock,
         skillBlock,
-        "Remember: fetch_component_schema for every community component you're about to include in defs_snippet. Use fetch_component_readme when the user asks HOW something works. Use fetch_walkthrough when they want an end-to-end example. Use fetch_skill_reference for CLI-usage questions, YAML-writing conventions, or registry-wide questions (categories, validation tiers). Only cite the official `dagster-<vendor>` package when no community component in the candidate list fits — the community layer is the default.",
+        "Remember: fetch_component_schema for every registry component you're about to include in defs_snippet. Use fetch_component_readme when the user asks HOW something works. Use fetch_walkthrough when they want an end-to-end example. Use fetch_skill_reference for CLI-usage questions, YAML-writing conventions, or registry-wide questions (categories, validation tiers). Only cite the official `dagster-<vendor>` package when no registry component in the candidate list fits — the registry layer is the default.",
       ].join("\n");
 
       messages = [

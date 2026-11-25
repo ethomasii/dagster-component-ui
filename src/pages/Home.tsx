@@ -564,7 +564,7 @@ export function Home() {
               <span style={{ color: "#67e8f9" }}>components</span> for your Dagster project
             </h1>
             <p style={{ fontSize: 17, color: "rgba(255,255,255,0.82)", margin: "0 0 24px" }}>
-              Browse community-maintained components — each folder includes YAML and a{" "}
+              Browse this component registry — each folder includes YAML and a{" "}
               <span className="mono" style={{ background: "rgba(255,255,255,0.14)", color: "#fff" }}>schema.json</span> you
               copy straight into your Dagster project.
             </p>
@@ -764,7 +764,7 @@ export function Home() {
         <StatBox
           value={examplesIndexCount === null ? "—" : String(examplesIndexCount)}
           label="CLI examples"
-          hint="Demos linked from the community CLI examples README (opens the examples index)"
+          hint="Demos linked from the CLI examples README (opens the examples index)"
           onClick={() => navigate("/examples")}
         />
         <StatBox
@@ -784,7 +784,7 @@ export function Home() {
 
         {manifestMeta && (
           <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6 }}>
-            Community templates, not independently tested — trust signals above show what's verified. Data from{" "}
+            Registry templates, not independently tested — trust signals above show what's verified. Data from{" "}
             <a href={manifestGithubBlobUrl(manifestMeta.repo)} target="_blank" rel="noreferrer">
               manifest.json
             </a>
@@ -1066,7 +1066,7 @@ function TrustSignalsStrip({
         {pill("live", "Live OK", h.validatedLive, "validation.level live")}
         {pill("ci", "CI", h.ciSmoke, "verification.status ci_smoke")}
         {pill("manual", "Manual", h.manualSpotCheck, "verification.status manual_spot_check")}
-        {pill("community", "Community", h.communityOk, "verification.status community_reported_working")}
+        {pill("community", "Reported working", h.communityOk, "verification.status community_reported_working")}
         {pill("issue", "Known issue", h.knownIssue, "verification.status known_issue", { caution: true })}
         {pill("unverified", "Unverified", h.unverified, "No positive signal recorded")}
       </div>
