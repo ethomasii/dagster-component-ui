@@ -94,24 +94,19 @@ export function DccAgentWidget() {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: "smooth" });
   }, [thread.length, loading]);
 
-  async function submit(text?: string) {
-    const q = (text ?? intent).trim();
-    if (!q || loading) return;
+  /** Core request/stream plumbing, shared by a typed-in question and a
+   *  retroactive "generate the scaffold for that" follow-up click. */
+  async function sendMessage(q: string, priorConversation: unknown[] | undefined, includeShellOverride: boolean) {
     setLoading(true);
     setError(null);
     setProgress([]);
-    // Follow-up support: resend the prior conversation (opaque to this
-    // widget — it just stores and replays what the server last returned)
-    // so a question like "how do I schedule these" has context instead of
-    // being answered cold every time.
-    const priorConversation = thread.length > 0 ? thread[thread.length - 1].answer.conversation : undefined;
     try {
       const r = await fetch("/api/dcc-agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           intent: q,
-          options: { include_shell_script: includeShell },
+          options: { include_shell_script: includeShellOverride },
           ...(priorConversation ? { conversation: priorConversation } : {}),
         }),
       });
@@ -157,6 +152,33 @@ export function DccAgentWidget() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function submit(text?: string) {
+    const q = (text ?? intent).trim();
+    if (!q || loading) return;
+    // Follow-up support: resend the prior conversation (opaque to this
+    // widget — it just stores and replays what the server last returned)
+    // so a question like "how do I schedule these" has context instead of
+    // being answered cold every time.
+    const priorConversation = thread.length > 0 ? thread[thread.length - 1].answer.conversation : undefined;
+    await sendMessage(q, priorConversation, includeShell);
+  }
+
+  /** Retroactive scaffold request: re-anchors on the conversation snapshot
+   *  right after a prior answer (not necessarily the latest one) so the
+   *  model has exactly that recommendation in context, and forces
+   *  `include_shell_script` on for this one call — no need to have had the
+   *  checkbox ticked back when the original question was asked. */
+  async function requestScaffoldFor(index: number) {
+    if (loading) return;
+    const item = thread[index];
+    if (!item) return;
+    await sendMessage(
+      "Give me the project-scaffold shell script for what you just recommended.",
+      item.answer.conversation,
+      true,
+    );
   }
 
   function reset() {
@@ -331,7 +353,12 @@ export function DccAgentWidget() {
         )}
 
         {thread.map((item, i) => (
-          <AnswerBlock key={i} item={item} isFirst={i === 0} />
+          <AnswerBlock
+            key={i}
+            item={item}
+            onRequestScaffold={() => requestScaffoldFor(i)}
+            scaffoldDisabled={loading}
+          />
         ))}
 
         {loading && (
@@ -469,27 +496,55 @@ export function DccAgentWidget() {
   );
 }
 
-/** One Q&A exchange in the thread — the user's question (skipped for the
- *  first exchange, since it's already visible in the input history above)
- *  plus the full rendered answer. */
-function AnswerBlock({ item, isFirst }: { item: ThreadItem; isFirst: boolean }) {
+/** One Q&A exchange in the thread, rendered as a chat-style pair: the
+ *  user's own question as a right-aligned bubble, then the agent's reply
+ *  below it (summary/recommendations/etc., same content as before — just
+ *  grouped so it visibly reads as a reply to that bubble, not a fresh
+ *  standalone report). */
+function AnswerBlock({
+  item,
+  onRequestScaffold,
+  scaffoldDisabled,
+}: {
+  item: ThreadItem;
+  onRequestScaffold: () => void;
+  scaffoldDisabled: boolean;
+}) {
   const { question, answer } = item;
+  const canOfferScaffold = !answer.shell_script && (answer.recommendations?.length ?? 0) > 0;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {!isFirst && (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <p
           style={{
             margin: 0,
-            fontSize: 12,
-            fontWeight: 600,
-            color: "var(--text-dim, var(--text-muted))",
-            paddingTop: 8,
-            borderTop: "1px solid var(--border)",
+            maxWidth: "85%",
+            padding: "8px 12px",
+            fontSize: 12.5,
+            lineHeight: 1.5,
+            color: "#fff",
+            background: "linear-gradient(135deg, var(--accent) 0%, #5b21b6 100%)",
+            borderRadius: "14px 14px 4px 14px",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
           }}
         >
           {question}
         </p>
-      )}
+      </div>
+      <div
+        className="dcc-fade-in"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          maxWidth: "92%",
+          padding: "10px 12px",
+          background: "var(--bg-elevated)",
+          border: "1px solid var(--border)",
+          borderRadius: "4px 14px 14px 14px",
+        }}
+      >
       {answer.summary && (
         <section className="dcc-fade-in">
           <p
@@ -549,6 +604,33 @@ function AnswerBlock({ item, isFirst }: { item: ThreadItem; isFirst: boolean }) 
         </section>
       )}
 
+      {canOfferScaffold && (
+        <button
+          type="button"
+          onClick={onRequestScaffold}
+          disabled={scaffoldDisabled}
+          title="Ask the agent for a ready-to-run scaffold script for this recommendation"
+          style={{
+            alignSelf: "flex-start",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "6px 10px",
+            fontSize: 11.5,
+            fontWeight: 600,
+            borderRadius: 8,
+            border: "1px solid var(--border)",
+            background: "transparent",
+            color: "var(--cyan)",
+            cursor: scaffoldDisabled ? "not-allowed" : "pointer",
+            opacity: scaffoldDisabled ? 0.6 : 1,
+          }}
+        >
+          <Sparkles size={11} aria-hidden />
+          Generate scaffold command
+        </button>
+      )}
+
       {answer.meta && (
         <p style={{ fontSize: 10, color: "var(--text-dim, var(--text-muted))", margin: 0 }}>
           {answer.meta.model} · in {answer.meta.input_tokens} tok · out{" "}
@@ -570,6 +652,7 @@ function AnswerBlock({ item, isFirst }: { item: ThreadItem; isFirst: boolean }) 
             ` · playbook: ${answer.meta.playbooks_matched.join(", ")}`}
         </p>
       )}
+      </div>
     </div>
   );
 }
