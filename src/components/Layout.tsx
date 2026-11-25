@@ -440,7 +440,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <span>Open source · MIT</span>
         </div>
       </footer>
-      <DccAgentWidget />
+      {loc.pathname !== "/dcc-agent" && <DccAgentWidget />}
     </div>
   );
 }

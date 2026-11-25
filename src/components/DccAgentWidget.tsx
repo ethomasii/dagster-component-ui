@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { OPEN_DCC_WIDGET_EVENT, type OpenDccWidgetDetail } from "../lib/openDccWidget";
+import { loadStoredThread, saveStoredThread } from "../lib/dccAgentThreadStore";
 import {
   Sparkles,
   X,
@@ -10,11 +11,16 @@ import {
   AlertCircle,
   Maximize2,
   Minimize2,
+  ExternalLink,
 } from "lucide-react";
 
 /**
  * Floating DCC Agent widget mounted in Layout — a chat-style popup in
- * the bottom-right corner, available on every page.
+ * the bottom-right corner, available on every page. Shares its chat
+ * engine (useDccAgentChat) and chat UI (DccAgentChatPanel) with the
+ * standalone `/dcc-agent` page (src/pages/DccAgentStandalonePage.tsx) —
+ * the "pop out" button hands a snapshot of the conversation to that page
+ * across the real browser-window boundary via localStorage.
  *
  *   closed → FAB (sparkles button) in bottom-right
  *   open   → fixed-position panel ~400×600
@@ -77,26 +83,44 @@ const STARTER_PROMPTS = [
   "Score customer churn nightly with XGBoost, write predictions to Postgres",
 ];
 
-type ThreadItem = { question: string; answer: AgentResponse };
+type ThreadItem = {
+  question: string;
+  answer: AgentResponse;
+  /** True when this exchange intentionally did NOT inherit the
+   *  conversation above it (e.g. a fresh ask from the homepage box while
+   *  the widget still had an unrelated chat open) — renders a divider so
+   *  it's clear the agent wasn't using that older context, even though
+   *  it's still visible above. */
+  newSession?: boolean;
+};
 
-export function DccAgentWidget() {
-  const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+/** Shared chat engine for both the floating widget and the standalone
+ *  `/dcc-agent` page. Each mount gets its own independent instance —
+ *  hydrated from whatever the OTHER side last saved to localStorage (if
+ *  it has nothing of its own yet) and persisted back on every change, so
+ *  "pop out" carries the conversation across the window boundary without
+ *  the two ever needing a live connection to each other. */
+export function useDccAgentChat() {
   const [intent, setIntent] = useState("");
   const [includeShell, setIncludeShell] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [thread, setThread] = useState<ThreadItem[]>([]);
+  const [thread, setThread] = useState<ThreadItem[]>(() => loadStoredThread<ThreadItem>());
   const [progress, setProgress] = useState<string[]>([]);
-  const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: "smooth" });
-  }, [thread.length, loading]);
+    saveStoredThread(thread);
+  }, [thread]);
 
-  /** Core request/stream plumbing, shared by a typed-in question and a
-   *  retroactive "generate the scaffold for that" follow-up click. */
-  async function sendMessage(q: string, priorConversation: unknown[] | undefined, includeShellOverride: boolean) {
+  /** Core request/stream plumbing, shared by a typed-in question, a
+   *  context-free ask, and a retroactive "generate the scaffold for
+   *  that" follow-up click. */
+  async function sendMessage(
+    q: string,
+    priorConversation: unknown[] | undefined,
+    includeShellOverride: boolean,
+    opts: { newSession?: boolean } = {},
+  ) {
     setLoading(true);
     setError(null);
     setProgress([]);
@@ -140,7 +164,7 @@ export function DccAgentWidget() {
             setProgress((prev) => [...prev, msg]);
           } else if (evt.type === "answer") {
             const ans = evt as unknown as AgentResponse;
-            setThread((prev) => [...prev, { question: q, answer: ans }]);
+            setThread((prev) => [...prev, { question: q, answer: ans, newSession: opts.newSession }]);
             setIntent("");
           } else if (evt.type === "error" && typeof evt.message === "string") {
             setError(evt.message);
@@ -154,15 +178,27 @@ export function DccAgentWidget() {
     }
   }
 
-  async function submit(text?: string) {
+  function submit(text?: string) {
     const q = (text ?? intent).trim();
-    if (!q || loading) return;
+    if (!q || loading) return undefined;
     // Follow-up support: resend the prior conversation (opaque to this
     // widget — it just stores and replays what the server last returned)
     // so a question like "how do I schedule these" has context instead of
     // being answered cold every time.
     const priorConversation = thread.length > 0 ? thread[thread.length - 1].answer.conversation : undefined;
-    await sendMessage(q, priorConversation, includeShell);
+    return sendMessage(q, priorConversation, includeShell);
+  }
+
+  /** Always starts a fresh context, ignoring whatever the widget already
+   *  had open — for entry points where carrying over unrelated prior
+   *  context would be wrong, e.g. the homepage's "Not sure where to
+   *  start?" box firing off its own independent ask. The older exchange
+   *  stays visible above it in the thread; it's just not sent to the
+   *  model anymore. */
+  function submitFresh(text: string) {
+    const q = text.trim();
+    if (!q || loading) return undefined;
+    return sendMessage(q, undefined, includeShell, { newSession: thread.length > 0 });
   }
 
   /** Retroactive scaffold request: re-anchors on the conversation snapshot
@@ -188,22 +224,280 @@ export function DccAgentWidget() {
     setProgress([]);
   }
 
+  return {
+    intent,
+    setIntent,
+    includeShell,
+    setIncludeShell,
+    loading,
+    error,
+    thread,
+    progress,
+    submit,
+    submitFresh,
+    requestScaffoldFor,
+    reset,
+  };
+}
+
+type DccAgentChat = ReturnType<typeof useDccAgentChat>;
+
+/** The thread + starter-prompts + loading/error states + footer input —
+ *  everything below the header. Identical markup works inside the
+ *  floating panel's fixed-size container and the standalone page's
+ *  full-height one; only the surrounding chrome differs between them. */
+export function DccAgentChatPanel({ chat }: { chat: DccAgentChat }) {
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: "smooth" });
+  }, [chat.thread.length, chat.loading]);
+
+  return (
+    <>
+      {/* Body */}
+      <div
+        ref={bodyRef}
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "14px 14px 8px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        {chat.thread.length === 0 && !chat.loading && !chat.error && (
+          <>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.55 }}>
+              Ask a question <em>or</em> describe what you want to build. The agent can:
+            </p>
+            <ul style={{ margin: "4px 0 0 18px", padding: 0, fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.6 }}>
+              <li>Answer how-does-X-work questions (dips into READMEs + schemas)</li>
+              <li>Point at live-validated walkthroughs when you want an example</li>
+              <li>Recommend components + generate <code>defs.yaml</code> for a pipeline</li>
+              <li>Fall back to the official <code>dagster-&lt;vendor&gt;</code> package when no registry component fits</li>
+              <li>Produce a full project-scaffold shell script (opt-in below)</li>
+            </ul>
+            <div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6, fontWeight: 600 }}>
+                Try one:
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {STARTER_PROMPTS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => {
+                      chat.setIntent(p);
+                      void chat.submit(p);
+                    }}
+                    style={starterChipStyle}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {chat.thread.map((item, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {item.newSession && <NewSessionDivider />}
+            <AnswerBlock
+              item={item}
+              onRequestScaffold={() => chat.requestScaffoldFor(i)}
+              scaffoldDisabled={chat.loading}
+            />
+          </div>
+        ))}
+
+        {chat.loading && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text)", fontSize: 13, fontWeight: 500 }}>
+              <Loader2 size={14} className="spin" aria-hidden />
+              <span>
+                {chat.progress.length > 0 ? chat.progress[chat.progress.length - 1] : "Thinking"}
+                <span className="dcc-dots"><span>.</span><span>.</span><span>.</span></span>
+              </span>
+            </div>
+            {chat.progress.length > 1 && (
+              <ul
+                style={{
+                  margin: "4px 0 0 22px",
+                  padding: 0,
+                  fontSize: 11,
+                  color: "var(--text-muted)",
+                  lineHeight: 1.5,
+                  listStyle: "none",
+                }}
+              >
+                {chat.progress.slice(0, -1).slice(-6).map((line, i) => (
+                  <li key={`${line}-${i}`} className="dcc-fade-in" style={{ marginTop: 2 }}>
+                    <span style={{ color: "var(--text-dim, var(--text-muted))" }}>✓ </span>
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {chat.error && (
+          <div className="callout-help" style={{ borderLeftColor: "var(--error)" }}>
+            <p style={{ margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+              <AlertCircle size={14} aria-hidden /> Agent error
+            </p>
+            <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--text-muted)" }}>{chat.error}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer input */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void chat.submit();
+        }}
+        style={{
+          borderTop: "1px solid var(--border)",
+          padding: 10,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
+        <textarea
+          value={chat.intent}
+          onChange={(e) => chat.setIntent(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              void chat.submit();
+            }
+          }}
+          placeholder={chat.thread.length > 0 ? "Ask a follow-up…" : "e.g. Sync Salesforce contacts into BigQuery every 6 hours"}
+          rows={2}
+          maxLength={2000}
+          disabled={chat.loading}
+          style={{
+            width: "100%",
+            padding: "8px 10px",
+            fontSize: 13,
+            fontFamily: "inherit",
+            lineHeight: 1.5,
+            borderRadius: 8,
+            border: "1px solid var(--border)",
+            background: "var(--bg-elevated)",
+            color: "var(--text)",
+            resize: "none",
+            boxSizing: "border-box",
+          }}
+        />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 11,
+              color: "var(--text-muted)",
+              cursor: "pointer",
+              flex: 1,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={chat.includeShell}
+              onChange={(e) => chat.setIncludeShell(e.target.checked)}
+              disabled={chat.loading}
+            />
+            Include scaffold script
+          </label>
+          <button
+            type="submit"
+            disabled={!chat.intent.trim() || chat.loading}
+            style={{
+              padding: "7px 12px",
+              fontSize: 12,
+              fontWeight: 600,
+              borderRadius: 8,
+              border: "none",
+              cursor: chat.intent.trim() && !chat.loading ? "pointer" : "not-allowed",
+              background:
+                chat.intent.trim() && !chat.loading
+                  ? "linear-gradient(135deg, var(--accent) 0%, #5b21b6 100%)"
+                  : "var(--bg-elevated)",
+              color: chat.intent.trim() && !chat.loading ? "#fff" : "var(--text-muted)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            {chat.loading ? (
+              <Loader2 size={12} className="spin" aria-hidden />
+            ) : (
+              <Send size={12} aria-hidden />
+            )}
+            Ask
+          </button>
+        </div>
+      </form>
+    </>
+  );
+}
+
+function NewSessionDivider() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "2px 0" }}>
+      <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+      <span
+        style={{
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: 0.4,
+          textTransform: "uppercase",
+          color: "var(--text-muted)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        New conversation
+      </span>
+      <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+    </div>
+  );
+}
+
+export function DccAgentWidget() {
+  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const chat = useDccAgentChat();
+
   // Lets the homepage hero (or anywhere else) open this widget programmatically, optionally
-  // with a prefilled intent that gets auto-submitted immediately.
+  // with a prefilled intent that gets auto-submitted immediately. Always treated as a fresh
+  // ask (submitFresh) — the widget may already have an unrelated conversation open that the
+  // user never explicitly cleared, and this entry point shouldn't silently feed that into a
+  // new, unrelated question.
   useEffect(() => {
     const onOpen = (e: Event) => {
       const detail = (e as CustomEvent<OpenDccWidgetDetail>).detail;
       setOpen(true);
       setExpanded(true);
       if (detail?.intent) {
-        setIntent(detail.intent);
-        void submit(detail.intent);
+        chat.setIntent(detail.intent);
+        void chat.submitFresh(detail.intent);
       }
     };
     window.addEventListener(OPEN_DCC_WIDGET_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_DCC_WIDGET_EVENT, onOpen);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function popOut() {
+    saveStoredThread(chat.thread);
+    window.open("/dcc-agent", "_blank", "noopener,noreferrer");
+  }
 
   // ── Closed: FAB ──────────────────────────────────────────────────
   if (!open) {
@@ -277,16 +571,24 @@ export function DccAgentWidget() {
       >
         <Sparkles size={16} color="var(--cyan)" aria-hidden />
         <div style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>DCC Agent</div>
-        {thread.length > 0 && (
+        {chat.thread.length > 0 && (
           <button
             type="button"
-            onClick={reset}
+            onClick={chat.reset}
             title="New question"
             style={iconBtnStyle}
           >
             <span style={{ fontSize: 11 }}>New</span>
           </button>
         )}
+        <button
+          type="button"
+          onClick={popOut}
+          title="Open in its own window"
+          style={iconBtnStyle}
+        >
+          <ExternalLink size={13} aria-hidden />
+        </button>
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
@@ -305,193 +607,7 @@ export function DccAgentWidget() {
         </button>
       </div>
 
-      {/* Body */}
-      <div
-        ref={bodyRef}
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "14px 14px 8px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-        }}
-      >
-        {thread.length === 0 && !loading && !error && (
-          <>
-            <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.55 }}>
-              Ask a question <em>or</em> describe what you want to build. The agent can:
-            </p>
-            <ul style={{ margin: "4px 0 0 18px", padding: 0, fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.6 }}>
-              <li>Answer how-does-X-work questions (dips into READMEs + schemas)</li>
-              <li>Point at live-validated walkthroughs when you want an example</li>
-              <li>Recommend components + generate <code>defs.yaml</code> for a pipeline</li>
-              <li>Fall back to the official <code>dagster-&lt;vendor&gt;</code> package when no registry component fits</li>
-              <li>Produce a full project-scaffold shell script (opt-in below)</li>
-            </ul>
-            <div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6, fontWeight: 600 }}>
-                Try one:
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {STARTER_PROMPTS.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => {
-                      setIntent(p);
-                      void submit(p);
-                    }}
-                    style={starterChipStyle}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
-        {thread.map((item, i) => (
-          <AnswerBlock
-            key={i}
-            item={item}
-            onRequestScaffold={() => requestScaffoldFor(i)}
-            scaffoldDisabled={loading}
-          />
-        ))}
-
-        {loading && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text)", fontSize: 13, fontWeight: 500 }}>
-              <Loader2 size={14} className="spin" aria-hidden />
-              <span>
-                {progress.length > 0 ? progress[progress.length - 1] : "Thinking"}
-                <span className="dcc-dots"><span>.</span><span>.</span><span>.</span></span>
-              </span>
-            </div>
-            {progress.length > 1 && (
-              <ul
-                style={{
-                  margin: "4px 0 0 22px",
-                  padding: 0,
-                  fontSize: 11,
-                  color: "var(--text-muted)",
-                  lineHeight: 1.5,
-                  listStyle: "none",
-                }}
-              >
-                {progress.slice(0, -1).slice(-6).map((line, i) => (
-                  <li key={`${line}-${i}`} className="dcc-fade-in" style={{ marginTop: 2 }}>
-                    <span style={{ color: "var(--text-dim, var(--text-muted))" }}>✓ </span>
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-
-        {error && (
-          <div className="callout-help" style={{ borderLeftColor: "var(--error)" }}>
-            <p style={{ margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-              <AlertCircle size={14} aria-hidden /> Agent error
-            </p>
-            <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--text-muted)" }}>{error}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Footer input */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void submit();
-        }}
-        style={{
-          borderTop: "1px solid var(--border)",
-          padding: 10,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
-        <textarea
-          value={intent}
-          onChange={(e) => setIntent(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault();
-              void submit();
-            }
-          }}
-          placeholder={thread.length > 0 ? "Ask a follow-up…" : "e.g. Sync Salesforce contacts into BigQuery every 6 hours"}
-          rows={2}
-          maxLength={2000}
-          disabled={loading}
-          style={{
-            width: "100%",
-            padding: "8px 10px",
-            fontSize: 13,
-            fontFamily: "inherit",
-            lineHeight: 1.5,
-            borderRadius: 8,
-            border: "1px solid var(--border)",
-            background: "var(--bg-elevated)",
-            color: "var(--text)",
-            resize: "none",
-            boxSizing: "border-box",
-          }}
-        />
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 11,
-              color: "var(--text-muted)",
-              cursor: "pointer",
-              flex: 1,
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={includeShell}
-              onChange={(e) => setIncludeShell(e.target.checked)}
-              disabled={loading}
-            />
-            Include scaffold script
-          </label>
-          <button
-            type="submit"
-            disabled={!intent.trim() || loading}
-            style={{
-              padding: "7px 12px",
-              fontSize: 12,
-              fontWeight: 600,
-              borderRadius: 8,
-              border: "none",
-              cursor: intent.trim() && !loading ? "pointer" : "not-allowed",
-              background:
-                intent.trim() && !loading
-                  ? "linear-gradient(135deg, var(--accent) 0%, #5b21b6 100%)"
-                  : "var(--bg-elevated)",
-              color: intent.trim() && !loading ? "#fff" : "var(--text-muted)",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-            }}
-          >
-            {loading ? (
-              <Loader2 size={12} className="spin" aria-hidden />
-            ) : (
-              <Send size={12} aria-hidden />
-            )}
-            Ask
-          </button>
-        </div>
-      </form>
+      <DccAgentChatPanel chat={chat} />
     </div>
   );
 }

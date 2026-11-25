@@ -20,6 +20,7 @@ import { DeployDagsterPlusPage } from "./pages/DeployDagsterPlusPage";
 import { BlogIndex } from "./pages/BlogIndex";
 import { BlogDetail } from "./pages/BlogDetail";
 import { UnifiedSearch } from "./pages/UnifiedSearch";
+import { DccAgentStandalonePage } from "./pages/DccAgentStandalonePage";
 
 export default function App() {
   return (
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/cli/:id" element={<CliDetail />} />
           <Route path="/c/:id" element={<ComponentDetail />} />
           <Route path="/search" element={<UnifiedSearch />} />
+          <Route path="/dcc-agent" element={<DccAgentStandalonePage />} />
         </Routes>
       </Layout>
     </CatalogProvider>
