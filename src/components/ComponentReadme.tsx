@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { docMarkdownRemarkPlugins, docMarkdownRehypePlugins } from "../lib/markdownPlugins";
 import { useScrollToHash } from "../lib/useScrollToHash";
+import { resolveReadmeRelativeLink } from "../lib/readmeRelativeLinks";
 
 type Props = { url: string };
 
@@ -68,7 +69,12 @@ export function ComponentReadme({ url }: Props) {
                 {children}
               </a>
             ) : (
-              <a href={href} target="_blank" rel="noreferrer" {...rest}>
+              <a
+                href={href ? resolveReadmeRelativeLink(href, url) : href}
+                target="_blank"
+                rel="noreferrer"
+                {...rest}
+              >
                 {children}
               </a>
             ),

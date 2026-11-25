@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import { docMarkdownRemarkPlugins, docMarkdownRehypePlugins } from "../lib/markdownPlugins";
+import { resolveReadmeRelativeLink } from "../lib/readmeRelativeLinks";
 import { ExternalLink, X } from "lucide-react";
 
 export type DocViewerKind = "markdown" | "json" | "text";
@@ -198,7 +199,12 @@ export function DocViewerModal({ open, onClose, title, url, kind }: Props) {
                         {children}
                       </a>
                     ) : (
-                      <a href={href} target="_blank" rel="noreferrer" {...rest}>
+                      <a
+                        href={href ? resolveReadmeRelativeLink(href, url) : href}
+                        target="_blank"
+                        rel="noreferrer"
+                        {...rest}
+                      >
                         {children}
                       </a>
                     ),
