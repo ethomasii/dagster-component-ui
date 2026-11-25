@@ -132,19 +132,88 @@ Generate a minimal \`example.yaml\` for dev only. Use only attribute keys from t
 
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px 64px" }}>
 
-      {/* Section 1 — TL;DR hero */}
+      {/* Section 1 — Claude Code: install the skill (recommended) */}
+      {DCC_SKILL && (
+        <section
+          style={{
+            padding: "28px 26px 32px",
+            borderRadius: 14,
+            border: "1px solid var(--border)",
+            borderLeft: "4px solid var(--cyan)",
+            background: "var(--bg-card)",
+            boxShadow: "0 4px 24px rgba(0, 0, 0, 0.06)",
+            marginBottom: 32,
+          }}
+        >
+          <p style={{ ...mutedP, fontSize: 16, marginBottom: 14 }}>
+            <strong style={{ color: "var(--text)" }}>On Claude Code?</strong> Install the{" "}
+            <Link to={`/skills/${encodeURIComponent(DCC_SKILL.id)}`} style={{ color: "var(--cyan)" }}>
+              {DCC_SKILL.name}
+            </Link>{" "}
+            skill — the recommended path. It covers real categories and validation tiers, the full{" "}
+            <span className="mono">dagster-component</span> CLI surface, the real (and inconsistently-populated)
+            manifest schema, how to tell a stale README table from the auto-generated one, and a repeatable recipe
+            for building an end-to-end demo from the catalog. It loads automatically once installed — no slash
+            command to remember, nothing to commit to your repo.
+          </p>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 12,
+              padding: "16px 18px",
+              borderRadius: 10,
+              background: "var(--code-bg)",
+              border: "1px solid var(--border)",
+              marginBottom: 12,
+            }}
+          >
+            <code
+              className="mono"
+              style={{
+                fontSize: 13,
+                color: "var(--text)",
+                flex: "1 1 240px",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              {DCC_SKILL_INSTALL_SNIPPET}
+            </code>
+            <CopyButton text={DCC_SKILL_INSTALL_SNIPPET} label="Copy" />
+          </div>
+          <p style={{ ...mutedP, fontSize: 13, marginBottom: 0 }}>
+            Ships <span className="mono">reference/</span> pages alongside <span className="mono">SKILL.md</span> —
+            the clone-and-copy above gets all of it, where a single-file curl would silently miss them.{" "}
+            <Link to="/skills" style={{ color: "var(--cyan)" }}>
+              Browse all published skills
+            </Link>
+            .
+          </p>
+        </section>
+      )}
+
+      {/* Section 2 — Cursor, Copilot, everything else — and a Claude Code fallback */}
       <section
         style={{
           padding: "28px 26px 32px",
           borderRadius: 14,
           border: "1px solid var(--border)",
-          borderLeft: "4px solid var(--cyan)",
           background: "var(--bg-card)",
           boxShadow: "0 4px 24px rgba(0, 0, 0, 0.06)",
         }}
       >
         <p style={{ ...mutedP, fontSize: 16, marginBottom: 14 }}>
-          One command. From your Dagster project root:
+          {DCC_SKILL ? (
+            <>
+              <strong style={{ color: "var(--text)" }}>Cursor, Copilot, or anything else</strong> (or a fallback for
+              Claude Code if you'd rather not install a skill): one command gives every assistant a working
+              baseline. From your Dagster project root:
+            </>
+          ) : (
+            "One command. From your Dagster project root:"
+          )}
         </p>
         <div
           style={{
@@ -200,13 +269,19 @@ Generate a minimal \`example.yaml\` for dev only. Use only attribute keys from t
         </p>
       </section>
 
-      {/* Section 2 — How each tool picks it up */}
+      {/* Section 3 — How each tool picks it up */}
       <h2 style={sectionH2}>How each tool picks it up</h2>
 
       <h3 style={toolH3}>Anthropic Claude (Claude Code &amp; claude.ai)</h3>
       <p style={mutedP}>
-        Claude Code reads <span className="mono">CLAUDE.md</span> at the repo root automatically — <span className="mono">init</span> already
-        wrote it. No further setup.
+        {DCC_SKILL && (
+          <>
+            Claude Code: the skill above is the recommended setup — it loads automatically, nothing to commit.{" "}
+          </>
+        )}
+        Prefer <span className="mono">CLAUDE.md</span> instead (or want a baseline that still works if you switch
+        tools)? Claude Code also reads it at the repo root automatically — <span className="mono">init</span> above
+        already wrote it. No further setup either way.
       </p>
       <p style={mutedP}>
         For claude.ai chat / Projects, the repo files are not auto-loaded: paste the contents of{" "}
@@ -229,60 +304,6 @@ Generate a minimal \`example.yaml\` for dev only. Use only attribute keys from t
         Continue, Aider — paste the contents of <span className="mono">CLAUDE.md</span> (or any of the three files — they&apos;re
         equivalent) into a project instruction or system prompt. Same content, same effect.
       </p>
-
-      {/* Section 2.5 — the dedicated Claude Code skill (deeper, optional) */}
-      {DCC_SKILL && (
-        <>
-          <h2 style={sectionH2}>Claude Code: the dedicated skill (deeper, optional)</h2>
-          <p style={mutedP}>
-            <span className="mono">init</span>&apos;s <span className="mono">CLAUDE.md</span> is a good baseline every
-            assistant gets automatically. For Claude Code specifically, the{" "}
-            <Link to={`/skills/${encodeURIComponent(DCC_SKILL.id)}`} style={{ color: "var(--cyan)" }}>
-              {DCC_SKILL.name}
-            </Link>{" "}
-            skill goes further — real categories and validation tiers, the full{" "}
-            <span className="mono">dagster-component</span> CLI surface, the real (and inconsistently-populated)
-            manifest schema, how to tell a stale README table from the auto-generated one, and a repeatable recipe
-            for building an end-to-end demo from the catalog. It loads automatically once installed — no slash
-            command to remember.
-          </p>
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              gap: 12,
-              padding: "16px 18px",
-              borderRadius: 10,
-              background: "var(--code-bg)",
-              border: "1px solid var(--border)",
-              marginBottom: 12,
-            }}
-          >
-            <code
-              className="mono"
-              style={{
-                fontSize: 13,
-                color: "var(--text)",
-                flex: "1 1 240px",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-              }}
-            >
-              {DCC_SKILL_INSTALL_SNIPPET}
-            </code>
-            <CopyButton text={DCC_SKILL_INSTALL_SNIPPET} label="Copy" />
-          </div>
-          <p style={{ ...mutedP, fontSize: 13, marginBottom: 0 }}>
-            Ships <span className="mono">reference/</span> pages alongside <span className="mono">SKILL.md</span> —
-            the clone-and-copy above gets all of it, where a single-file curl would silently miss them.{" "}
-            <Link to="/skills" style={{ color: "var(--cyan)" }}>
-              Browse all published skills
-            </Link>
-            .
-          </p>
-        </>
-      )}
 
       {/* Section 3 — Reference prompts (disclosure) */}
       <h2 style={sectionH2}>Reference prompts</h2>
