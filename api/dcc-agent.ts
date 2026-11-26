@@ -560,7 +560,11 @@ If include_shell_script is set, the shell script scaffolds a fresh project and a
   dg add defs <component_name>/<component_name>.yaml
   ...
 
-Always state assumptions (schedule cadence, target vendor, auth method, sync mode) so the user can correct you.`;
+Always state assumptions (schedule cadence, target vendor, auth method, sync mode) so the user can correct you.
+
+## Tool use is mandatory, every turn
+
+On every single turn, you MUST invoke exactly one of the provided tools (a fetch tool to gather more context, or \`answer\` once you're ready to respond). NEVER reply with plain text instead of a tool call, even to ask a clarifying question or explain your reasoning — there is no way for the user to see plain text, only tool calls are processed. If you're unsure which component fits, use a fetch tool to investigate further rather than guessing or explaining in prose.`;
 
 // ── Search across README bodies ───────────────────────────────────────
 //
@@ -989,9 +993,16 @@ export default async function handler(req: any, res: any) {
     let skillRefsFetched = 0;
     let finalAnswer: ToolInput | null = null;
 
-    for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
-      emit("progress", { message: iter === 0 ? "Asking Claude…" : "Thinking…" });
-      const response = await anthropic.messages.create({
+    // tool_choice: {type: "any"}/{type: "tool"} is REJECTED (400) on the current model
+    // generation (Claude Opus 5.5 / Sonnet 5.5 / Fable 5.1 / 5.2) — forced tool use was
+    // removed there. "auto" is now the only legal value, which reopens the exact failure
+    // mode the forced choice used to make structurally impossible: Claude replying in
+    // plain text instead of a tool call. SYSTEM_PROMPT's own "Tool use is mandatory"
+    // section is the primary mitigation (prompt-level instead of API-level enforcement);
+    // callClaude's one-shot retry below (a reminder user turn, not a fresh iteration) is
+    // the backstop for the rare case that doesn't fix.
+    const callClaude = (msgs: Anthropic.MessageParam[]) =>
+      anthropic.messages.create({
         model,
         max_tokens: 4096,
         // Explicit breakpoint caches tools + system together (tools render
@@ -1002,14 +1013,7 @@ export default async function handler(req: any, res: any) {
         // explicit breakpoints above and on the static catalog block —
         // the combination recommended for multi-turn agent loops.
         cache_control: { type: "ephemeral" },
-        // Force a tool call every turn. With the default "auto", Claude is
-        // free to respond in plain text instead — rare, but when it
-        // happens the loop below has nothing to act on and has to bail
-        // with a hard error ("Claude returned no tool_use"). "any" makes
-        // that failure mode structurally impossible: every turn ends in
-        // either a fetch tool or `answer(...)`, both of which the loop
-        // already knows how to handle.
-        tool_choice: { type: "any" },
+        tool_choice: { type: "auto" },
         tools: [
           FETCH_SCHEMA_TOOL as any,
           FETCH_README_TOOL as any,
@@ -1018,21 +1022,49 @@ export default async function handler(req: any, res: any) {
           FETCH_SKILL_REFERENCE_TOOL as any,
           ANSWER_TOOL as any,
         ],
-        messages,
+        messages: msgs,
       });
+
+    for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
+      emit("progress", { message: iter === 0 ? "Asking Claude…" : "Thinking…" });
+      let response = await callClaude(messages);
       inputTokens += response.usage.input_tokens;
       outputTokens += response.usage.output_tokens;
       cacheReadTokens += response.usage.cache_read_input_tokens ?? 0;
       cacheWriteTokens += response.usage.cache_creation_input_tokens ?? 0;
 
-      const toolUseBlocks = response.content.filter((b: any) => b.type === "tool_use");
+      let toolUseBlocks = response.content.filter((b: any) => b.type === "tool_use");
       if (toolUseBlocks.length === 0) {
-        const text = response.content
-          .filter((b: any) => b.type === "text")
-          .map((b: any) => b.text)
-          .join("\n");
-        emit("error", { message: `Claude returned no tool_use: ${text.slice(0, 500)}` });
-        return res.end();
+        // One-shot retry: nudge with an explicit reminder, same turn (doesn't consume an
+        // iteration of the outer loop's budget), before giving up for real.
+        const retryMessages: Anthropic.MessageParam[] = [
+          ...messages,
+          { role: "assistant", content: response.content },
+          {
+            role: "user",
+            content:
+              "You replied with plain text instead of a tool call. Every turn must invoke exactly one tool — call a fetch tool, or `answer` if you have enough context already.",
+          },
+        ];
+        const retryResponse = await callClaude(retryMessages);
+        inputTokens += retryResponse.usage.input_tokens;
+        outputTokens += retryResponse.usage.output_tokens;
+        cacheReadTokens += retryResponse.usage.cache_read_input_tokens ?? 0;
+        cacheWriteTokens += retryResponse.usage.cache_creation_input_tokens ?? 0;
+        const retryToolUseBlocks = retryResponse.content.filter((b: any) => b.type === "tool_use");
+        if (retryToolUseBlocks.length === 0) {
+          const text = retryResponse.content
+            .filter((b: any) => b.type === "text")
+            .map((b: any) => b.text)
+            .join("\n");
+          emit("error", { message: `Claude returned no tool_use (after one retry): ${text.slice(0, 500)}` });
+          return res.end();
+        }
+        // The retry succeeded — splice the reminder turn into history and continue as if
+        // retryResponse were this iteration's real response.
+        messages.push({ role: "user", content: retryMessages[retryMessages.length - 1].content });
+        response = retryResponse;
+        toolUseBlocks = retryToolUseBlocks;
       }
 
       // Push the assistant turn (with any thinking + tool_use blocks) to history.
